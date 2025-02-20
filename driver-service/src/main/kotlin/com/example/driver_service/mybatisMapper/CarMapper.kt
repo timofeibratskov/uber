@@ -1,4 +1,4 @@
-package com.example.driver_service.mapper
+package com.example.driver_service.mybatisMapper
 
 import com.example.driver_service.entity.CarEntity
 import org.apache.ibatis.annotations.Update
