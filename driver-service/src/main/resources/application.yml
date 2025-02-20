@@ -1,0 +1,17 @@
+spring:
+  liquibase:
+    change-log: classpath:db/migration/db1.yml
+    enabled: true
+
+  datasource:
+    url: jdbc:postgresql://localhost:54321/postgres
+    username: postgres
+    password: 1111
+    driver-class-name: org.postgresql.Driver
+
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true
+
+server:
+  port: 8081
