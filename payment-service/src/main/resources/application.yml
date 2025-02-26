@@ -1,0 +1,15 @@
+server:
+  port: 8084
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:6543/postgres
+    username: postgres
+    password: 1111
+    driver-class-name: org.postgresql.Driver
+  liquibase:
+    change-log: classpath:db/migration/db1.yml
+
+logging:
+  level:
+    org.springframework: DEBUG
+    com.example.payment_service: TRACE
