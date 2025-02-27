@@ -1,0 +1,7 @@
+spring:
+  data:
+    mongodb:
+      uri: mongodb://mongo:1111@localhost:27018/ride?authSource=admin
+
+server:
+  port: 8083
