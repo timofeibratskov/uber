@@ -12,9 +12,6 @@ public class LoginPassengerDto {
         return gmail;
     }
 
-    public void setGmail(String gmail) {
-        this.gmail = gmail;
-    }
 
     public String getPassword() {
         return password;

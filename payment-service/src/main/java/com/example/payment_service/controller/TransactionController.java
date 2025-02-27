@@ -7,7 +7,13 @@ import com.example.payment_service.enums.TransactionType;
 import com.example.payment_service.service.TransactionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
@@ -19,14 +25,15 @@ public class TransactionController {
 
     @PostMapping("/{type}")
     public void newTransaction(@PathVariable TransactionType type,
-                                            @RequestBody @Valid TransactionRequestDto dto) {
-       transactionService.createTransaction(type, dto);
+                               @RequestBody @Valid TransactionRequestDto dto) {
+        transactionService.createTransaction(type, dto);
     }
 
     @GetMapping("/all")
     public List<TransactionEntity> findAll() {
         return transactionService.findAll();
     }
+
     @DeleteMapping("/del/{id}")
     public void delete(@PathVariable Long id) {
         transactionService.dropTransaction(id);

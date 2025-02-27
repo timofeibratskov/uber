@@ -5,5 +5,6 @@ data class DriverDto(
     val name: String,
     val gmail: String,
     val phoneNumber: String,
+    val password:String,
     val rating: Float
 )

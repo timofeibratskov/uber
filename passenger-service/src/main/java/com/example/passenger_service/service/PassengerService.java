@@ -46,6 +46,10 @@ public class PassengerService {
                 .ifPresent(existingPassenger -> {
                     throw new PassengerAlreadyExistsException(String.format("Пассажир с именем %s уже зарегистрирован.", passenger.getName()));
                 });
+        passengerRepo.findPassengerByPhoneNumber(passenger.getPhoneNumber())
+                .ifPresent(existingPassenger -> {
+                    throw new PassengerAlreadyExistsException(String.format("Пассажир с телефоном %s уже зарегистрирован.", passenger.getPhoneNumber()));
+                });
 
         PassengerEntity savedPassenger = passengerRepo.save(passenger);
         return passengerMapper.toRegisterPassengerDto(savedPassenger);
@@ -58,10 +62,47 @@ public class PassengerService {
         );
     }
 
-    public RegisterPassengerDto findPassenger(Long id) {
+    public PassengerDto updatePassenger(Long id, RegisterPassengerDto dto) {
+        PassengerEntity existingPassenger = passengerRepo.findPassengerById(id)
+                .orElseThrow(() -> new PassengerNotFoundException("Пассажир с ID " + id + " не найден."));
+        if (dto.getGmail() != null && !dto.getGmail().equals(existingPassenger.getGmail())) {
+            passengerRepo.findPassengerByGmail(dto.getGmail())
+                    .ifPresent(p -> {
+                        if (!p.getId().equals(id)) {
+                            throw new PassengerAlreadyExistsException("Пассажир с таким email уже существует.");
+                        }
+                    });
+            existingPassenger.setGmail(dto.getGmail());
+        }
+        if (dto.getName() != null && !dto.getName().equals(existingPassenger.getName())) {
+            passengerRepo.findPassengerByName(dto.getName())
+                    .ifPresent(p -> {
+                        if (!p.getId().equals(id)) {
+                            throw new PassengerAlreadyExistsException("Пассажир с таким именем уже существует.");
+                        }
+                    });
+            existingPassenger.setName(dto.getName());
+        }
+        if (dto.getPhoneNumber() != null && !dto.getPhoneNumber().equals(existingPassenger.getPhoneNumber())) {
+            passengerRepo.findPassengerByPhoneNumber(dto.getPhoneNumber())
+                    .ifPresent(p -> {
+                        if (!p.getId().equals(id)) {
+                            throw new PassengerAlreadyExistsException("Пассажир с таким номером телефона уже существует.");
+                        }
+                    });
+            existingPassenger.setPhoneNumber(dto.getPhoneNumber());
+        }
+        if (dto.getPassword() != null) {
+            existingPassenger.setPassword(dto.getPassword());
+        }
+        PassengerEntity updatedPassenger = passengerRepo.save(existingPassenger);
+        return passengerMapper.toPassengerDto(updatedPassenger);
+    }
+
+    public PassengerDto findPassenger(Long id) {
         PassengerEntity passenger = passengerRepo.findPassengerById(id)
                 .orElseThrow(() -> new PassengerNotFoundException(String.format("Пассажир с ID: %d не существует", id)));
-        return passengerMapper.toRegisterPassengerDto(passenger);
+        return passengerMapper.toPassengerDto(passenger);
     }
 
 

@@ -6,14 +6,17 @@ import com.example.passenger_service.dto.PassengerDto;
 import com.example.passenger_service.dto.LoginPassengerDto;
 import com.example.passenger_service.service.PassengerService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 
 import java.util.List;
+
 @RestController
 @RequestMapping("/api/passengers")
 public class PassengerController {
@@ -35,9 +38,19 @@ public class PassengerController {
         return ResponseEntity.ok(passengers);
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<PassengerDto> getPassengers(@PathVariable Long id) {
+        return ResponseEntity.ok(passengerService.findPassenger(id));
+    }
+
     @PostMapping("/login")
     public ResponseEntity<PassengerDto> loginPassenger(@RequestBody LoginPassengerDto loginPassengerDto) {
         return ResponseEntity.status(200).body(passengerService.loginPassenger(loginPassengerDto));
+    }
+//TODO повторки в дто !!!
+    @PutMapping("/update/{id}")
+    public ResponseEntity<PassengerDto> updatePassenger(@PathVariable Long id, @RequestBody RegisterPassengerDto dto) {
+        return ResponseEntity.ok(passengerService.updatePassenger(id, dto));
     }
 
 
