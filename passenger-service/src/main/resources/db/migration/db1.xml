@@ -16,7 +16,10 @@
             <column name="phone_number" type="VARCHAR(255)"/>
             <column name="rating" type="REAL"/>
             <column name="card_id" type="BIGINT"/>
-            <column name="list_of_rides_id" type="BIGINT"/>
         </createTable>
+    </changeSet>
+
+    <changeSet id="2" author="timofei">
+        <createSequence sequenceName="passenger_seq" startValue="1"/>
     </changeSet>
 </databaseChangeLog>

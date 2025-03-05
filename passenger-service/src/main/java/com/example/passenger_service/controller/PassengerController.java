@@ -1,35 +1,34 @@
 package com.example.passenger_service.controller;
 
-import com.example.passenger_service.dto.DeletePassengerDto;
-import com.example.passenger_service.dto.RegisterPassengerDto;
+import com.example.passenger_service.dto.LoginPassengerRequest;
 import com.example.passenger_service.dto.PassengerDto;
-import com.example.passenger_service.dto.LoginPassengerDto;
+import com.example.passenger_service.dto.PassengerRequest;
 import com.example.passenger_service.service.PassengerService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.DeleteMapping;
 
 import java.util.List;
 
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/passengers")
 public class PassengerController {
+
     private final PassengerService passengerService;
 
-    public PassengerController(PassengerService passengerService) {
-        this.passengerService = passengerService;
-    }
-
-
     @PostMapping("/register")
-    public ResponseEntity<RegisterPassengerDto> registerPassenger(@RequestBody RegisterPassengerDto passengerDto) {
-        return ResponseEntity.status(201).body(passengerService.registerPassenger(passengerDto));
+    public ResponseEntity<String> registerPassenger(
+            @RequestBody @Valid PassengerRequest request) {
+        return ResponseEntity.status(201).body(passengerService.registerPassenger(request));
     }
 
     @GetMapping("/all")
@@ -44,19 +43,18 @@ public class PassengerController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<PassengerDto> loginPassenger(@RequestBody LoginPassengerDto loginPassengerDto) {
-        return ResponseEntity.status(200).body(passengerService.loginPassenger(loginPassengerDto));
+    public ResponseEntity<PassengerDto> loginPassenger(@RequestBody LoginPassengerRequest request) {
+        return ResponseEntity.status(200).body(passengerService.loginPassenger(request));
     }
-//TODO повторки в дто !!!
+
     @PutMapping("/update/{id}")
-    public ResponseEntity<PassengerDto> updatePassenger(@PathVariable Long id, @RequestBody RegisterPassengerDto dto) {
-        return ResponseEntity.ok(passengerService.updatePassenger(id, dto));
+    public ResponseEntity<String> updatePassenger(@PathVariable Long id, @RequestBody PassengerRequest request) {
+        return ResponseEntity.ok(passengerService.updatePassenger(id, request));
     }
 
-
-    @DeleteMapping("/delete")
-    public ResponseEntity<Void> deletePassenger(@RequestBody DeletePassengerDto deletePassengerDto) {
-        passengerService.deletePassenger(deletePassengerDto);
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<Void> deletePassenger(@PathVariable Long id) {
+        passengerService.deletePassenger(id);
         return ResponseEntity.noContent().build();
     }
 }

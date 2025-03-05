@@ -1,17 +1,33 @@
 package com.example.passenger_service.mapper;
 
 import com.example.passenger_service.dto.PassengerDto;
-import com.example.passenger_service.dto.RegisterPassengerDto;
+import com.example.passenger_service.dto.PassengerRequest;
 import com.example.passenger_service.entity.PassengerEntity;
-import org.mapstruct.Mapper;
-import org.mapstruct.MappingConstants;
+import org.springframework.stereotype.Component;
 
-@Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
-public interface PassengerMapper {
-    PassengerDto toPassengerDto(PassengerEntity passenger);
+@Component
+public class PassengerMapper {
+    public PassengerEntity toEntity(PassengerRequest request) {
+        return PassengerEntity.builder()
+                .name(request.name())
+                .gmail(request.gmail())
+                .password(request.password())
+                .phoneNumber(request.phoneNumber())
+                .cardId(null)
+                .rating(0.0f)
+                .build();
+    }
 
-    PassengerEntity toPassenger(RegisterPassengerDto passengerDto);
 
-    RegisterPassengerDto toRegisterPassengerDto(PassengerEntity passenger);
-
+    public PassengerDto toDto(PassengerEntity entity) {
+        return PassengerDto.builder()
+                .id(entity.getId())
+                .name(entity.getName())
+                .gmail(entity.getGmail())
+                .password(entity.getPassword())
+                .phoneNumber(entity.getPhoneNumber())
+                .cardId(entity.getCardId())
+                .rating(entity.getRating())
+                .build();
+    }
 }

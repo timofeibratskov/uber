@@ -1,112 +1,46 @@
 package com.example.passenger_service.entity;
 
+import jakarta.persistence.Id;
 import jakarta.persistence.Entity;
+import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.Column;
+import jakarta.validation.constraints.Email;
+import lombok.Builder;
+import lombok.Setter;
+import lombok.Getter;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
 @Entity
 public class PassengerEntity {
+
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "passenger_seq")///POPRAVIT
+    @SequenceGenerator(name = "passenger_seq", sequenceName = "passenger_seq", allocationSize = 1)
     private Long id;
+
+    @Column(unique = true,nullable = false)
     private String name;
+
+    @Column(nullable = false, unique = true)
+    @Email
     private String gmail;
+
+    @Column(nullable = false)
     private String password;
+
+    @Column(nullable = false, unique = true)
     private String phoneNumber;
+
     private Long cardId;
+
     private Float rating;
-    private Long listOfRidesId;
 
-    public PassengerEntity() {
-    }
-
-    public PassengerEntity(Long id, String name, String gmail, String password, String phoneNumber, Long cardId, Float rating, Long listOfRidesId) {
-        this.id = id;
-        this.name = name;
-        this.gmail = gmail;
-        this.password = password;
-        this.phoneNumber = phoneNumber;
-        this.cardId = cardId;
-        this.rating = rating;
-        this.listOfRidesId = listOfRidesId;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getGmail() {
-        return gmail;
-    }
-
-    public void setGmail(String gmail) {
-        this.gmail = gmail;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public String getPhoneNumber() {
-        return phoneNumber;
-    }
-
-    public void setPhoneNumber(String phoneNumber) {
-        this.phoneNumber = phoneNumber;
-    }
-
-    public Long getCardId() {
-        return cardId;
-    }
-
-    public void setCardId(Long cardId) {
-        this.cardId = cardId;
-    }
-
-    public Float getRating() {
-        return rating;
-    }
-
-    public void setRating(Float rating) {
-        this.rating = rating;
-    }
-
-    public Long getListOfRidesId() {
-        return listOfRidesId;
-    }
-
-    public void setListOfRidesId(Long listOfRidesId) {
-        this.listOfRidesId = listOfRidesId;
-    }
-
-    @Override
-    public String toString() {
-        return "Passenger{" +
-                "id=" + id +
-                ", name='" + name + '\'' +
-                ", gmail='" + gmail + '\'' +
-                ", password='" + password + '\'' +
-                ", phoneNumber='" + phoneNumber + '\'' +
-                ", cardId=" + cardId +
-                ", rating=" + rating +
-                ", listOfRidesId=" + listOfRidesId +
-                '}';
-    }
 }
