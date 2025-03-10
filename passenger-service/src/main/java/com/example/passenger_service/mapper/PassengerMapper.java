@@ -13,7 +13,6 @@ public class PassengerMapper {
                 .gmail(request.gmail())
                 .password(request.password())
                 .phoneNumber(request.phoneNumber())
-                .cardId(null)
                 .rating(0.0f)
                 .build();
     }
@@ -26,7 +25,6 @@ public class PassengerMapper {
                 .gmail(entity.getGmail())
                 .password(entity.getPassword())
                 .phoneNumber(entity.getPhoneNumber())
-                .cardId(entity.getCardId())
                 .rating(entity.getRating())
                 .build();
     }

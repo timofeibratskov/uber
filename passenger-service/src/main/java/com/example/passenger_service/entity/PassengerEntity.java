@@ -39,8 +39,6 @@ public class PassengerEntity {
     @Column(nullable = false, unique = true)
     private String phoneNumber;
 
-    private Long cardId;
-
     private Float rating;
 
 }
