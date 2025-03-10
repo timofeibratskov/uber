@@ -26,13 +26,11 @@ import java.util.List;
 public class RideController {
     private final RideService rideService;
 
-    // Создать поездку
     @PostMapping
     public ResponseEntity<RideStatus> createRide(@Valid @RequestBody RideRequestDto request) {
         return ResponseEntity.ok(rideService.createRide(request));
     }
 
-    // Получить все поездки пользователя
     @GetMapping("/passenger/{id}")
     public List<RideDto> getPassengerRides(@PathVariable Long id) {
         return rideService.getRidesByPassengerId(id);
@@ -48,7 +46,6 @@ public class RideController {
         return rideService.getRidesByStatus(status);
     }
 
-    // Назначить водителя
     @PutMapping("/{rideId}/assign-driver")
     public void assignDriver(
             @PathVariable String rideId,
@@ -57,25 +54,21 @@ public class RideController {
         rideService.assignDriver(rideId, driverId);
     }
 
-    // Начать поездку
     @PutMapping("/{rideId}/start")
     public String startRide(@PathVariable String rideId) {
         return rideService.changeStatus(rideId, RideStatus.IN_PROGRESS);
     }
 
-    // Завершить поездку
     @PutMapping("/{rideId}/complete")
     public String completeRide(@PathVariable String rideId) {
         return rideService.changeStatus(rideId, RideStatus.COMPLETED);
     }
 
-    // Оплатить поездку///todo оплата строго  пэймент . и оттуда пусть сюда идет кафка-сообщение.
     @PutMapping("/{rideId}/pay")
     public String payRide(@PathVariable String rideId) {
         return rideService.changeStatus(rideId, RideStatus.PAID);
     }
 
-    // Отменить поездку
     @PatchMapping("/{rideId}/cancel")
     public String cancelRide(@PathVariable String rideId) {
         return rideService.changeStatus(rideId, RideStatus.CANCELLED);
