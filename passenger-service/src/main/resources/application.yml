@@ -1,6 +1,6 @@
 spring:
   liquibase:
-    change-log: classpath:db/migration/db1.xml
+    change-log: classpath:db/migration/db2.xml
   datasource:
     url: jdbc:postgresql://localhost:5432/postgres
     username: postgres
