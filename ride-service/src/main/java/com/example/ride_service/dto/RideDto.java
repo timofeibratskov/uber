@@ -1,21 +1,21 @@
-package com.example.ride_service.entity;
+package com.example.ride_service.dto;
 
-import lombok.*;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
+import com.example.ride_service.entity.RideStatus;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Getter
 @Setter
-@Document(collection = "rides")
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString
 @Builder
-public class RideEntity {
-    @Id
+public class RideDto {
     private String id;
     private String pointA;
     private String pointB;
@@ -27,7 +27,6 @@ public class RideEntity {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime completedIn;
-    private Long passengerRatingId; //айди рейтинга который отправил passenger
-    private Long driverRatingId; //send driver
+    private Long passengerRatingId;
+    private Long driverRatingId;
 }
-

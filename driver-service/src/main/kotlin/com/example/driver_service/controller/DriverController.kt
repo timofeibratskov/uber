@@ -1,6 +1,7 @@
 package com.example.driver_service.controller
 
 import com.example.driver_service.dto.DriverDto
+import com.example.driver_service.dto.DriverNotification
 import com.example.driver_service.dto.LoginDriverDto
 import com.example.driver_service.dto.RegistrationDriverDto
 import com.example.driver_service.mapper.DriverMapper
@@ -32,7 +33,10 @@ class DriverController(
         val driver = driverService.getDriverById(id)
         return driverMapperDto.toDto(driver)
     }
-
+//    @GetMapping("/{id}/notification")
+//    fun getnotifications(@PathVariable id:Long):DriverNotification{
+//        return
+//    }
     @PostMapping("/register")
     fun registerDriver(@RequestBody registrationDto: RegistrationDriverDto): DriverDto {
         val entity = driverMapperDto.fromRegistrationDto(registrationDto)
