@@ -56,6 +56,7 @@ public class RideService {
         validateStatusTransition(ride.getStatus(), newStatus);
         ride.setStatus(newStatus);
         ride.setUpdatedAt(LocalDateTime.now());
+        rideRepo.save(ride);
         if (newStatus == RideStatus.COMPLETED) ride.setCompletedIn(LocalDateTime.now());
         return "СТАТУС БЫЛ ИЗМЕНЕН УСПЕШНО";
     }
@@ -75,18 +76,18 @@ public class RideService {
             throw new InvalidStatusException("Оплата должна быть после COMPLETED");
         }
 
-        if (current == RideStatus.CANCELLED) {
-            throw new InvalidStatusException("Поездка отменена. Создайте новую поездку");
-        }
-        if (current == RideStatus.CREATED && newStatus != RideStatus.DRIVER_FOUND) {
-            throw new InvalidStatusException("статус должен поменяться только на DRIVER_FOUND");
-        }
-        if (current == RideStatus.DRIVER_FOUND && newStatus != RideStatus.IN_PROGRESS) {
-            throw new InvalidStatusException("статус должен поменяться только на IN_PROGRESS");
-        }
-        if (current == RideStatus.COMPLETED && newStatus != RideStatus.PAID) {
-            throw new InvalidStatusException("статус должен поменяться только на PAID");
-        }
+//        if (current == RideStatus.CANCELLED) {
+//            throw new InvalidStatusException("Поездка отменена. Создайте новую поездку");
+//        }
+//        if (current == RideStatus.CREATED && newStatus != RideStatus.DRIVER_FOUND) {
+//            throw new InvalidStatusException("статус должен поменяться только на DRIVER_FOUND");
+//        }
+//        if (current == RideStatus.DRIVER_FOUND && newStatus != RideStatus.IN_PROGRESS) {
+//            throw new InvalidStatusException("статус должен поменяться только на IN_PROGRESS");
+//        }
+//        if (current == RideStatus.COMPLETED && newStatus != RideStatus.PAID) {
+//            throw new InvalidStatusException("статус должен поменяться только на PAID");
+//        }
     }
 
     public List<RideDto> getRidesByPassengerId(Long id) {

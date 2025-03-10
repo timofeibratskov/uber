@@ -1,5 +1,6 @@
 package com.example.payment_service.entity;
 
+import com.example.payment_service.enums.Role;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
@@ -30,4 +31,6 @@ public class CardEntity {
     @Min(value = 1000, message = "Пароль должен состоять из 4 цифр")
     @Max(value = 9999, message = "Пароль должен состоять из 4 цифр")
     private Integer password;
+    private Long OwnerId;
+    private Role role;
 }

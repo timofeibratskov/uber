@@ -4,9 +4,11 @@ import com.example.payment_service.dto.CardRequestDto;
 import com.example.payment_service.dto.CardResponseDto;
 import com.example.payment_service.dto.UpdateCardPasswordDto;
 import com.example.payment_service.entity.CardEntity;
+import com.example.payment_service.enums.Role;
 import com.example.payment_service.exception.CardNumberAlreadyExistsException;
 import com.example.payment_service.exception.InvalidPasswordException;
 import com.example.payment_service.exception.NotFoundException;
+import com.example.payment_service.mapper.CardMapper;
 import com.example.payment_service.repo.CardRepo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,27 +19,25 @@ import java.math.BigDecimal;
 @RequiredArgsConstructor
 public class CardService {
     private final CardRepo cardRepo;
+    private final CardMapper mapper;
 
-    public Long createCard(CardRequestDto cardRequestDto) {
+    public Long createCard(Long ownerId, Role role, CardRequestDto cardRequestDto) {
+
         if (cardRepo.existsByCardNumber(cardRequestDto.cardNumber())) {
             throw new CardNumberAlreadyExistsException("Номер карты уже существует");
         }
 
-        CardEntity cardEntity = CardEntity.builder()
-                .cardNumber(cardRequestDto.cardNumber())
-                .balance(cardRequestDto.balance())
-                .password(cardRequestDto.password()).build();
+        CardEntity cardEntity = mapper.toEntity(cardRequestDto);
+        cardEntity.setRole(role);
+        cardEntity.setOwnerId(ownerId);
+
         return cardRepo.save(cardEntity).getId();
     }
 
     public CardResponseDto findCardById(Long id) {
         CardEntity card = cardRepo.findById(id).orElseThrow(() ->
                 new NotFoundException("такой карты не существует"));
-        return CardResponseDto.builder()
-                .id(card.getId())
-                .cardNumber(card.getCardNumber())
-                .balance(card.getBalance())
-                .password(card.getPassword()).build();
+        return mapper.toDto(card);
     }
 
     public BigDecimal getBalance(Long id, Integer password) {
@@ -50,7 +50,7 @@ public class CardService {
         }
     }
 
-    public String updateCardPassword(Long id,UpdateCardPasswordDto updateCardPasswordDto) {
+    public String updateCardPassword(Long id, UpdateCardPasswordDto updateCardPasswordDto) {
         CardEntity card = cardRepo.findById(id).orElseThrow(() ->
                 new NotFoundException("такой карты не существует"));
         if (card.getPassword().equals(updateCardPasswordDto.password())) {

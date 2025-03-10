@@ -22,8 +22,8 @@ import java.time.LocalDateTime;
 public class TransactionEntity {
     @Id
     private Long id;
-    private long senderCardId;
-    private long recipientCardId;
+    private Long senderCardId;
+    private Long recipientCardId;
     private BigDecimal amount;
     private LocalDateTime transactionDate;
     private TransactionType transactionType;

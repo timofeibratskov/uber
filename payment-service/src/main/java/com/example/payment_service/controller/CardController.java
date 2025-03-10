@@ -3,6 +3,7 @@ package com.example.payment_service.controller;
 import com.example.payment_service.dto.CardRequestDto;
 import com.example.payment_service.dto.CardResponseDto;
 import com.example.payment_service.dto.UpdateCardPasswordDto;
+import com.example.payment_service.enums.Role;
 import com.example.payment_service.service.CardService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,9 +25,10 @@ import java.math.BigDecimal;
 public class CardController {
     private final CardService cardService;
 
-    @PostMapping("/create")
-    public Long createCard(@RequestBody CardRequestDto cardRequestDto) {
-        return cardService.createCard(cardRequestDto);
+    @PostMapping("/{role}/{ownerId}/create")
+    public Long createCard(@RequestBody CardRequestDto cardRequestDto
+    , @PathVariable Role role,@PathVariable Long ownerId) {
+        return cardService.createCard(ownerId,role,cardRequestDto);
     }
 
     @GetMapping("/find/{id}")

@@ -58,19 +58,19 @@ public class RideController {
     }
 
     // Начать поездку
-    @PatchMapping("/{rideId}/start")
+    @PutMapping("/{rideId}/start")
     public String startRide(@PathVariable String rideId) {
         return rideService.changeStatus(rideId, RideStatus.IN_PROGRESS);
     }
 
     // Завершить поездку
-    @PatchMapping("/{rideId}/complete")
+    @PutMapping("/{rideId}/complete")
     public String completeRide(@PathVariable String rideId) {
         return rideService.changeStatus(rideId, RideStatus.COMPLETED);
     }
 
-    // Оплатить поездку
-    @PatchMapping("/{rideId}/pay")
+    // Оплатить поездку///todo оплата строго  пэймент . и оттуда пусть сюда идет кафка-сообщение.
+    @PutMapping("/{rideId}/pay")
     public String payRide(@PathVariable String rideId) {
         return rideService.changeStatus(rideId, RideStatus.PAID);
     }
