@@ -7,6 +7,5 @@ data class DriverNotification(
     val pointA: String,
     val pointB: String,
     val creatorId: Long,
-    val seats: Byte,
-    val time: LocalDateTime
+    val seats: Byte
 )
