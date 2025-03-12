@@ -8,8 +8,9 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: create
+      ddl-auto: update
     show-sql: true
-
+  kafka:
+    bootstrap-servers: localhost:29092
 server:
   port: 8080

@@ -2,6 +2,7 @@ package com.example.passenger_service.service;
 
 import com.example.passenger_service.dto.LoginPassengerRequest;
 import com.example.passenger_service.dto.PassengerDto;
+import com.example.passenger_service.dto.PassengerRatingEvent;
 import com.example.passenger_service.dto.PassengerRequest;
 import com.example.passenger_service.entity.PassengerEntity;
 import com.example.passenger_service.exception.InvalidCredentialsException;
@@ -10,6 +11,7 @@ import com.example.passenger_service.repo.PassengerRepo;
 import com.example.passenger_service.mapper.PassengerMapper;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -109,4 +111,19 @@ public class PassengerService {
         passengerRepo.delete(passenger);
     }
 
+    @KafkaListener(
+            topics = "PASSENGER-rating-event",
+            groupId = "passenger-rating-group",
+            containerFactory = "passengerRatingListenerContainerFactory"
+    )
+    public void updatePassengerRating(PassengerRatingEvent event) {
+        PassengerEntity passenger = passengerRepo.findPassengerById(event.recipientId())
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден"));
+
+        passenger.setRating(event.rating());
+        passengerRepo.save(passenger);
+
+        System.out.printf("Пассажир с id %d обновлен! Новый рейтинг: %.2f%n",
+                passenger.getId(), passenger.getRating());
+    }
 }
