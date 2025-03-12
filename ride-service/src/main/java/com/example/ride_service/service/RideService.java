@@ -1,10 +1,12 @@
 package com.example.ride_service.service;
 
+import com.example.ride_service.dto.RatingIdEvent;
 import com.example.ride_service.dto.RideCreatedEvent;
 import com.example.ride_service.dto.RideDto;
 import com.example.ride_service.dto.RideRequestDto;
 import com.example.ride_service.entity.RideEntity;
-import com.example.ride_service.entity.RideStatus;
+import com.example.ride_service.enums.RideStatus;
+import com.example.ride_service.enums.SenderType;
 import com.example.ride_service.exception.InvalidStatusException;
 import com.example.ride_service.exception.NotFoundException;
 import com.example.ride_service.mapper.RideMapper;
@@ -47,7 +49,7 @@ public class RideService {
         ride.setDriverId(driverId);
         ride.setStatus(RideStatus.DRIVER_FOUND);
         ride.setUpdatedAt(LocalDateTime.now());
-         rideRepo.save(ride);
+        rideRepo.save(ride);
         System.out.println(ride.toString());
     }
 
@@ -61,7 +63,8 @@ public class RideService {
         return "СТАТУС БЫЛ ИЗМЕНЕН УСПЕШНО";
     }
 
-    @KafkaListener(topics = "drivers-not-found", groupId = "ride-service-group")
+    @KafkaListener(topics = "drivers-not-found",
+            groupId = "ride-service-group")
     public void handleCancelledRide(String message) {
         System.out.println("получено сообщение!!! " + message);
         rideRepo.findById(message).ifPresentOrElse(ride -> {
@@ -72,22 +75,22 @@ public class RideService {
     }
 
     private void validateStatusTransition(RideStatus current, RideStatus newStatus) {
-        if (newStatus == RideStatus.PAID && current != RideStatus.COMPLETED) {
-            throw new InvalidStatusException("Оплата должна быть после COMPLETED");
-        }
-
-//        if (current == RideStatus.CANCELLED) {
-//            throw new InvalidStatusException("Поездка отменена. Создайте новую поездку");
-//        }
-//        if (current == RideStatus.CREATED && newStatus != RideStatus.DRIVER_FOUND) {
-//            throw new InvalidStatusException("статус должен поменяться только на DRIVER_FOUND");
-//        }
-//        if (current == RideStatus.DRIVER_FOUND && newStatus != RideStatus.IN_PROGRESS) {
-//            throw new InvalidStatusException("статус должен поменяться только на IN_PROGRESS");
-//        }
-//        if (current == RideStatus.COMPLETED && newStatus != RideStatus.PAID) {
-//            throw new InvalidStatusException("статус должен поменяться только на PAID");
-//        }
+            if (newStatus == RideStatus.PAID && current != RideStatus.COMPLETED) {
+                throw new InvalidStatusException("Оплата должна быть после COMPLETED");
+            }
+        //todo
+    //        if (current == RideStatus.CANCELLED) {
+    //            throw new InvalidStatusException("Поездка отменена. Создайте новую поездку");
+    //        }
+    //        if (current == RideStatus.CREATED && newStatus != RideStatus.DRIVER_FOUND) {
+    //            throw new InvalidStatusException("статус должен поменяться только на DRIVER_FOUND");
+    //        }
+    //        if (current == RideStatus.DRIVER_FOUND && newStatus != RideStatus.IN_PROGRESS) {
+    //            throw new InvalidStatusException("статус должен поменяться только на IN_PROGRESS");
+    //        }
+    //        if (current == RideStatus.COMPLETED && newStatus != RideStatus.PAID) {
+    //            throw new InvalidStatusException("статус должен поменяться только на PAID");
+    //        }
     }
 
     public List<RideDto> getRidesByPassengerId(Long id) {
@@ -114,5 +117,23 @@ public class RideService {
     private RideEntity findRideOrThrow(String rideId) {
         return rideRepo.findById(rideId)
                 .orElseThrow(() -> new NotFoundException("Поездка не найдена"));
+    }
+
+    @KafkaListener(
+            topics = "rating-id-event",
+            groupId = "ride-rating-group",
+            containerFactory = "ratingIdListenerContainerFactory"
+    )
+    public void addRatingInRide(RatingIdEvent event) {
+        RideEntity ride = rideRepo.findById(event.rideId()).orElseThrow(() -> new NotFoundException("такой поездки не существует"));
+        if (event.type() == SenderType.DRIVER) {
+
+            ride.setPassengerRatingId(event.recipientRatingId());
+        } else {
+            ride.setDriverRatingId(event.recipientRatingId());
+        }
+        ride.setUpdatedAt(LocalDateTime.now());
+        rideRepo.save(ride);
+        System.out.println("в поездке " + ride.getId() + " был выставлен рейтинг ");
     }
 }

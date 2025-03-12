@@ -1,7 +1,7 @@
 package com.example.ride_service.repo;
 
 import com.example.ride_service.entity.RideEntity;
-import com.example.ride_service.entity.RideStatus;
+import com.example.ride_service.enums.RideStatus;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
 

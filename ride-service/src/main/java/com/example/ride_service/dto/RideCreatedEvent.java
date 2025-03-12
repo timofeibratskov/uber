@@ -1,8 +1,11 @@
 package com.example.ride_service.dto;
 
-import lombok.*;
-
-import java.time.LocalDateTime;
+import lombok.Setter;
+import lombok.Getter;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+import lombok.Builder;
+import lombok.ToString;
 
 @Getter
 @Setter
@@ -16,5 +19,4 @@ public class RideCreatedEvent {
     private String pointB;
     private Long creatorId;
     private Byte seats;
-    private LocalDateTime time;
 }

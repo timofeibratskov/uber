@@ -6,8 +6,6 @@ import com.example.ride_service.dto.RideRequestDto;
 import com.example.ride_service.entity.RideEntity;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
-
 @Component
 public class RideMapper {
     public RideEntity toEntity(RideRequestDto request) {
@@ -42,7 +40,6 @@ public class RideMapper {
                 .pointB(request.getPointB())
                 .creatorId(request.getCreatorId())
                 .seats(request.getSeats())
-                .time(LocalDateTime.now())
                 .build();
     }
 }

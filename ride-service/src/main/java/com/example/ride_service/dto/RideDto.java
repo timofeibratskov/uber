@@ -1,6 +1,6 @@
 package com.example.ride_service.dto;
 
-import com.example.ride_service.entity.RideStatus;
+import com.example.ride_service.enums.RideStatus;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;

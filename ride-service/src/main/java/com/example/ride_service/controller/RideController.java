@@ -2,8 +2,7 @@ package com.example.ride_service.controller;
 
 import com.example.ride_service.dto.RideDto;
 import com.example.ride_service.dto.RideRequestDto;
-import com.example.ride_service.entity.RideEntity;
-import com.example.ride_service.entity.RideStatus;
+import com.example.ride_service.enums.RideStatus;
 import com.example.ride_service.service.RideService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
