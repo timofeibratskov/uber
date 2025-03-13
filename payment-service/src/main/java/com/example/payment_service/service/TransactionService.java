@@ -1,5 +1,6 @@
 package com.example.payment_service.service;
 
+import com.example.payment_service.client.RideServiceClient;
 import com.example.payment_service.dto.TransactionRequestDto;
 import com.example.payment_service.entity.CardEntity;
 import com.example.payment_service.entity.TransactionEntity;
@@ -11,6 +12,7 @@ import com.example.payment_service.exception.NotFoundException;
 import com.example.payment_service.repo.CardRepo;
 import com.example.payment_service.repo.TransactionRepo;
 import lombok.RequiredArgsConstructor;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,7 +26,7 @@ public class TransactionService {
 
     private final TransactionRepo transactionRepo;
     private final CardRepo cardRepo;
-
+    private final RideServiceClient client;
     @Transactional
     public void createTransaction(TransactionType type, TransactionRequestDto dto) {
         TransactionEntity transaction = TransactionEntity
@@ -69,6 +71,7 @@ public class TransactionService {
 
             transaction.setStatus(TransactionStatus.COMPLETED);
             transactionRepo.save(transaction);
+            client.payRide(dto.rideId());
         } else {
             transaction.setStatus(TransactionStatus.FAILED);
             transactionRepo.save(transaction);

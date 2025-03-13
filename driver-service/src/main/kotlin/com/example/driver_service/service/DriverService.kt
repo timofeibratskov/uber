@@ -1,5 +1,8 @@
 package com.example.driver_service.service
 
+import com.example.driver_service.client.RideServiceClient
+import com.example.driver_service.dto.DriverNotification
+import com.example.driver_service.dto.DriverRatingEvent
 import com.example.driver_service.entity.DriverEntity
 import com.example.driver_service.exception.EmailNotFoundException
 import com.example.driver_service.exception.EmailAlreadyExistsException
@@ -7,14 +10,20 @@ import com.example.driver_service.exception.DriverNotFoundException
 import com.example.driver_service.exception.InvalidCredentialsException
 import com.example.driver_service.exception.PhoneNumberAlreadyExistsException
 import com.example.driver_service.exception.NameAlreadyExistsException
+import com.example.driver_service.mybatisMapper.CarMapper
 import com.example.driver_service.mybatisMapper.DriverMapper
+import org.springframework.kafka.annotation.KafkaListener
+import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service
 @Transactional
 class DriverService(
-    private val driverMapper: DriverMapper
+    private val driverMapper: DriverMapper,
+    private val carMapper: CarMapper,
+    private val rideClient: RideServiceClient,
+    private val kafkaTemplate: KafkaTemplate<String, String>
 ) {
 
     fun getAll(): List<DriverEntity> {
@@ -83,4 +92,41 @@ class DriverService(
             throw DriverNotFoundException(driver.id)
         }
     }
+
+    @KafkaListener(
+        topics = ["ride-created"],
+        groupId = "driver-service-group",
+        containerFactory = "driverNotificationListenerContainerFactory"
+    )
+    fun sendNotificationsForDriver(message: DriverNotification) {
+
+        val driversId = carMapper.findDriversIdBySeats(seats = message.seats)
+
+        if (driversId.isNotEmpty()) {
+            val randomDriverId = driversId.random()
+            println(message.id)
+            rideClient.assignDriver(message.id, randomDriverId)
+
+
+        } else {
+            println("not found!")
+            kafkaTemplate.send("drivers-not-found", message.id)
+        }
+    }
+
+    @KafkaListener(
+        topics = ["DRIVER-rating-event"],
+        groupId = "driver-rating-group",
+        containerFactory = "driverRatingListenerContainerFactory"
+    )
+    fun setRatingForDriver(event: DriverRatingEvent) {
+        println(event.recipientId)
+        println(event.rating)
+        val driver = driverMapper.findById(event.recipientId)
+            ?: throw DriverNotFoundException(event.recipientId)
+        driver.rating = event.rating
+        driverMapper.update(driver)
+        println("Обновил водителя с id: ${driver.id} и изменил рейтинг на ${driver.rating}")
+    }
+
 }

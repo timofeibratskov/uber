@@ -7,7 +7,7 @@ import org.springframework.data.mongodb.core.mapping.Document
 data class UserRatingEntity(
     @Id
     var id: Long = 0,
-    val recipientId: Long,  //чей рейтинг агрегируется
+    val recipientId: Long,
     var totalRating: Float = 0.0f,
     var quantityRating: Int = 0
 )

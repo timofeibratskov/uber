@@ -1,119 +1,129 @@
 package com.example.passenger_service.service;
 
-import com.example.passenger_service.dto.DeletePassengerDto;
+import com.example.passenger_service.dto.LoginPassengerRequest;
 import com.example.passenger_service.dto.PassengerDto;
-import com.example.passenger_service.dto.RegisterPassengerDto;
-import com.example.passenger_service.dto.LoginPassengerDto;
+import com.example.passenger_service.dto.PassengerRatingEvent;
+import com.example.passenger_service.dto.PassengerRequest;
 import com.example.passenger_service.entity.PassengerEntity;
 import com.example.passenger_service.exception.InvalidCredentialsException;
-import com.example.passenger_service.exception.PassengerAlreadyExistsException;
-import com.example.passenger_service.exception.PassengerNotFoundException;
+import com.example.passenger_service.exception.ResourceAlreadyExistsException;
 import com.example.passenger_service.repo.PassengerRepo;
 import com.example.passenger_service.mapper.PassengerMapper;
+import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
+import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
+@RequiredArgsConstructor
 @Service
 public class PassengerService {
-
     private final PassengerRepo passengerRepo;
+
     private final PassengerMapper passengerMapper;
 
-    public PassengerService(PassengerRepo passengerRepo, PassengerMapper passengerMapper) {
-        this.passengerRepo = passengerRepo;
-        this.passengerMapper = passengerMapper;
+
+    public PassengerDto findPassenger(Long id) {
+        PassengerEntity passenger = passengerRepo.findPassengerById(id)
+                .orElseThrow(() -> new EntityNotFoundException(String.format("Пассажир с ID: %d не существует", id)));
+        return passengerMapper.toDto(passenger);
     }
 
     public List<PassengerDto> findAllPassengers() {
         List<PassengerEntity> passengers = passengerRepo.findAll();
-        System.out.println(passengers);
         return passengers.stream()
-                .map(passengerMapper::toPassengerDto)
+                .map(passengerMapper::toDto)
                 .collect(Collectors.toList());
     }
 
-    public RegisterPassengerDto registerPassenger(RegisterPassengerDto registerPassengerDto) {
-        PassengerEntity passenger = passengerMapper.toPassenger(registerPassengerDto);
-
-        passengerRepo.findPassengerByGmail(passenger.getGmail())
+    public String registerPassenger(PassengerRequest request) {
+        PassengerEntity passenger = passengerMapper.toEntity(request);
+        System.out.println(request.gmail() + " " + request.name());
+        passengerRepo.findPassengerByGmail(request.gmail())
                 .ifPresent(existingPassenger -> {
-                    throw new PassengerAlreadyExistsException(String.format("Пассажир с email %s уже зарегистрирован.", passenger.getGmail()));
+                    throw new ResourceAlreadyExistsException(String.format("Пассажир с email %s уже зарегистрирован.", request.gmail()));
                 });
 
-        passengerRepo.findPassengerByName(passenger.getName())
+        passengerRepo.findPassengerByName(request.name())
                 .ifPresent(existingPassenger -> {
-                    throw new PassengerAlreadyExistsException(String.format("Пассажир с именем %s уже зарегистрирован.", passenger.getName()));
+                    throw new ResourceAlreadyExistsException(String.format("Пассажир с именем %s уже зарегистрирован.", request.name()));
                 });
-        passengerRepo.findPassengerByPhoneNumber(passenger.getPhoneNumber())
+        passengerRepo.findPassengerByPhoneNumber(request.phoneNumber())
                 .ifPresent(existingPassenger -> {
-                    throw new PassengerAlreadyExistsException(String.format("Пассажир с телефоном %s уже зарегистрирован.", passenger.getPhoneNumber()));
+                    throw new ResourceAlreadyExistsException(String.format("Пассажир с телефоном %s уже зарегистрирован.", request.phoneNumber()));
                 });
-
-        PassengerEntity savedPassenger = passengerRepo.save(passenger);
-        return passengerMapper.toRegisterPassengerDto(savedPassenger);
+        passengerRepo.save(passenger);
+        return "АККАУНТ УСПЕШНО СОЗДАН!";
     }
 
-    public PassengerDto loginPassenger(LoginPassengerDto loginPassengerDto) {
-        return passengerMapper.toPassengerDto(passengerRepo.findPassengerByGmail(loginPassengerDto.getGmail())
-                .filter(passenger -> passenger.getPassword().equals(loginPassengerDto.getPassword()))
+
+    public PassengerDto loginPassenger(LoginPassengerRequest request) {
+        return passengerMapper.toDto(passengerRepo.findPassengerByGmail(request.gmail())
+                .filter(passenger -> passenger.getPassword().equals(request.password()))
                 .orElseThrow(() -> new InvalidCredentialsException("Неверное имя пользователя или пароль."))
+
         );
     }
 
-    public PassengerDto updatePassenger(Long id, RegisterPassengerDto dto) {
+    public String updatePassenger(Long id, PassengerRequest request) {
         PassengerEntity existingPassenger = passengerRepo.findPassengerById(id)
-                .orElseThrow(() -> new PassengerNotFoundException("Пассажир с ID " + id + " не найден."));
-        if (dto.getGmail() != null && !dto.getGmail().equals(existingPassenger.getGmail())) {
-            passengerRepo.findPassengerByGmail(dto.getGmail())
+                .orElseThrow(() -> new EntityNotFoundException("Пассажир с ID " + id + " не найден."));
+        if (request.gmail() != null && !request.gmail().equals(existingPassenger.getGmail())) {
+            passengerRepo.findPassengerByGmail(request.gmail())
                     .ifPresent(p -> {
                         if (!p.getId().equals(id)) {
-                            throw new PassengerAlreadyExistsException("Пассажир с таким email уже существует.");
+                            throw new ResourceAlreadyExistsException("Пассажир с таким email уже существует.");
                         }
                     });
-            existingPassenger.setGmail(dto.getGmail());
+            existingPassenger.setGmail(request.gmail());
         }
-        if (dto.getName() != null && !dto.getName().equals(existingPassenger.getName())) {
-            passengerRepo.findPassengerByName(dto.getName())
+        if (request.name() != null && !request.name().equals(existingPassenger.getName())) {
+            passengerRepo.findPassengerByName(request.name())
                     .ifPresent(p -> {
                         if (!p.getId().equals(id)) {
-                            throw new PassengerAlreadyExistsException("Пассажир с таким именем уже существует.");
+                            throw new ResourceAlreadyExistsException("Пассажир с таким именем уже существует.");
                         }
                     });
-            existingPassenger.setName(dto.getName());
+            existingPassenger.setName(request.name());
         }
-        if (dto.getPhoneNumber() != null && !dto.getPhoneNumber().equals(existingPassenger.getPhoneNumber())) {
-            passengerRepo.findPassengerByPhoneNumber(dto.getPhoneNumber())
+        if (request.phoneNumber() != null && !request.phoneNumber().equals(existingPassenger.getPhoneNumber())) {
+            passengerRepo.findPassengerByPhoneNumber(request.phoneNumber())
                     .ifPresent(p -> {
                         if (!p.getId().equals(id)) {
-                            throw new PassengerAlreadyExistsException("Пассажир с таким номером телефона уже существует.");
+                            throw new ResourceAlreadyExistsException("Пассажир с таким номером телефона уже существует.");
                         }
                     });
-            existingPassenger.setPhoneNumber(dto.getPhoneNumber());
+            existingPassenger.setPhoneNumber(request.phoneNumber());
         }
-        if (dto.getPassword() != null) {
-            existingPassenger.setPassword(dto.getPassword());
+        if (request.password() != null) {
+            existingPassenger.setPassword(request.password());
         }
-        PassengerEntity updatedPassenger = passengerRepo.save(existingPassenger);
-        return passengerMapper.toPassengerDto(updatedPassenger);
+        passengerRepo.save(existingPassenger);
+        return "ОБНОВЛЕНО УСПЕШНО";
     }
 
-    public PassengerDto findPassenger(Long id) {
+
+    public void deletePassenger(Long id) {
         PassengerEntity passenger = passengerRepo.findPassengerById(id)
-                .orElseThrow(() -> new PassengerNotFoundException(String.format("Пассажир с ID: %d не существует", id)));
-        return passengerMapper.toPassengerDto(passenger);
+                .orElseThrow(() -> new InvalidCredentialsException("Пользователь не найден."));
+        passengerRepo.delete(passenger);
     }
 
+    @KafkaListener(
+            topics = "PASSENGER-rating-event",
+            groupId = "passenger-rating-group",
+            containerFactory = "passengerRatingListenerContainerFactory"
+    )
+    public void updatePassengerRating(PassengerRatingEvent event) {
+        PassengerEntity passenger = passengerRepo.findPassengerById(event.recipientId())
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден"));
 
-    public void deletePassenger(DeletePassengerDto deletePassengerDto) {
-        PassengerEntity passenger = passengerRepo.findPassengerByGmail(deletePassengerDto.getGmail())
-                .orElseThrow(() -> new InvalidCredentialsException("Пользователь не найден."));
+        passenger.setRating(event.rating());
+        passengerRepo.save(passenger);
 
-        if (!passenger.getPassword().equals(deletePassengerDto.getPassword())) {
-            throw new InvalidCredentialsException("Неверное имя пользователя или пароль.");
-        }
-
-        passengerRepo.delete(passenger);
+        System.out.printf("Пассажир с id %d обновлен! Новый рейтинг: %.2f%n",
+                passenger.getId(), passenger.getRating());
     }
 }

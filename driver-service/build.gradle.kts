@@ -25,7 +25,13 @@ repositories {
 	mavenCentral()
 }
 
+extra["springCloudVersion"] = "2024.0.0"
+
+
 dependencies {
+	implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")
+	implementation("org.springframework.cloud:spring-cloud-starter-openfeign")
+	implementation("org.springframework.kafka:spring-kafka")
 	implementation("org.springframework.boot:spring-boot-starter-web")
 	implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
@@ -44,6 +50,11 @@ kapt{
 	arguments{
 		arg("mapstruct.defaultComponentModel","spring")
 		arg("mapstruct.unmappedTargetPolicy", "IGNORE")
+	}
+}
+dependencyManagement {
+	imports {
+		mavenBom("org.springframework.cloud:spring-cloud-dependencies:${property("springCloudVersion")}")
 	}
 }
 kotlin {

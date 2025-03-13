@@ -1,5 +1,6 @@
 package com.example.ride_service.entity;
 
+import com.example.ride_service.enums.RideStatus;
 import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -12,6 +13,7 @@ import java.time.LocalDateTime;
 @Document(collection = "rides")
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString
 @Builder
 public class RideEntity {
     @Id
@@ -26,7 +28,7 @@ public class RideEntity {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime completedIn;
-    private Long passengerRatingId; //айди рейтинга который отправил passenger
-    private Long driverRatingId; //send driver
+    private Long passengerRatingId;
+    private Long driverRatingId;
 }
 
