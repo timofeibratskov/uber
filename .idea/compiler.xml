@@ -17,7 +17,7 @@
         <module name="rating-service.main" />
         <module name="rating-service.test" />
       </profile>
-      <profile name="Annotation profile for passenger-service" enabled="true">
+      <profile name="Annotation profile for ride-service" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />

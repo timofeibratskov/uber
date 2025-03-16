@@ -75,23 +75,30 @@ public class RideService {
     }
 
     private void validateStatusTransition(RideStatus current, RideStatus newStatus) {
-            if (newStatus == RideStatus.PAID && current != RideStatus.COMPLETED) {
-                throw new InvalidStatusException("Оплата должна быть после COMPLETED");
-            }
+        if (newStatus == RideStatus.PAID && current != RideStatus.COMPLETED) {
+            throw new InvalidStatusException("Оплата должна быть после COMPLETED");
+        }
         //todo
-    //        if (current == RideStatus.CANCELLED) {
-    //            throw new InvalidStatusException("Поездка отменена. Создайте новую поездку");
-    //        }
-    //        if (current == RideStatus.CREATED && newStatus != RideStatus.DRIVER_FOUND) {
-    //            throw new InvalidStatusException("статус должен поменяться только на DRIVER_FOUND");
-    //        }
-    //        if (current == RideStatus.DRIVER_FOUND && newStatus != RideStatus.IN_PROGRESS) {
-    //            throw new InvalidStatusException("статус должен поменяться только на IN_PROGRESS");
-    //        }
-    //        if (current == RideStatus.COMPLETED && newStatus != RideStatus.PAID) {
-    //            throw new InvalidStatusException("статус должен поменяться только на PAID");
-    //        }
+        //        if (current == RideStatus.CANCELLED) {
+        //            throw new InvalidStatusException("Поездка отменена. Создайте новую поездку");
+        //        }
+        //        if (current == RideStatus.CREATED && newStatus != RideStatus.DRIVER_FOUND) {
+        //            throw new InvalidStatusException("статус должен поменяться только на DRIVER_FOUND");
+        //        }
+        //        if (current == RideStatus.DRIVER_FOUND && newStatus != RideStatus.IN_PROGRESS) {
+        //            throw new InvalidStatusException("статус должен поменяться только на IN_PROGRESS");
+        //        }
+        //        if (current == RideStatus.COMPLETED && newStatus != RideStatus.PAID) {
+        //            throw new InvalidStatusException("статус должен поменяться только на PAID");
+        //        }
     }
+
+    public RideDto findRideById(String id) {
+        RideEntity ride = rideRepo.findById(id).orElseThrow(()
+                -> new NotFoundException("поездка с таким айди: " + id + " не найдено"));
+        return mapper.toDto(ride);
+    }
+
 
     public List<RideDto> getRidesByPassengerId(Long id) {
         List<RideDto> rides = rideRepo.findAllByCreatorId(id)
