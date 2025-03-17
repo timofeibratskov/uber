@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -168,6 +170,46 @@ public class RideController {
         rideService.assignDriver(rideId, driverId);
     }
 
+    @PutMapping("/{rideId}/pay")
+    @Operation(
+            summary = "Process ride payment",
+            description = "Confirm payment for a specific ride with specified amount",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Payment processed successfully",
+                            content = @Content(schema = @Schema(implementation = String.class))
+                    ),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "Invalid input or insufficient funds"
+                    ),
+                    @ApiResponse(
+                            responseCode = "404",
+                            description = "Ride not found"
+                    )
+            }
+    )
+    public String payRide(
+            @Parameter(
+                    description = "ID of the ride to pay for",
+                    required = true,
+                    example = "65a1f2b3c4d5e6f7g8h9i0j"
+            )
+            @PathVariable String rideId,
+
+            @Parameter(
+                    description = "Payment amount in decimal format",
+                    required = true,
+                    example = "15.75"
+            )
+            @RequestParam
+            @Positive(message = "Amount must be positive")
+            BigDecimal amount
+    ) {
+        return rideService.payRide(rideId, RideStatus.PAID, amount);
+    }
+
     @PutMapping("/{rideId}/start")
     @Operation(
             summary = "Start a ride",
@@ -212,29 +254,6 @@ public class RideController {
             @PathVariable String rideId
     ) {
         return rideService.changeStatus(rideId, RideStatus.COMPLETED);
-    }
-
-    @PutMapping("/{rideId}/pay")
-    @Operation(
-            summary = "Mark a ride as paid",
-            description = "Change the status of a ride to PAID",
-            responses = {
-                    @ApiResponse(
-                            responseCode = "200",
-                            description = "Ride marked as paid successfully",
-                            content = @Content(schema = @Schema(implementation = String.class))
-                    ),
-                    @ApiResponse(
-                            responseCode = "404",
-                            description = "Ride not found"
-                    )
-            }
-    )
-    public String payRide(
-            @Parameter(description = "ID of the ride", required = true, example = "65a1f2b3c4d5e6f7g8h9i0j")
-            @PathVariable String rideId
-    ) {
-        return rideService.changeStatus(rideId, RideStatus.PAID);
     }
 
     @PatchMapping("/{rideId}/cancel")

@@ -16,6 +16,7 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -41,6 +42,15 @@ public class RideService {
         return ride.getStatus();
     }
 
+    public String payRide(String rideId, RideStatus newStatus, BigDecimal amount) {
+        RideEntity ride = findRideOrThrow(rideId);
+        ride.setStatus(newStatus);
+        ride.setUpdatedAt(LocalDateTime.now());
+        ride.setAmount(amount);
+        rideRepo.save(ride);
+        return "поездка оплачена!";
+    }
+
     public void assignDriver(String rideId, Long driverId) {
         RideEntity ride = findRideOrThrow(rideId);
         if (ride.getStatus() != RideStatus.CREATED) {
@@ -55,7 +65,6 @@ public class RideService {
 
     public String changeStatus(String rideId, RideStatus newStatus) {
         RideEntity ride = findRideOrThrow(rideId);
-        validateStatusTransition(ride.getStatus(), newStatus);
         ride.setStatus(newStatus);
         ride.setUpdatedAt(LocalDateTime.now());
         rideRepo.save(ride);
@@ -74,24 +83,6 @@ public class RideService {
         }, () -> System.out.println("Поездка с ID " + message + " не найдена"));
     }
 
-    private void validateStatusTransition(RideStatus current, RideStatus newStatus) {
-        if (newStatus == RideStatus.PAID && current != RideStatus.COMPLETED) {
-            throw new InvalidStatusException("Оплата должна быть после COMPLETED");
-        }
-        //todo
-        //        if (current == RideStatus.CANCELLED) {
-        //            throw new InvalidStatusException("Поездка отменена. Создайте новую поездку");
-        //        }
-        //        if (current == RideStatus.CREATED && newStatus != RideStatus.DRIVER_FOUND) {
-        //            throw new InvalidStatusException("статус должен поменяться только на DRIVER_FOUND");
-        //        }
-        //        if (current == RideStatus.DRIVER_FOUND && newStatus != RideStatus.IN_PROGRESS) {
-        //            throw new InvalidStatusException("статус должен поменяться только на IN_PROGRESS");
-        //        }
-        //        if (current == RideStatus.COMPLETED && newStatus != RideStatus.PAID) {
-        //            throw new InvalidStatusException("статус должен поменяться только на PAID");
-        //        }
-    }
 
     public RideDto findRideById(String id) {
         RideEntity ride = rideRepo.findById(id).orElseThrow(()
