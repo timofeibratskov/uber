@@ -29,6 +29,7 @@ extra["springCloudVersion"] = "2024.0.0"
 
 
 dependencies {
+	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.5")
 	implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")
 	implementation("org.springframework.cloud:spring-cloud-starter-openfeign")
 	implementation("org.springframework.kafka:spring-kafka")
