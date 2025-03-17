@@ -4,11 +4,13 @@ import com.example.payment_service.client.RideServiceClient;
 import com.example.payment_service.dto.TransactionRequestDto;
 import com.example.payment_service.entity.CardEntity;
 import com.example.payment_service.entity.TransactionEntity;
+import com.example.payment_service.enums.Role;
 import com.example.payment_service.enums.TransactionStatus;
 import com.example.payment_service.enums.TransactionType;
 import com.example.payment_service.exception.BalanceTooLowException;
 import com.example.payment_service.exception.InvalidPasswordException;
 import com.example.payment_service.exception.NotFoundException;
+import com.example.payment_service.mapper.TransactionMapper;
 import com.example.payment_service.repo.CardRepo;
 import com.example.payment_service.repo.TransactionRepo;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +22,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static com.example.payment_service.enums.Role.DRIVER;
+
 @Service
 @RequiredArgsConstructor
 public class TransactionService {
@@ -27,31 +31,36 @@ public class TransactionService {
     private final TransactionRepo transactionRepo;
     private final CardRepo cardRepo;
     private final RideServiceClient client;
+    private final TransactionMapper transactionMapper;
+
     @Transactional
     public void createTransaction(TransactionType type, TransactionRequestDto dto) {
-        TransactionEntity transaction = TransactionEntity
-                .builder()
-                .transactionType(type)
-                .senderCardId(dto.senderId())
-                .recipientCardId(dto.recipientId())
-                .amount(dto.amount())
-                .transactionDate(LocalDateTime.now())
-                .rideId(dto.rideId())
-                .status(TransactionStatus.PENDING)
-                .build();
+
+        TransactionEntity transaction = transactionMapper.toEntity(dto);
+        transaction.setTransactionType(type);
 
         transactionRepo.save(transaction);
+        System.out.println("transaction created" + transaction.toString());
 
-        CardEntity senderCard = cardRepo.findById(dto.senderId()).orElseGet(() -> {
+
+        boolean isRidePayment = transaction.getTransactionType() == TransactionType.RIDE_PAYMENT;
+
+        Role senderRole = isRidePayment ? Role.PASSENGER : Role.DRIVER;
+        Role recipientRole = isRidePayment ? Role.DRIVER : Role.PASSENGER;
+        System.out.println("транзакция типа "+transaction.getTransactionType()+" ,будет выполняться между юзерамиотправителем" +transaction.getSenderId()+" и "+transaction.getRecipientId());
+
+        CardEntity senderCard = cardRepo.findByOwnerIdAndRole(dto.senderId(),senderRole).orElseGet(() -> {
             transaction.setStatus(TransactionStatus.FAILED);
             transactionRepo.save(transaction);
             throw new NotFoundException("нет карты у sender или неверный указан айди");
         });
-        CardEntity recipientCard = cardRepo.findById(dto.recipientId()).orElseGet(() -> {
+        System.out.println("карточка у пользователя отправителя есть"+senderCard.toString());
+        CardEntity recipientCard = cardRepo.findByOwnerIdAndRole(dto.recipientId(),recipientRole).orElseGet(() -> {
             transaction.setStatus(TransactionStatus.FAILED);
             transactionRepo.save(transaction);
             throw new NotFoundException("нет карты у получателя или неверный указан айди");
         });
+        System.out.println("карточка у пользователя получателя есть"+recipientCard.toString());
 
 
         if (!dto.password().equals(senderCard.getPassword())) {
@@ -71,7 +80,7 @@ public class TransactionService {
 
             transaction.setStatus(TransactionStatus.COMPLETED);
             transactionRepo.save(transaction);
-            client.payRide(dto.rideId());
+            client.payRide(dto.rideId(),dto.amount());
         } else {
             transaction.setStatus(TransactionStatus.FAILED);
             transactionRepo.save(transaction);

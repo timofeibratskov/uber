@@ -9,12 +9,8 @@ spring:
     driver-class-name: org.postgresql.Driver
 
   liquibase:
-    change-log: classpath:db/migration/db2.yml
+    change-log: classpath:db/migration/db3.yml
 
-logging:
-  level:
-    org.springframework: DEBUG
-    com.example.payment_service: TRACE
 
 eureka:
   client:

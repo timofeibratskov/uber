@@ -11,10 +11,10 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
 import java.math.BigDecimal;
-
 @Getter
 @Setter
 @NoArgsConstructor
@@ -24,13 +24,20 @@ import java.math.BigDecimal;
 public class CardEntity {
     @Id
     private Long id;
-    @Pattern(regexp = "^\\d{4}-\\d{4}-\\d{4}-\\d{4}$", message = "Номер карты должен быть в формате XXXX-XXXX-XXXX-XXXX")
+
+    @Pattern(regexp = "^\\d{4}-\\d{4}-\\d{4}-\\d{4}$")
     private String cardNumber;
+
     @Positive
     private BigDecimal balance;
-    @Min(value = 1000, message = "Пароль должен состоять из 4 цифр")
-    @Max(value = 9999, message = "Пароль должен состоять из 4 цифр")
+
+    @Min(1000)
+    @Max(9999)
     private Integer password;
-    private Long OwnerId;
+
+    @Column("owner_id")
+    private Long ownerId;
+
+    @Column
     private Role role;
 }

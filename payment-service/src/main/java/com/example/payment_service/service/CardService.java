@@ -34,9 +34,15 @@ public class CardService {
         return cardRepo.save(cardEntity).getId();
     }
 
-    public CardResponseDto findCardById(Long id) {
+    public CardResponseDto findCardByCardId(Long id) {
         CardEntity card = cardRepo.findById(id).orElseThrow(() ->
                 new NotFoundException("такой карты не существует"));
+        return mapper.toDto(card);
+    }
+
+    public CardResponseDto findCardByOwnerIdAndRole(Long ownerId, Role role) {
+        CardEntity card = cardRepo.findByOwnerIdAndRole(ownerId, role).orElseThrow(()
+                -> new NotFoundException("у пользователя " + ownerId + " с ролью " + role + " нет карты!"));
         return mapper.toDto(card);
     }
 
