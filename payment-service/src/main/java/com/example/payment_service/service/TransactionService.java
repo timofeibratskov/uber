@@ -40,27 +40,29 @@ public class TransactionService {
         transaction.setTransactionType(type);
 
         transactionRepo.save(transaction);
-        System.out.println("transaction created" + transaction.toString());
+        System.out.println("transaction created " + transaction.toString());
 
 
         boolean isRidePayment = transaction.getTransactionType() == TransactionType.RIDE_PAYMENT;
 
         Role senderRole = isRidePayment ? Role.PASSENGER : Role.DRIVER;
         Role recipientRole = isRidePayment ? Role.DRIVER : Role.PASSENGER;
-        System.out.println("транзакция типа "+transaction.getTransactionType()+" ,будет выполняться между юзерамиотправителем" +transaction.getSenderId()+" и "+transaction.getRecipientId());
+        System.out.println("транзакция типа " + transaction.getTransactionType() + " ," +
+                "будет выполняться между отправителем и получателем " +
+                transaction.getSenderId() + " и " + transaction.getRecipientId());
 
-        CardEntity senderCard = cardRepo.findByOwnerIdAndRole(dto.senderId(),senderRole).orElseGet(() -> {
+        CardEntity senderCard = cardRepo.findByOwnerIdAndRole(dto.senderId(), senderRole).orElseGet(() -> {
             transaction.setStatus(TransactionStatus.FAILED);
             transactionRepo.save(transaction);
             throw new NotFoundException("нет карты у sender или неверный указан айди");
         });
-        System.out.println("карточка у пользователя отправителя есть"+senderCard.toString());
-        CardEntity recipientCard = cardRepo.findByOwnerIdAndRole(dto.recipientId(),recipientRole).orElseGet(() -> {
+        System.out.println("карточка у пользователя отправителя есть " + senderCard.toString());
+        CardEntity recipientCard = cardRepo.findByOwnerIdAndRole(dto.recipientId(), recipientRole).orElseGet(() -> {
             transaction.setStatus(TransactionStatus.FAILED);
             transactionRepo.save(transaction);
             throw new NotFoundException("нет карты у получателя или неверный указан айди");
         });
-        System.out.println("карточка у пользователя получателя есть"+recipientCard.toString());
+        System.out.println("карточка у пользователя получателя есть " + recipientCard.toString());
 
 
         if (!dto.password().equals(senderCard.getPassword())) {
@@ -80,7 +82,7 @@ public class TransactionService {
 
             transaction.setStatus(TransactionStatus.COMPLETED);
             transactionRepo.save(transaction);
-            client.payRide(dto.rideId(),dto.amount());
+            client.payRide(dto.rideId(), dto.amount());
         } else {
             transaction.setStatus(TransactionStatus.FAILED);
             transactionRepo.save(transaction);
