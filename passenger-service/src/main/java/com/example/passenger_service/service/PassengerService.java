@@ -107,7 +107,7 @@ public class PassengerService {
 
     public void deletePassenger(Long id) {
         PassengerEntity passenger = passengerRepo.findPassengerById(id)
-                .orElseThrow(() -> new InvalidCredentialsException("Пользователь не найден."));
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден."));
         passengerRepo.delete(passenger);
     }
 
@@ -119,7 +119,9 @@ public class PassengerService {
     public void updatePassengerRating(PassengerRatingEvent event) {
         PassengerEntity passenger = passengerRepo.findPassengerById(event.recipientId())
                 .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден"));
-
+        if (event.rating()==null){
+            throw new IllegalArgumentException("Rating cannot be null");
+        }
         passenger.setRating(event.rating());
         passengerRepo.save(passenger);
 
