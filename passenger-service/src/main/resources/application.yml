@@ -1,0 +1,16 @@
+spring:
+  liquibase:
+    change-log: classpath:db/migration/db2.xml
+  datasource:
+    url: jdbc:postgresql://localhost:5432/postgres
+    username: postgres
+    password: 1111
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  kafka:
+    bootstrap-servers: localhost:29092
+server:
+  port: 8080
