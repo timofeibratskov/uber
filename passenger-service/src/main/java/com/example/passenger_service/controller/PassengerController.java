@@ -36,7 +36,8 @@ public class PassengerController {
             description = "Registers a new passenger and returns a confirmation message",
             responses = {
                     @ApiResponse(responseCode = "201", description = "Passenger registered successfully"),
-                    @ApiResponse(responseCode = "400", description = "Invalid input provided")
+                    @ApiResponse(responseCode = "400", description = "Invalid input provided"),
+                    @ApiResponse(responseCode = "409", description = "username or mail are already exists")
             }
     )
     public ResponseEntity<String> registerPassenger(
