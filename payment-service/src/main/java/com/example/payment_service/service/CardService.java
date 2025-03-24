@@ -21,7 +21,7 @@ public class CardService {
     private final CardRepo cardRepo;
     private final CardMapper mapper;
 
-    public Long createCard(Long ownerId, Role role, CardRequestDto cardRequestDto) {
+    public CardResponseDto createCard(Long ownerId, Role role, CardRequestDto cardRequestDto) {
 
         if (cardRepo.existsByCardNumber(cardRequestDto.cardNumber())) {
             throw new CardNumberAlreadyExistsException("Номер карты уже существует");
@@ -31,7 +31,9 @@ public class CardService {
         cardEntity.setRole(role);
         cardEntity.setOwnerId(ownerId);
 
-        return cardRepo.save(cardEntity).getId();
+         cardRepo.save(cardEntity);
+
+         return mapper.toDto(cardEntity);
     }
 
     public CardResponseDto findCardByCardId(Long id) {

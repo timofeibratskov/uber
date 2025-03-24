@@ -38,7 +38,7 @@ public class CardController {
                     @ApiResponse(responseCode = "400", description = "Invalid input provided")
             }
     )
-    public Long createCard(
+    public CardResponseDto createCard(
             @RequestBody CardRequestDto cardRequestDto,
             @Parameter(description = "Role of the card owner", required = true, example = "DRIVER")
             @PathVariable Role role,

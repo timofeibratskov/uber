@@ -86,21 +86,45 @@ public class CardServiceTest {
 
     @Test
     void createCard_Success() {
+        // Создаем объект requestDto
         CardRequestDto requestDto = new CardRequestDto(
                 "1111-1111-1111-1111",
                 new BigDecimal("100.00"),
                 1111
         );
 
-        when(cardRepo.existsByCardNumber(requestDto.cardNumber())).thenReturn(false);
-        when(cardMapper.toEntity(requestDto)).thenReturn(card);
-        when(cardRepo.save(card)).thenReturn(card);
+        // Мокаем поведение репозитория и маппера
+        CardEntity cardEntity = new CardEntity(); // Создаем сущность, которая будет сохранена
+        cardEntity.setCardNumber(requestDto.cardNumber());
+        cardEntity.setBalance(requestDto.balance());
+        cardEntity.setPassword(requestDto.password());
 
-        Long resultId = cardService.createCard(1L, Role.PASSENGER, requestDto);
+        CardResponseDto cardResponseDto = new CardResponseDto(
+                1L, // Предполагаем, что ID будет присвоен после сохранения
+                cardEntity.getCardNumber(),
+                cardEntity.getBalance(),
+                cardEntity.getPassword(),
+                Role.PASSENGER,
+                1L // Owner ID
+        );
 
-        assertEquals(1L, resultId);
+        // Мокаем поведение репозитория и маппера
+        when(cardRepo.existsByCardNumber(requestDto.cardNumber())).thenReturn(false); // Проверка на наличие карты
+        when(cardMapper.toEntity(requestDto)).thenReturn(cardEntity); // Маппинг DTO в сущность
+        when(cardRepo.save(cardEntity)).thenReturn(cardEntity); // Сохранение сущности в репозитории
+        when(cardMapper.toDto(cardEntity)).thenReturn(cardResponseDto); // Маппинг сущности в DTO
+
+        // Вызов метода сервиса
+        CardResponseDto resultCard = cardService.createCard(1L, Role.PASSENGER, requestDto);
+
+        // Проверка результатов
+        assertEquals(cardResponseDto, resultCard); // Проверяем, что результат совпадает с ожидаемым
+
+        // Проверка вызова методов
         verify(cardRepo).existsByCardNumber(requestDto.cardNumber());
-        verify(cardRepo).save(card);
+        verify(cardRepo).save(cardEntity);
+        verify(cardMapper).toEntity(requestDto);
+        verify(cardMapper).toDto(cardEntity);
     }
 
     @Test
