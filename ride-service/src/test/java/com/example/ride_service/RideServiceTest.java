@@ -66,7 +66,7 @@ public class RideServiceTest {
                 .updatedAt(LocalDateTime.now())
                 .build();
 
-        rideRequestDto = new RideRequestDto();
+        rideRequestDto = new RideRequestDto("ул. Пушкина, 15", "пр. Ленина, 42", 1L, (byte)3);
         rideRequestDto.setPointA("Start");
         rideRequestDto.setPointB("End");
         rideRequestDto.setCreatorId(1L);
