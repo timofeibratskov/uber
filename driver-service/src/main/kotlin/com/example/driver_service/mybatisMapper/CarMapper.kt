@@ -42,4 +42,7 @@ interface CarMapper {
 
     @Select("SELECT driver_id FROM cars WHERE seats >=#{seats}")
     fun findDriversIdBySeats(seats:Byte):List<Long>
+
+    @Delete("DELETE FROM cars")
+    fun deleteAll(): Int
 }

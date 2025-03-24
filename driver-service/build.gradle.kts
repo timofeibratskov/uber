@@ -39,6 +39,7 @@ dependencies {
 	implementation("org.liquibase:liquibase-core")
 	implementation("org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.4")
 	runtimeOnly("org.postgresql:postgresql")
+	testImplementation("com.h2database:h2")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 	testImplementation("org.mybatis.spring.boot:mybatis-spring-boot-starter-test:3.0.4")

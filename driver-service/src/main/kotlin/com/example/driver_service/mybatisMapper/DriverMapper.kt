@@ -40,4 +40,7 @@ interface DriverMapper {
 
     @Delete("DELETE FROM drivers WHERE id=#{id}")
     fun delete(id: Long): Int
+
+    @Delete("DELETE FROM drivers")
+    fun deleteAll(): Int
 }

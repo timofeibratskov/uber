@@ -140,7 +140,7 @@ class DriverController(
         description = "Deletes a driver by credentials",
         responses = [
             ApiResponse(
-                responseCode = "204",
+                responseCode = "200",
                 description = "Driver deleted successfully"
             ),
             ApiResponse(
