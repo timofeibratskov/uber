@@ -9,8 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpMethod;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
@@ -18,17 +17,14 @@ import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.awaitility.Awaitility.await;
 
 @Testcontainers
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT, classes = RideServiceApplication.class)
 @TestPropertySource(properties = {
         "server.port=8083",
-        "management.server.port=8083",
-        "spring.kafka.bootstrap-servers=localhost:29092", // Подключение к вашей продакшен Kafka
-        "spring.data.mongodb.uri=mongodb://localhost:27017/test" // Подключение к MongoDB
+        "spring.kafka.bootstrap-servers=localhost:29092",
+        "spring.data.mongodb.uri=mongodb://localhost:27017/test"
 })
 public class RideServiceE2ETest {
     @Container
@@ -49,27 +45,34 @@ public class RideServiceE2ETest {
     void testRideCreationFlow() {
         // 1. Подготовка тестовых данных
         RideRequestDto request = new RideRequestDto(
-                "Main St", "Elm St", 12365L, (byte) 1);
+                "Main St", "Elm St", 123657L, (byte) 1);
 
         // 2. Отправка запроса
-        ResponseEntity<Void> response = restTemplate.postForEntity(
+          restTemplate.postForEntity(
                 "http://localhost:8083/api/rides",
                 request,
                 Void.class
         );
 
-        // 3. Проверка ответа
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        String rideId = repo.findAllByCreatorId(request.getCreatorId()).getFirst().getId();
+         restTemplate.exchange(
+                "http://localhost:8083/api/rides/{rideId}/start",
+                HttpMethod.PUT,
+                null,
+                String.class,
+                rideId
+        );
+         restTemplate.exchange(
+                "http://localhost:8083/api/rides/{rideId}/complete",
+                HttpMethod.PUT,
+                null,
+                String.class,
+                rideId
+        );
+        RideEntity ride = repo.findAllByCreatorId(request.getCreatorId()).getFirst();
 
-        // 4. Проверка конечного состояния в БД
-        await().atMost(15, SECONDS)
-                .untilAsserted(() -> {
-                    RideEntity ride = repo.findAllByCreatorId(12365L).getFirst();
-
-                    assertThat(ride.getStatus())
-                            .isIn(RideStatus.DRIVER_FOUND);
-                });
-
+        assertThat(ride.getStatus())
+                .isIn(RideStatus.COMPLETED);
     }
 
 }
