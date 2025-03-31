@@ -1,6 +1,6 @@
 package com.example.driver_service
 
-import com.example.driver_service.dto.DriverDto
+import com.example.driver_service.config.TestPostgresContainer
 import com.example.driver_service.dto.LoginDriverDto
 import com.example.driver_service.dto.RegistrationDriverDto
 import com.example.driver_service.entity.DriverEntity
@@ -8,18 +8,25 @@ import com.example.driver_service.mybatisMapper.DriverMapper
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.context.ContextConfiguration
+import org.springframework.test.context.junit.jupiter.SpringExtension
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
+import org.testcontainers.junit.jupiter.Testcontainers
 
+@ExtendWith(SpringExtension::class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@ContextConfiguration(initializers = [TestPostgresContainer.Initializer::class])
+@Testcontainers
 class DriverControllerIntegrationTest {
 
     @Autowired
@@ -33,7 +40,7 @@ class DriverControllerIntegrationTest {
 
     @BeforeEach
     fun setUp() {
-        // Очистка таблицы перед каждым тестом (предполагается, что в DriverMapper есть метод deleteAll())
+        // Очистка таблицы перед каждым тестом
         driverMapper.deleteAll()
     }
 
@@ -96,7 +103,6 @@ class DriverControllerIntegrationTest {
         )
         driverMapper.create(driver)
 
-        // Предполагаем, что после создания id будет сгенерирован и равен, например, 1
         val createdDriver = driverMapper.findByEmail("john.doe@example.com")!!
         mockMvc.perform(get("/api/drivers/${createdDriver.id}"))
             .andExpect(status().isOk)
@@ -118,13 +124,14 @@ class DriverControllerIntegrationTest {
         driverMapper.create(driver)
         val createdDriver = driverMapper.findByEmail("john.doe@example.com")!!
 
-        val updatedDriverDto = DriverDto(
-            id = createdDriver.id,
-            name = "John Updated",
-            gmail = "john.doe@example.com",
-            phoneNumber = "+1234567890",
-            password = "password123",
-            rating = 4.5f
+        // Обновляем данные
+        val updatedDriverDto = mapOf(
+            "id" to createdDriver.id,
+            "name" to "John Updated",
+            "gmail" to "john.doe@example.com",
+            "password" to "password123",
+            "phoneNumber" to "+1234567890",
+            "rating" to 4.5
         )
 
         mockMvc.perform(
@@ -148,7 +155,6 @@ class DriverControllerIntegrationTest {
             rating = 4.5f
         )
         driverMapper.create(driver)
-        val createdDriver = driverMapper.findByEmail("john.doe@example.com")!!
 
         val loginDto = LoginDriverDto(
             gmail = "john.doe@example.com",
