@@ -2,12 +2,10 @@ package com.example.payment_service;
 
 import com.example.payment_service.dto.CardRequestDto;
 import com.example.payment_service.dto.UpdateCardPasswordDto;
-import com.example.payment_service.enums.Role;
 import com.example.payment_service.repo.CardRepo;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;

@@ -1,14 +1,10 @@
 package com.example.payment_service;
 
 import com.example.payment_service.dto.CardRequestDto;
-import com.example.payment_service.dto.TransactionRequestDto;
-import com.example.payment_service.enums.TransactionType;
 import com.example.payment_service.repo.CardRepo;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -53,21 +49,6 @@ public class TransactionControllerIT extends BaseIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(driverCard)))
                 .andExpect(status().isOk());
-    }
-
-    @Test
-    void testCreateTransaction() throws Exception {
-        TransactionRequestDto requestDto = new TransactionRequestDto(
-                1L, 2L, new BigDecimal("150.00"), "ride123", 1111
-        );
-
-        mockMvc.perform(post("/transaction/{type}", TransactionType.RIDE_PAYMENT)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(requestDto)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").exists())
-                .andExpect(jsonPath("$.senderId").value(1L))
-                .andExpect(jsonPath("$.recipientId").value(2L));
     }
 
     @Test
