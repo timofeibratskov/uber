@@ -7,12 +7,13 @@ import com.example.ride_service.enums.RideStatus;
 import com.example.ride_service.repo.RideRepo;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpMethod;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.web.client.RestTemplate;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -20,6 +21,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 @Testcontainers
+@AutoConfigureMockMvc
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT, classes = RideServiceApplication.class)
 @TestPropertySource(properties = {
         "server.port=8083",
@@ -36,7 +38,7 @@ public class RideServiceE2ETest {
         registry.add("spring.data.mongodb.uri", mongoDBContainer::getReplicaSetUrl);
     }
 
-    private final TestRestTemplate restTemplate = new TestRestTemplate();
+    private final RestTemplate restTemplate = new RestTemplate();
 
     @Autowired
     private RideRepo repo;
@@ -46,6 +48,8 @@ public class RideServiceE2ETest {
         // 1. Подготовка тестовых данных
         RideRequestDto request = new RideRequestDto(
                 "Main St", "Elm St", 123657L, (byte) 1);
+
+
 
         // 2. Отправка запроса
           restTemplate.postForEntity(
