@@ -1,11 +1,6 @@
 package com.example.passenger_service.entity;
 
-import jakarta.persistence.Id;
-import jakarta.persistence.Entity;
-import jakarta.persistence.SequenceGenerator;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Column;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import lombok.Builder;
 import lombok.Setter;
@@ -19,10 +14,11 @@ import lombok.NoArgsConstructor;
 @Setter
 @Builder
 @Entity
+@Table(name = "passenger")
 public class PassengerEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "passenger_seq")///POPRAVIT
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "passenger_seq")
     @SequenceGenerator(name = "passenger_seq", sequenceName = "passenger_seq", allocationSize = 1)
     private Long id;
 
