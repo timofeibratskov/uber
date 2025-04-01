@@ -7,10 +7,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.math.BigDecimal;
 
-@FeignClient(name = "ride-service", url = "http://localhost:8083/api/rides")
+@FeignClient(name = "ride-service")
 public interface RideServiceClient {
 
-    @PutMapping("/{rideId}/pay")
+    @PutMapping("/api/rides/{rideId}/pay")
     String payRide(
             @PathVariable("rideId") String rideId,
             @RequestParam("amount") BigDecimal amount
