@@ -67,8 +67,8 @@ public class RideService {
         RideEntity ride = findRideOrThrow(rideId);
         ride.setStatus(newStatus);
         ride.setUpdatedAt(LocalDateTime.now());
-        rideRepo.save(ride);
         if (newStatus == RideStatus.COMPLETED) ride.setCompletedIn(LocalDateTime.now());
+        rideRepo.save(ride);
         return "СТАТУС БЫЛ ИЗМЕНЕН УСПЕШНО";
     }
 

@@ -92,6 +92,38 @@ services:
     ports:
       - "8081:8080"
 
+  rating_db:
+    container_name: rating_db
+    image: mongo:6.0.5
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: 1111
+    volumes:
+      - rating_data:/data/db
+    ports:
+      - "27017:27017"
+    restart: unless-stopped
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh --quiet mongodb://root:1111@localhost:27017/admin
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  rating-service:
+    build: ./rating-service
+    depends_on:
+      rating_db:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://root:1111@rating_db:27017/ride?authSource=admin
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_APPLICATION_NAME: ride-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery:8761/eureka
+    ports:
+      - "8082:8080"
+
   ride_db:
     container_name: ride_db
     image: mongo:6.0.5
@@ -164,3 +196,4 @@ volumes:
   payment_data:
   driver_data:
   ride_data:
+  rating_data:

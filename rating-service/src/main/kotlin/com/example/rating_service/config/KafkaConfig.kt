@@ -16,7 +16,7 @@ class KafkaConfig {
 
     // Общая конфигурация для всех продюсеров
     private fun producerFactoryConfig(): Map<String, Any> = mapOf(
-        ProducerConfig.BOOTSTRAP_SERVERS_CONFIG to "localhost:29092",
+        ProducerConfig.BOOTSTRAP_SERVERS_CONFIG to "kafka:9092",
         ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG to StringSerializer::class.java,
         ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG to JsonSerializer::class.java,
         JsonSerializer.ADD_TYPE_INFO_HEADERS to false

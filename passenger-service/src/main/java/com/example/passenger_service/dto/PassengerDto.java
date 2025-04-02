@@ -9,7 +9,6 @@ public record PassengerDto(
         String gmail,
         String password,
         String phoneNumber,
-        Long cardId,
         Float rating
 ) {
 

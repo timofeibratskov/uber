@@ -49,7 +49,7 @@ class PassengerServiceTest {
         passenger.setPhoneNumber("1234567890");
         passenger.setPassword("password123");
 
-        passengerDto = new PassengerDto(1L, "John Doe", "john.doe@example.com", "1234567890", "+3211231231", 1L, 5.0F);
+        passengerDto = new PassengerDto(1L, "John Doe", "john.doe@example.com", "1234567890", "+3211231231",  5.0F);
     }
 
     private void mockPassengerExists() {
