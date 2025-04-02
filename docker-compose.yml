@@ -92,6 +92,40 @@ services:
     ports:
       - "8081:8080"
 
+  ride_db:
+    container_name: ride_db
+    image: mongo:6.0.5
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: 1111
+    volumes:
+      - ride_data:/data/db
+    ports:
+      - "27018:27017"
+    restart: unless-stopped
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh --quiet mongodb://root:1111@localhost:27017/admin
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  ride-service:
+    build: ./ride-service
+    depends_on:
+      ride_db:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      discovery:
+        condition: service_started
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://root:1111@ride_db:27017/ride?authSource=admin
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_APPLICATION_NAME: ride-service
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery:8761/eureka
+    ports:
+      - "8083:8080"
+
   payment_db:
     image: postgres:16
     environment:
@@ -124,7 +158,9 @@ services:
       SPRING_APPLICATION_NAME: payment-service
     ports:
       - "8084:8080"
+
 volumes:
   passenger_data:
   payment_data:
   driver_data:
+  ride_data:
