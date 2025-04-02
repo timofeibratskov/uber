@@ -60,6 +60,38 @@ services:
     ports:
       - "8080:8080"
 
+  driver_db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1111
+      POSTGRES_DB: postgres
+    ports:
+      - "54321:5432"
+    volumes:
+      - driver_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      retries: 5
+      start_period: 10s
+
+  driver-service:
+    build: ./driver-service
+    depends_on:
+      driver_db:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://driver_db:5432/postgres
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: 1111
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_LIQUIBASE_CHANGELOG: classpath:db/migration/db1.yml
+    ports:
+      - "8081:8080"
+
   payment_db:
     image: postgres:16
     environment:
@@ -95,3 +127,4 @@ services:
 volumes:
   passenger_data:
   payment_data:
+  driver_data:

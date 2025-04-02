@@ -15,7 +15,7 @@ import org.springframework.kafka.support.serializer.JsonDeserializer
 class KafkaConfig {
 
     private fun commonConsumerProps(groupId: String): Map<String, Any> = mapOf(
-        ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG to "localhost:29092",
+        ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG to "kafka:9092",
         ConsumerConfig.GROUP_ID_CONFIG to groupId,
         ConsumerConfig.AUTO_OFFSET_RESET_CONFIG to "earliest",
         ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG to false
