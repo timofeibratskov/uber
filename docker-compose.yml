@@ -27,7 +27,6 @@ services:
     ports:
       - "8761:8761"
 
-  #не регистрировать еврику этому сервису
   passenger_db:
     image: postgres:16
     environment:
@@ -47,6 +46,8 @@ services:
   passenger-service:
     build: ./passenger-service
     depends_on:
+      discovery:
+        condition: service_started
       passenger_db:
         condition: service_healthy
       kafka:
@@ -112,6 +113,8 @@ services:
   rating-service:
     build: ./rating-service
     depends_on:
+      discovery:
+        condition: service_started
       rating_db:
         condition: service_healthy
       kafka:
@@ -119,7 +122,7 @@ services:
     environment:
       SPRING_DATA_MONGODB_URI: mongodb://root:1111@rating_db:27017/ride?authSource=admin
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      SPRING_APPLICATION_NAME: ride-service
+      SPRING_APPLICATION_NAME: rating-service
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery:8761/eureka
     ports:
       - "8082:8080"

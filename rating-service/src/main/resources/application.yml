@@ -1,7 +1,19 @@
 spring:
+  application:
+    name: rating-service
   data:
     mongodb:
       uri: mongodb://mongo:1111@rating_db:27017/rating?authSource=admin
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://discovery:8761/eureka
+    fetch-registry: true
+    register-with-eureka: true
+  instance:
+    prefer-ip-address: false
+    hostname: rating-service
 
 server:
   port: 8080
