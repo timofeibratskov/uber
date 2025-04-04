@@ -194,6 +194,18 @@ services:
     ports:
       - "8084:8080"
 
+  gateway:
+    build: ./gateway
+    depends_on:
+      discovery:
+        condition: service_started
+    environment:
+      SPRING_CLOUD_GATEWAY_DISCOVERY_LOCATOR_ENABLED: "true"
+      SPRING_CLOUD_GATEWAY_DISCOVERY_LOCATOR_LOWERCASE_SERVICE_ID: "true"
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery:8761/eureka
+    ports:
+      - "8000:8080"
+
 volumes:
   passenger_data:
   payment_data:
