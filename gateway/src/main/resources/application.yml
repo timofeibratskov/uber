@@ -1,0 +1,67 @@
+spring:
+  application:
+    name: gateway
+  cloud:
+    gateway:
+      routes:
+
+        - id: passenger-service
+          uri: lb://passenger-service
+          predicates:
+            - Path=/passengers/**
+          filters:
+            - RewritePath=/passengers/(?<segment>.*), /api/passengers/$\{segment}
+
+        - id: driver-service-drivers
+          uri: lb://driver-service
+          predicates:
+            - Path=/drivers/**
+          filters:
+            - RewritePath=/drivers/(?<segment>.*), /api/drivers/$\{segment}
+
+        - id: driver-service-cars
+          uri: lb://driver-service
+          predicates:
+            - Path=/cars/**
+          filters:
+            - RewritePath=/cars/(?<segment>.*), /api/cars/$\{segment}
+
+        - id: payment-service-cards
+          uri: lb://payment-service
+          predicates:
+            - Path=/cards/**
+          filters:
+            - RewritePath=/cards/(?<segment>.*), /api/cards/$\{segment}
+
+        - id: payment-service-transactions
+          uri: lb://payment-service
+          predicates:
+            - Path=/transactions/**
+          filters:
+            - RewritePath=/transactions/(?<segment>.*), /transaction/$\{segment}
+
+        - id: rating-service
+          uri: lb://rating-service
+          predicates:
+            - Path=/ratings/**
+          filters:
+            - RewritePath=/ratings/(?<segment>.*), /ratings/$\{segment}
+
+        - id: ride-service
+          uri: lb://ride-service
+          predicates:
+            - Path=/rides/**
+          filters:
+            - RewritePath=/rides/(?<segment>.*), /api/rides/$\{segment}
+
+eureka:
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: http://discovery:8761/eureka
+  instance:
+    hostname: gateway
+
+server:
+  port: 8080
