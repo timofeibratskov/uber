@@ -1,18 +1,15 @@
 package com.example.passenger_service.repo;
 
-import com.example.passenger_service.entity.PassengerEntity;
+import com.example.passenger_service.model.entity.PassengerEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface PassengerRepo extends JpaRepository<PassengerEntity, Long> {
-    Optional<PassengerEntity> findPassengerByGmail(String gmail);
+public interface PassengerRepo
+        extends JpaRepository<PassengerEntity, UUID> {
+    boolean existsByEmail(String email);
 
-    Optional<PassengerEntity> findPassengerByName(String name);
-
-    Optional<PassengerEntity> findPassengerByPhoneNumber(String phoneNumber);
-
-    Optional<PassengerEntity> findPassengerById(Long id);
+    boolean existsByPhoneNumber(String phoneNumber);
 }

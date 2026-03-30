@@ -4,49 +4,47 @@ package com.example.passenger_service.exception;
 import com.example.passenger_service.exception.models.ErrorResponse;
 import com.example.passenger_service.exception.models.ValidationError;
 import com.example.passenger_service.exception.models.ValidationErrorResponse;
-import jakarta.persistence.EntityNotFoundException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.util.List;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(EntityNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleEntityNotFound(EntityNotFoundException ex) {
-        ErrorResponse error = new ErrorResponse(
-                "NOT_FOUND",
-                ex.getMessage()
-        );
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
-    }
+//    @ExceptionHandler(EntityNotFoundException.class)
+//    public ResponseEntity<ErrorResponse> handleEntityNotFound(EntityNotFoundException ex) {
+//        ErrorResponse error = new ErrorResponse(
+//                "NOT_FOUND",
+//                ex.getMessage()
+//        );
+//        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+//    }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ValidationErrorResponse> handleValidationErrors(MethodArgumentNotValidException ex) {
-        List<ValidationError> errors = ex.getBindingResult()
-                .getFieldErrors()
-                .stream()
-                .map(error -> new ValidationError(
-                        error.getField(),
-                        error.getDefaultMessage()
-                ))
-                .collect(Collectors.toList());
-
         ValidationErrorResponse response = new ValidationErrorResponse(
                 "VALIDATION_FAILED",
                 "One or more fields are invalid",
-                errors
+                ex.getBindingResult()
+                        .getFieldErrors()
+                        .stream()
+                        .map(error -> ValidationError.builder()
+                                .field(error.getField())
+                                .message(error.getDefaultMessage()).build()
+                        )
+                        .collect(Collectors.toList())
         );
         return ResponseEntity.badRequest().body(response);
     }
 
-    @ExceptionHandler(ResourceAlreadyExistsException.class)
-    public ResponseEntity<ErrorResponse> handleAlreadyExists(ResourceAlreadyExistsException ex) {
+    @ExceptionHandler(AlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleAlreadyExists(AlreadyExistsException ex) {
         ErrorResponse error = new ErrorResponse(
                 "CONFLICT",
                 ex.getMessage()
@@ -54,14 +52,20 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
 
-    @ExceptionHandler(InvalidCredentialsException.class)
-    public ResponseEntity<ErrorResponse> handleAlreadyExists(InvalidCredentialsException ex) {
-        ErrorResponse error = new ErrorResponse(
-                "CONFLICT",
-                ex.getMessage()
-        );
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+//    @ExceptionHandler(InvalidCredentialsException.class)
+//    public ResponseEntity<ErrorResponse> handleInvalidCredentials(InvalidCredentialsException ex) {
+//        ErrorResponse error = new ErrorResponse(
+//                "INVALID_CREDENTIALS",
+//                ex.getMessage()
+//        );
+//        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+//    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleAll(Exception ex) {
+        log.error(ex.getMessage(), ex);
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse("INTERNAL_SERVER_ERROR", "Unexpected error occurred"));
     }
-
-
 }
