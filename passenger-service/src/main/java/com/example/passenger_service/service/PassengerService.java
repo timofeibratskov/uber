@@ -1,7 +1,10 @@
 package com.example.passenger_service.service;
 
 import com.example.passenger_service.exception.AlreadyExistsException;
+import com.example.passenger_service.exception.InvalidCredentialsException;
+import com.example.passenger_service.exception.PassengerNotFoundException;
 import com.example.passenger_service.mapper.PassengerMapper;
+import com.example.passenger_service.model.dto.LoginPassengerDto;
 import com.example.passenger_service.model.dto.PassengerResponseDto;
 import com.example.passenger_service.model.dto.RegisterPassengerDto;
 import com.example.passenger_service.repo.PassengerRepo;
@@ -12,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @RequiredArgsConstructor
 @Service
@@ -36,5 +40,31 @@ public class PassengerService {
         var savedPassenger = passengerRepo.save(passenger);
         log.info("Passenger registered successfully with email: {}", request.email());
         return passengerMapper.toResponseDto(savedPassenger);
+    }
+
+    @Transactional(readOnly = true)
+    public PassengerResponseDto loginPassenger(LoginPassengerDto request) {
+        var passenger = passengerRepo.findByEmail(request.email())
+                .orElseThrow(() -> {
+                    log.info("Incorrect email: {}", request.email());
+                    return new InvalidCredentialsException("Incorrect email or password!");
+                });
+        if (passwordEncoder.matches(request.password(), passenger.getPassword())) {
+            return passengerMapper.toResponseDto(passenger);
+        } else {
+            log.info("Incorrect password, email: {}", request.email());
+            throw new InvalidCredentialsException("Incorrect email or password!");
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public PassengerResponseDto findPassengerById(UUID id) {
+        var passenger = passengerRepo.findById(id)
+                .orElseThrow(() -> {
+                            log.info("Incorrect id: {}", id);
+                            return new PassengerNotFoundException("Passenger not found!");
+                        }
+                );
+        return passengerMapper.toResponseDto(passenger);
     }
 }

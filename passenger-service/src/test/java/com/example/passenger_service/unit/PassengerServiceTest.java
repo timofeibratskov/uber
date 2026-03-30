@@ -1,7 +1,10 @@
 package com.example.passenger_service.unit;
 
 import com.example.passenger_service.exception.AlreadyExistsException;
+import com.example.passenger_service.exception.InvalidCredentialsException;
+import com.example.passenger_service.exception.PassengerNotFoundException;
 import com.example.passenger_service.mapper.PassengerMapper;
+import com.example.passenger_service.model.dto.LoginPassengerDto;
 import com.example.passenger_service.model.dto.PassengerResponseDto;
 import com.example.passenger_service.model.dto.RegisterPassengerDto;
 import com.example.passenger_service.model.entity.PassengerEntity;
@@ -16,6 +19,9 @@ import org.mockito.Mock;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -23,7 +29,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(SpringExtension.class)
@@ -85,7 +93,7 @@ public class PassengerServiceTest {
         assertEquals(request.email(), result.email());
         assertEquals(java.math.BigDecimal.ZERO, result.rating());
 
-        verify(passengerRepo, org.mockito.Mockito.times(1)).save(any());
+        verify(passengerRepo, times(1)).save(any());
     }
 
     @Test
@@ -138,5 +146,179 @@ public class PassengerServiceTest {
         // assert
         assertEquals("Phone number already exists!", exception.getMessage());
         verify(passengerRepo, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Успешный логин пассажира")
+    public void loginPassenger_Success() {
+        // arrange
+        UUID id = UUID.randomUUID();
+        String phoneNumber = "+375295875657";
+        String email = "johnDoe228@gmail.com";
+        String password = "password";
+        Gender gender = Gender.MALE;
+        String name = "john";
+        BigDecimal rating = BigDecimal.ZERO;
+
+        var request = LoginPassengerDto.builder()
+                .email(email)
+                .password(password)
+                .build();
+
+        var entity = PassengerEntity.builder()
+                .id(id)
+                .name(name)
+                .email(email)
+                .password(passwordEncoder.encode(password))
+                .phoneNumber(phoneNumber)
+                .rating(rating)
+                .gender(gender)
+                .build();
+
+        var response = PassengerResponseDto.builder()
+                .id(id)
+                .name(name)
+                .email(email)
+                .phoneNumber(phoneNumber)
+                .rating(rating)
+                .build();
+
+        when(passengerRepo.findByEmail(request.email())).thenReturn(Optional.of(entity));
+        when(passwordEncoder.matches(request.password(), entity.getPassword())).thenReturn(true);
+        when(passengerMapper.toResponseDto(entity)).thenReturn(response);
+
+        // act
+        var result = passengerService.loginPassenger(request);
+
+        // assert
+        assertNotNull(result);
+        assertEquals(id, result.id());
+        assertEquals(email, result.email());
+        assertEquals(name, result.name());
+
+        verify(passengerRepo).findByEmail(email);
+        verify(passwordEncoder).matches(request.password(), entity.getPassword());
+    }
+
+    @Test
+    @DisplayName("Ошибка логина: неверный пароль")
+    public void loginPassenger_WrongPassword_ThrowsException() {
+        // arrange
+        UUID id = UUID.randomUUID();
+        String phoneNumber = "+375295875657";
+        String email = "johnDoe228@gmail.com";
+        String correctPassword = "encoded_password";
+        String wrongPassword = "wrong pass";
+        Gender gender = Gender.MALE;
+        String name = "john";
+        BigDecimal rating = BigDecimal.ZERO;
+
+        var request = LoginPassengerDto.builder()
+                .email(email)
+                .password("wrong pass")
+                .build();
+
+        var entity = PassengerEntity.builder()
+                .id(id)
+                .name(name)
+                .email(email)
+                .password(passwordEncoder.encode(correctPassword))
+                .phoneNumber(phoneNumber)
+                .rating(rating)
+                .gender(gender)
+                .build();
+
+        when(passengerRepo.findByEmail(email)).thenReturn(Optional.of(entity));
+        when(passwordEncoder.matches(correctPassword, entity.getPassword())).thenReturn(false);
+
+        // act
+        var exception = assertThrows(InvalidCredentialsException.class, () ->
+                passengerService.loginPassenger(request)
+        );
+
+        // assert
+        assertEquals("Incorrect email or password!", exception.getMessage());
+        verify(passengerRepo, times(1)).findByEmail(email);
+        verify(passwordEncoder, times(1)).matches(wrongPassword, entity.getPassword());
+        verifyNoInteractions(passengerMapper);
+    }
+
+    @Test
+    @DisplayName("Ошибка логина: почты нет")
+    public void loginPassenger_EmailNotExists_ThrowsException() {
+        // arrange
+        String email = "notfound@gmail.com";
+
+        var request = LoginPassengerDto.builder()
+                .email(email)
+                .password("wrong pass")
+                .build();
+
+        when(passengerRepo.findByEmail(email)).thenReturn(Optional.empty());
+
+        // act
+        var exception = assertThrows(InvalidCredentialsException.class, () ->
+                passengerService.loginPassenger(request)
+        );
+
+        // assert
+        assertEquals("Incorrect email or password!", exception.getMessage());
+        verify(passengerRepo, times(1)).findByEmail(email);
+        verifyNoInteractions(passwordEncoder);
+        verifyNoInteractions(passengerMapper);
+    }
+
+    @Test
+    @DisplayName("Успешный поиск пассажира по id")
+    public void findPassengerById_Success() {
+        // arrange
+        UUID id = UUID.randomUUID();
+
+        var entity = PassengerEntity.builder()
+                .id(id)
+                .name("john")
+                .email("johnDoe228@gmail.com")
+                .password("encoded_password")
+                .phoneNumber("+375295875657")
+                .gender(Gender.MALE)
+                .rating(BigDecimal.ZERO)
+                .build();
+
+        var response = PassengerResponseDto.builder()
+                .id(id)
+                .name(entity.getName())
+                .email(entity.getEmail())
+                .phoneNumber(entity.getPhoneNumber())
+                .rating(entity.getRating())
+                .build();
+
+        when(passengerRepo.findById(id)).thenReturn(Optional.of(entity));
+        when(passengerMapper.toResponseDto(entity)).thenReturn(response);
+
+        // act
+        var result = passengerService.findPassengerById(id);
+
+        // assert
+        assertNotNull(result);
+        assertEquals(id, result.id());
+        verify(passengerRepo, times(1)).findById(id);
+        verify(passengerMapper, times(1)).toResponseDto(entity);
+    }
+
+    @Test
+    @DisplayName("Ошибка поиска: нет id")
+    public void findPassengerById_whenIdNotExists_throwsException() {
+        // arrange
+        UUID id = UUID.randomUUID();
+
+        // act
+        var exception = assertThrows(PassengerNotFoundException.class, () ->
+                passengerService.findPassengerById(id)
+        );
+
+        // assert
+        assertEquals("Passenger not found!", exception.getMessage());
+        verify(passengerRepo, times(1)).findById(id);
+        verifyNoInteractions(passengerMapper);
     }
 }

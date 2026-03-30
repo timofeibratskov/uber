@@ -17,14 +17,14 @@ import java.util.stream.Collectors;
 @Slf4j
 public class GlobalExceptionHandler {
 
-//    @ExceptionHandler(EntityNotFoundException.class)
-//    public ResponseEntity<ErrorResponse> handleEntityNotFound(EntityNotFoundException ex) {
-//        ErrorResponse error = new ErrorResponse(
-//                "NOT_FOUND",
-//                ex.getMessage()
-//        );
-//        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
-//    }
+    @ExceptionHandler(PassengerNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleEntityNotFound(PassengerNotFoundException ex) {
+        ErrorResponse error = new ErrorResponse(
+                "NOT_FOUND",
+                ex.getMessage()
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ValidationErrorResponse> handleValidationErrors(MethodArgumentNotValidException ex) {
@@ -52,14 +52,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
 
-//    @ExceptionHandler(InvalidCredentialsException.class)
-//    public ResponseEntity<ErrorResponse> handleInvalidCredentials(InvalidCredentialsException ex) {
-//        ErrorResponse error = new ErrorResponse(
-//                "INVALID_CREDENTIALS",
-//                ex.getMessage()
-//        );
-//        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
-//    }
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidCredentials(InvalidCredentialsException ex) {
+        ErrorResponse error = new ErrorResponse(
+                "INVALID_CREDENTIALS",
+                ex.getMessage()
+        );
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+    }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleAll(Exception ex) {
