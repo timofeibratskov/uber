@@ -2,23 +2,31 @@ package com.example.passenger_service.it;
 
 import com.example.passenger_service.exception.models.ErrorResponse;
 import com.example.passenger_service.exception.models.ValidationErrorResponse;
+import com.example.passenger_service.model.dto.FavoriteAddressRequestDto;
+import com.example.passenger_service.model.dto.FavoriteAddressResponseDto;
 import com.example.passenger_service.model.dto.LoginPassengerDto;
 import com.example.passenger_service.model.dto.PassengerResponseDto;
 import com.example.passenger_service.model.dto.RegisterPassengerDto;
 import com.example.passenger_service.model.dto.UpdatePassengerDto;
+import com.example.passenger_service.model.entity.FavoriteAddressEntity;
 import com.example.passenger_service.model.entity.PassengerEntity;
 import com.example.passenger_service.model.enums.Gender;
+import com.example.passenger_service.repo.FavoriteAddressRepo;
 import com.example.passenger_service.repo.PassengerRepo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -34,10 +42,14 @@ public class PassengerControllerIT extends BaseIT {
     private PassengerRepo passengerRepo;
 
     @Autowired
+    private FavoriteAddressRepo favoriteAddressRepo;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @BeforeEach
     void setUp() {
+        favoriteAddressRepo.deleteAll();
         passengerRepo.deleteAll();
     }
 
@@ -349,5 +361,182 @@ public class PassengerControllerIT extends BaseIT {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().getCode()).isEqualTo("NOT_FOUND");
+    }
+
+    @Test
+    @DisplayName("Успешное добавление адреса")
+    void addFavoriteAddress_ShouldReturn201AndSavedAddress() {
+        // Arrange
+        PassengerEntity passenger = PassengerEntity.builder()
+                .name("john")
+                .email("tim@example.com")
+                .password("encoded_pass")
+                .phoneNumber("+375291234567")
+                .rating(BigDecimal.ZERO)
+                .id(UUID.randomUUID())
+                .gender(Gender.MALE)
+                .build();
+        var savedPassenger = passengerRepo.save(passenger);
+
+        UUID passengerId = savedPassenger.getId();
+        FavoriteAddressRequestDto request = FavoriteAddressRequestDto.builder()
+                .label("Home")
+                .address("Grodno, Sovetskaya 1")
+                .latitude(53.67)
+                .longitude(23.83)
+                .build();
+
+        // Act
+        ResponseEntity<FavoriteAddressResponseDto> response = restTemplate.postForEntity(
+                "/api/v1/passengers/" + passengerId + "/addresses",
+                request,
+                FavoriteAddressResponseDto.class
+        );
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().label()).isEqualTo("Home");
+
+        List<FavoriteAddressEntity> allInDb = favoriteAddressRepo.findByPassengerId(passengerId);
+        assertThat(allInDb).hasSize(1);
+        assertThat(allInDb.getFirst().getAddress()).isEqualTo("Grodno, Sovetskaya 1");
+    }
+
+    @Test
+    @DisplayName("Получение списка адресов пассажира")
+    void getFavoriteAddress_ShouldReturnList() {
+        // Arrange
+        PassengerEntity passenger = PassengerEntity.builder()
+                .name("john")
+                .email("tim@example.com")
+                .password("encoded_pass")
+                .phoneNumber("+375291234567")
+                .rating(BigDecimal.ZERO)
+                .id(UUID.randomUUID())
+                .gender(Gender.MALE)
+                .build();
+        var savedPassenger = passengerRepo.save(passenger);
+
+        UUID passengerId = savedPassenger.getId();
+
+        FavoriteAddressEntity address = FavoriteAddressEntity.builder()
+                .passengerId(passengerId)
+                .label("Gym")
+                .latitude(123123123.123)
+                .longitude(123123123.123)
+                .id(UUID.randomUUID())
+                .address("Grodno, Kosmonavtov 100")
+                .build();
+
+        favoriteAddressRepo.save(address);
+
+        // Act
+        ResponseEntity<List<FavoriteAddressResponseDto>> response = restTemplate.exchange(
+                "/api/v1/passengers/" + passengerId + "/addresses",
+                HttpMethod.GET,
+                null,
+                new ParameterizedTypeReference<>() {
+                }
+        );
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).hasSize(1);
+        assertThat(response.getBody().getFirst().label()).isEqualTo("Gym");
+    }
+
+    @Test
+    @DisplayName("Успешное удаление адреса")
+    void deleteFavoriteAddress_ShouldReturn204() {
+        // Arrange
+        PassengerEntity passenger = PassengerEntity.builder()
+                .name("john")
+                .email("tim@example.com")
+                .password("encoded_pass")
+                .phoneNumber("+375291234567")
+                .rating(BigDecimal.ZERO)
+                .id(UUID.randomUUID())
+                .gender(Gender.MALE)
+                .build();
+        var savedPassenger = passengerRepo.save(passenger);
+
+        UUID passengerId = savedPassenger.getId();
+        FavoriteAddressEntity address = FavoriteAddressEntity.builder()
+                .passengerId(passengerId)
+                .id(UUID.randomUUID())
+                .label("To Delete")
+                .latitude(123123123.123)
+                .longitude(123123123.123)
+                .address("Some Address")
+                .build();
+        FavoriteAddressEntity savedAddress = favoriteAddressRepo.save(address);
+        UUID addressId = savedAddress.getId();
+
+        // Act
+        ResponseEntity<Void> response = restTemplate.exchange(
+                "/api/v1/passengers/" + passengerId + "/addresses/" + addressId,
+                HttpMethod.DELETE,
+                null,
+                Void.class
+        );
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+        assertThat(favoriteAddressRepo.findById(addressId)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Ошибка добавления: попытка добавить 6-й адрес")
+    void addFavoriteAddress_ShouldReturn400_WhenLimitExceeded() {
+        // Arrange
+        PassengerEntity passenger = PassengerEntity.builder()
+                .name("john")
+                .email("tim@example.com")
+                .password("encoded_pass")
+                .phoneNumber("+375291234567")
+                .rating(BigDecimal.ZERO)
+                .id(UUID.randomUUID())
+                .gender(Gender.MALE)
+                .build();
+        var savedPassenger = passengerRepo.save(passenger);
+
+        UUID passengerId = savedPassenger.getId();
+
+        for (int i = 1; i <= 5; i++) {
+            FavoriteAddressEntity address = FavoriteAddressEntity.builder()
+                    .id(UUID.randomUUID())
+                    .passengerId(passengerId)
+                    .label("Label " + i)
+                    .address("Address " + i)
+                    .latitude(53.0 + i)
+                    .longitude(23.0 + i)
+                    .build();
+            favoriteAddressRepo.save(address);
+        }
+
+        FavoriteAddressRequestDto request6 = FavoriteAddressRequestDto.builder()
+                .label("Sixth Address")
+                .address("Grodno, Center")
+                .latitude(53.9)
+                .longitude(27.5)
+                .build();
+
+        // Act
+        ResponseEntity<ErrorResponse> response = restTemplate.postForEntity(
+                "/api/v1/passengers/" + passengerId + "/addresses",
+                request6,
+                ErrorResponse.class
+        );
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getCode()).isEqualTo("ADDRESS_LIMIT_EXCEEDED");
+        assertThat(response.getBody().getMessage()).isEqualTo("favorite addresses is too much!");
+
+        List<FavoriteAddressEntity> allInDb = favoriteAddressRepo.findByPassengerId(passengerId);
+        assertThat(allInDb).hasSize(5);
     }
 }

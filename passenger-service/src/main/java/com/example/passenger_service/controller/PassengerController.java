@@ -1,13 +1,17 @@
 package com.example.passenger_service.controller;
 
+import com.example.passenger_service.model.dto.FavoriteAddressRequestDto;
+import com.example.passenger_service.model.dto.FavoriteAddressResponseDto;
 import com.example.passenger_service.model.dto.LoginPassengerDto;
 import com.example.passenger_service.model.dto.PassengerResponseDto;
 import com.example.passenger_service.model.dto.RegisterPassengerDto;
 import com.example.passenger_service.model.dto.UpdatePassengerDto;
+import com.example.passenger_service.service.FavoriteAddressService;
 import com.example.passenger_service.service.PassengerService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.UUID;
 
 
@@ -24,6 +29,7 @@ import java.util.UUID;
 @RequestMapping("/api/v1/passengers")
 public class PassengerController {
     private final PassengerService passengerService;
+    private final FavoriteAddressService favoriteAddressService;
 
     @PostMapping("/register")
     public ResponseEntity<PassengerResponseDto> registerPassenger(
@@ -45,6 +51,25 @@ public class PassengerController {
     @PatchMapping("/{id}")
     public ResponseEntity<PassengerResponseDto> updatePassenger(@PathVariable UUID id,
                                                                 @RequestBody @Valid UpdatePassengerDto request) {
-        return ResponseEntity.ok().body(passengerService.updatePassenger(id,request));
+        return ResponseEntity.ok().body(passengerService.updatePassenger(id, request));
+    }
+
+    @PostMapping("/{id}/addresses")
+    public ResponseEntity<FavoriteAddressResponseDto> addFavoriteAddress(@PathVariable UUID id,
+                                                                         @RequestBody @Valid FavoriteAddressRequestDto request) {
+        return ResponseEntity.status(201).body(favoriteAddressService.addFavoriteAddress(id, request));
+    }
+
+    @GetMapping("/{id}/addresses")
+    public ResponseEntity<List<FavoriteAddressResponseDto>> getFavoriteAddress(@PathVariable UUID id) {
+        return ResponseEntity.ok().body(favoriteAddressService.getAllAddressesByPassengerId(id));
+
+    }
+
+    @DeleteMapping("/{id}/addresses/{addressId}")
+    public ResponseEntity<Void> addFavoriteAddress(@PathVariable UUID id,
+                                                   @PathVariable UUID addressId) {
+        favoriteAddressService.removeFavoriteAddress(id, addressId);
+        return ResponseEntity.noContent().build();
     }
 }

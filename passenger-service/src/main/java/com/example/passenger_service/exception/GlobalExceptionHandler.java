@@ -17,13 +17,22 @@ import java.util.stream.Collectors;
 @Slf4j
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(PassengerNotFoundException.class)
+    @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleEntityNotFound(PassengerNotFoundException ex) {
         ErrorResponse error = new ErrorResponse(
                 "NOT_FOUND",
                 ex.getMessage()
         );
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+
+    @ExceptionHandler(FavoriteAddressLimitException.class)
+    public ResponseEntity<ErrorResponse> handleAddressLimit(FavoriteAddressLimitException ex) {
+        ErrorResponse error = new ErrorResponse(
+                "ADDRESS_LIMIT_EXCEEDED",
+                ex.getMessage()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
