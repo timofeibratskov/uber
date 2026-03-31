@@ -7,6 +7,7 @@ import com.example.passenger_service.mapper.PassengerMapper;
 import com.example.passenger_service.model.dto.LoginPassengerDto;
 import com.example.passenger_service.model.dto.PassengerResponseDto;
 import com.example.passenger_service.model.dto.RegisterPassengerDto;
+import com.example.passenger_service.model.dto.UpdatePassengerDto;
 import com.example.passenger_service.repo.PassengerRepo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -65,6 +66,32 @@ public class PassengerService {
                             return new PassengerNotFoundException("Passenger not found!");
                         }
                 );
+        return passengerMapper.toResponseDto(passenger);
+    }
+
+    @Transactional
+    public PassengerResponseDto updatePassenger(UUID id,
+                                                UpdatePassengerDto updatePassenger) {
+        var passenger = passengerRepo.findById(id)
+                .orElseThrow(() -> {
+                            log.info("Update failed: Passenger with id {} not found", id);
+                            return new PassengerNotFoundException("Passenger not found!");
+                        }
+                );
+        if (updatePassenger.phoneNumber() != null &&
+                !updatePassenger.phoneNumber().equals(passenger.getPhoneNumber())) {
+            if (passengerRepo.existsByPhoneNumber(updatePassenger.phoneNumber())) {
+                throw new AlreadyExistsException("Phone number " + updatePassenger.phoneNumber() + " already exists!");
+            }
+            passenger.setPhoneNumber(updatePassenger.phoneNumber());
+        }
+        if (updatePassenger.name() != null) {
+            passenger.setName(updatePassenger.name());
+        }
+        if (updatePassenger.gender() != null) {
+            passenger.setGender(updatePassenger.gender());
+        }
+        log.info("Updating passenger with id {}", id);
         return passengerMapper.toResponseDto(passenger);
     }
 }

@@ -5,6 +5,7 @@ import com.example.passenger_service.exception.models.ValidationErrorResponse;
 import com.example.passenger_service.model.dto.LoginPassengerDto;
 import com.example.passenger_service.model.dto.PassengerResponseDto;
 import com.example.passenger_service.model.dto.RegisterPassengerDto;
+import com.example.passenger_service.model.dto.UpdatePassengerDto;
 import com.example.passenger_service.model.entity.PassengerEntity;
 import com.example.passenger_service.model.enums.Gender;
 import com.example.passenger_service.repo.PassengerRepo;
@@ -13,6 +14,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -242,6 +245,109 @@ public class PassengerControllerIT extends BaseIT {
         // assert
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         assertNotNull(response.getBody());
+        assertThat(response.getBody().getCode()).isEqualTo("NOT_FOUND");
+    }
+
+    @Test
+    @DisplayName("Успешное частичное обновление данных пассажира")
+    void updatePassenger_Success() {
+        // arrange
+        UUID id = UUID.randomUUID();
+        passengerRepo.save(PassengerEntity.builder()
+                .id(id)
+                .name("Old Name")
+                .email("update@gmail.com")
+                .password("pass123")
+                .phoneNumber("+375291111111")
+                .gender(Gender.MALE)
+                .build());
+
+        var request = UpdatePassengerDto.builder()
+                .name("New Name")
+                .phoneNumber("+375292222222")
+                .gender(Gender.MALE)
+                .build();
+
+        // act
+        var response = restTemplate.exchange(
+                "/api/v1/passengers/{id}",
+                HttpMethod.PATCH,
+                new HttpEntity<>(request),
+                PassengerResponseDto.class,
+                id
+        );
+
+        // assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().name()).isEqualTo("New Name");
+
+        var updatedInDb = passengerRepo.findById(id).orElseThrow();
+        assertThat(updatedInDb.getPhoneNumber()).isEqualTo("+375292222222");
+    }
+
+    @Test
+    @DisplayName("Ошибка обновления: номер телефона уже занят")
+    void updatePassenger_whenPhoneExists_ReturnsConflict() {
+        // arrange
+        UUID targetId = UUID.randomUUID();
+        passengerRepo.save(PassengerEntity.builder()
+                .id(targetId)
+                .name("Target")
+                .email("t@mail.com")
+                .password("p")
+                .phoneNumber("+375291111111")
+                .build());
+
+        passengerRepo.save(PassengerEntity.builder()
+                .id(UUID.randomUUID())
+                .name("Other")
+                .email("o@mail.com")
+                .password("p")
+                .phoneNumber("+375299999999")
+                .build());
+
+        var request = UpdatePassengerDto.builder()
+                .phoneNumber("+375299999999")
+                .build();
+
+        // act
+        var response = restTemplate.exchange(
+                "/api/v1/passengers/{id}",
+                HttpMethod.PATCH,
+                new HttpEntity<>(request),
+                ErrorResponse.class,
+                targetId
+        );
+
+        // assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getCode()).isEqualTo("CONFLICT");
+    }
+
+    @Test
+    @DisplayName("Ошибка обновления: id не существует")
+    void updatePassenger_whenIdNotExists_ReturnsConflict() {
+        // arrange
+        UUID targetId = UUID.randomUUID();
+
+        var request = UpdatePassengerDto.builder()
+                .phoneNumber("+375299999999")
+                .build();
+
+        // act
+        var response = restTemplate.exchange(
+                "/api/v1/passengers/{id}",
+                HttpMethod.PATCH,
+                new HttpEntity<>(request),
+                ErrorResponse.class,
+                targetId
+        );
+
+        // assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().getCode()).isEqualTo("NOT_FOUND");
     }
 }

@@ -7,6 +7,7 @@ import com.example.passenger_service.mapper.PassengerMapper;
 import com.example.passenger_service.model.dto.LoginPassengerDto;
 import com.example.passenger_service.model.dto.PassengerResponseDto;
 import com.example.passenger_service.model.dto.RegisterPassengerDto;
+import com.example.passenger_service.model.dto.UpdatePassengerDto;
 import com.example.passenger_service.model.entity.PassengerEntity;
 import com.example.passenger_service.model.enums.Gender;
 import com.example.passenger_service.repo.PassengerRepo;
@@ -20,14 +21,15 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -74,7 +76,8 @@ public class PassengerServiceTest {
                 "john",
                 "johnDoe228@gmail.com",
                 "+375295875657",
-                java.math.BigDecimal.ZERO
+                BigDecimal.ZERO,
+                Gender.MALE
         );
 
         when(passengerRepo.existsByEmail(request.email())).thenReturn(false);
@@ -319,6 +322,100 @@ public class PassengerServiceTest {
         // assert
         assertEquals("Passenger not found!", exception.getMessage());
         verify(passengerRepo, times(1)).findById(id);
+        verifyNoInteractions(passengerMapper);
+    }
+
+    @Test
+    @DisplayName("Успешное обновление пассажира")
+    void updatePassenger_Success() {
+        // arrange
+        UUID id = UUID.randomUUID();
+        var request = UpdatePassengerDto.builder()
+                .name("New Name")
+                .phoneNumber("+375291112233")
+                .gender(Gender.MALE)
+                .build();
+
+        var entity = PassengerEntity.builder()
+                .id(id)
+                .name("Old Name")
+                .phoneNumber("+375290000000")
+                .gender(Gender.FEMALE)
+                .build();
+
+        var responseDto = PassengerResponseDto.builder()
+                .id(id)
+                .name("New Name")
+                .phoneNumber("+375291112233")
+                .gender(Gender.MALE)
+                .email("name@gmail.com")
+                .rating(BigDecimal.ZERO)
+                .build();
+
+        when(passengerRepo.findById(id)).thenReturn(Optional.of(entity));
+        when(passengerRepo.existsByPhoneNumber(request.phoneNumber())).thenReturn(false);
+        when(passengerMapper.toResponseDto(entity)).thenReturn(responseDto);
+
+        // act
+        var result = passengerService.updatePassenger(id, request);
+
+        // assert
+        assertEquals("New Name", result.name());
+        assertEquals(Gender.MALE, result.gender());
+        assertEquals(request.phoneNumber(), result.phoneNumber());
+        verify(passengerRepo).findById(id);
+        verify(passengerRepo, times(1)).existsByPhoneNumber(request.phoneNumber());
+    }
+
+    @Test
+    @DisplayName("Обновление: конфликт номера телефона")
+    void updatePassenger_whenPhoneExists_throwsException() {
+        // arrange
+        UUID id = UUID.randomUUID();
+
+        var request = UpdatePassengerDto.builder()
+                .phoneNumber("+375291112233")
+                .build();
+
+        var entity = PassengerEntity.builder()
+                .id(id)
+                .phoneNumber("+375290000000")
+                .build();
+
+        when(passengerRepo.findById(id)).thenReturn(Optional.of(entity));
+        when(passengerRepo.existsByPhoneNumber(request.phoneNumber())).thenReturn(true);
+
+        // act
+        var exception = assertThrows(AlreadyExistsException.class, () ->
+                passengerService.updatePassenger(id, request)
+        );
+
+        // assert
+        assertTrue(exception.getMessage().contains(request.phoneNumber()));
+        verify(passengerRepo).existsByPhoneNumber(anyString());
+        verifyNoInteractions(passengerMapper);
+    }
+
+    @Test
+    @DisplayName("Обновление: нет id")
+    void updatePassenger_whenIdNotExists_throwsException() {
+        // arrange
+        UUID id = UUID.randomUUID();
+
+        var request = UpdatePassengerDto.builder()
+                .phoneNumber("+375291112233")
+                .build();
+
+        when(passengerRepo.findById(id)).thenReturn(Optional.empty());
+
+        // act
+        var exception = assertThrows(PassengerNotFoundException.class, () ->
+                passengerService.updatePassenger(id, request)
+        );
+
+        // assert
+        assertTrue(exception.getMessage().contains("Passenger not found!"));
+        verify(passengerRepo).findById(id);
         verifyNoInteractions(passengerMapper);
     }
 }

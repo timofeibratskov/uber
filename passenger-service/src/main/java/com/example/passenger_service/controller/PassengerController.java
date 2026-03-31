@@ -3,11 +3,13 @@ package com.example.passenger_service.controller;
 import com.example.passenger_service.model.dto.LoginPassengerDto;
 import com.example.passenger_service.model.dto.PassengerResponseDto;
 import com.example.passenger_service.model.dto.RegisterPassengerDto;
+import com.example.passenger_service.model.dto.UpdatePassengerDto;
 import com.example.passenger_service.service.PassengerService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -38,5 +40,11 @@ public class PassengerController {
     @GetMapping("/{id}")
     public ResponseEntity<PassengerResponseDto> getPassengerById(@PathVariable UUID id) {
         return ResponseEntity.ok().body(passengerService.findPassengerById(id));
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<PassengerResponseDto> updatePassenger(@PathVariable UUID id,
+                                                                @RequestBody @Valid UpdatePassengerDto request) {
+        return ResponseEntity.ok().body(passengerService.updatePassenger(id,request));
     }
 }

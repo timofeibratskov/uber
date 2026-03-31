@@ -1,5 +1,6 @@
 package com.example.passenger_service.model.dto;
 
+import com.example.passenger_service.model.enums.Gender;
 import lombok.Builder;
 
 import java.math.BigDecimal;
@@ -11,6 +12,7 @@ public record PassengerResponseDto(
         String name,
         String email,
         String phoneNumber,
-        BigDecimal rating
+        BigDecimal rating,
+        Gender gender
 ) {
 }
