@@ -15,7 +15,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -36,7 +35,6 @@ public class PassengerService {
         }
         var passenger = passengerMapper.toEntity(request);
         passenger.setPassword(passwordEncoder.encode(request.password()));
-        passenger.setRating(BigDecimal.ZERO);
 
         var savedPassenger = passengerRepo.save(passenger);
         log.info("Passenger registered successfully with email: {}", request.email());

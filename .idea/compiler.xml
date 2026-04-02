@@ -19,6 +19,9 @@
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
       <module name="discovery" options="-parameters" />
+      <module name="driver-service" options="-parameters -proc:none" />
+      <module name="driver-service.main" options="-parameters -proc:none" />
+      <module name="driver-service.test" options="-parameters -proc:none" />
       <module name="passenger-service" options="-parameters" />
       <module name="payment-service" options="-parameters" />
       <module name="ride-service" options="-parameters" />

@@ -29,9 +29,4 @@ public record RegisterPassengerDto(
         @NotNull
         Gender gender
 ) {
-    public RegisterPassengerDto {
-        if (gender == null) {
-            gender = Gender.OTHER;
-        }
-    }
 }
