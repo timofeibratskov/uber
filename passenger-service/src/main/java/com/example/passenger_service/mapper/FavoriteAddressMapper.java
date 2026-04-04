@@ -14,7 +14,7 @@ import java.util.UUID;
         unmappedTargetPolicy = ReportingPolicy.IGNORE
 )
 public interface FavoriteAddressMapper {
-    @Mapping(target = "id", expression = "java(java.util.UUID.randomUUID())")
+    @Mapping(target = "id", ignore = true)
     FavoriteAddressEntity toEntity(UUID passengerId, FavoriteAddressRequestDto favoriteAddressRequestDto);
 
     FavoriteAddressResponseDto toResponseDto(FavoriteAddressEntity favoriteAddressEntity);

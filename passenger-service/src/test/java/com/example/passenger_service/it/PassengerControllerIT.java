@@ -86,7 +86,6 @@ public class PassengerControllerIT extends BaseIT {
         // arrange
         passengerRepo.save(
                 PassengerEntity.builder()
-                        .id(UUID.randomUUID())
                         .name("John")
                         .email("john@gmail.com")
                         .password("securePass123")
@@ -152,7 +151,6 @@ public class PassengerControllerIT extends BaseIT {
         // arrange
         String rawPassword = "securePass123";
         passengerRepo.save(PassengerEntity.builder()
-                .id(UUID.randomUUID())
                 .name("John")
                 .email("login@gmail.com")
                 .password(passwordEncoder.encode(rawPassword))
@@ -178,7 +176,6 @@ public class PassengerControllerIT extends BaseIT {
     void loginPassenger_whenPasswordInvalid_ThrowUnauthorized() {
         // arrange
         passengerRepo.save(PassengerEntity.builder()
-                .id(UUID.randomUUID())
                 .name("John")
                 .email("john@gmail.com")
                 .password(passwordEncoder.encode("correct_pass"))
@@ -220,15 +217,14 @@ public class PassengerControllerIT extends BaseIT {
     @DisplayName("успешный поиск по id")
     void findPassengerById_Success() {
         // arrange
-        UUID id = UUID.randomUUID();
-        passengerRepo.save(PassengerEntity.builder()
-                .id(id)
-                .name("John")
-                .email("john@gmail.com")
-                .password(passwordEncoder.encode("correct_pass"))
-                .gender(Gender.MALE)
-                .phoneNumber("+3752567566799")
-                .build());
+        var id = passengerRepo.save(PassengerEntity.builder()
+                        .name("John")
+                        .email("john@gmail.com")
+                        .password(passwordEncoder.encode("correct_pass"))
+                        .gender(Gender.MALE)
+                        .phoneNumber("+3752567566799")
+                        .build())
+                .getId();
 
         // act
         var response = restTemplate.getForEntity(
@@ -264,15 +260,14 @@ public class PassengerControllerIT extends BaseIT {
     @DisplayName("Успешное частичное обновление данных пассажира")
     void updatePassenger_Success() {
         // arrange
-        UUID id = UUID.randomUUID();
-        passengerRepo.save(PassengerEntity.builder()
-                .id(id)
-                .name("Old Name")
-                .email("update@gmail.com")
-                .password("pass123")
-                .phoneNumber("+375291111111")
-                .gender(Gender.MALE)
-                .build());
+        var id = passengerRepo.save(PassengerEntity.builder()
+                        .name("Old Name")
+                        .email("update@gmail.com")
+                        .password("pass123")
+                        .phoneNumber("+375291111111")
+                        .gender(Gender.MALE)
+                        .build())
+                .getId();
 
         var request = UpdatePassengerDto.builder()
                 .name("New Name")
@@ -302,17 +297,15 @@ public class PassengerControllerIT extends BaseIT {
     @DisplayName("Ошибка обновления: номер телефона уже занят")
     void updatePassenger_whenPhoneExists_ReturnsConflict() {
         // arrange
-        UUID targetId = UUID.randomUUID();
-        passengerRepo.save(PassengerEntity.builder()
-                .id(targetId)
-                .name("Target")
-                .email("t@mail.com")
-                .password("p")
-                .phoneNumber("+375291111111")
-                .build());
+        UUID targetId = passengerRepo.save(PassengerEntity.builder()
+                        .name("Target")
+                        .email("t@mail.com")
+                        .password("p")
+                        .phoneNumber("+375291111111")
+                        .build())
+                .getId();
 
         passengerRepo.save(PassengerEntity.builder()
-                .id(UUID.randomUUID())
                 .name("Other")
                 .email("o@mail.com")
                 .password("p")
@@ -373,7 +366,6 @@ public class PassengerControllerIT extends BaseIT {
                 .password("encoded_pass")
                 .phoneNumber("+375291234567")
                 .rating(BigDecimal.ZERO)
-                .id(UUID.randomUUID())
                 .gender(Gender.MALE)
                 .build();
         var savedPassenger = passengerRepo.save(passenger);
@@ -413,7 +405,6 @@ public class PassengerControllerIT extends BaseIT {
                 .password("encoded_pass")
                 .phoneNumber("+375291234567")
                 .rating(BigDecimal.ZERO)
-                .id(UUID.randomUUID())
                 .gender(Gender.MALE)
                 .build();
         var savedPassenger = passengerRepo.save(passenger);
@@ -425,7 +416,6 @@ public class PassengerControllerIT extends BaseIT {
                 .label("Gym")
                 .latitude(123123123.123)
                 .longitude(123123123.123)
-                .id(UUID.randomUUID())
                 .address("Grodno, Kosmonavtov 100")
                 .build();
 
@@ -456,7 +446,6 @@ public class PassengerControllerIT extends BaseIT {
                 .password("encoded_pass")
                 .phoneNumber("+375291234567")
                 .rating(BigDecimal.ZERO)
-                .id(UUID.randomUUID())
                 .gender(Gender.MALE)
                 .build();
         var savedPassenger = passengerRepo.save(passenger);
@@ -464,7 +453,6 @@ public class PassengerControllerIT extends BaseIT {
         UUID passengerId = savedPassenger.getId();
         FavoriteAddressEntity address = FavoriteAddressEntity.builder()
                 .passengerId(passengerId)
-                .id(UUID.randomUUID())
                 .label("To Delete")
                 .latitude(123123123.123)
                 .longitude(123123123.123)
@@ -496,7 +484,6 @@ public class PassengerControllerIT extends BaseIT {
                 .password("encoded_pass")
                 .phoneNumber("+375291234567")
                 .rating(BigDecimal.ZERO)
-                .id(UUID.randomUUID())
                 .gender(Gender.MALE)
                 .build();
         var savedPassenger = passengerRepo.save(passenger);
@@ -505,7 +492,6 @@ public class PassengerControllerIT extends BaseIT {
 
         for (int i = 1; i <= 5; i++) {
             FavoriteAddressEntity address = FavoriteAddressEntity.builder()
-                    .id(UUID.randomUUID())
                     .passengerId(passengerId)
                     .label("Label " + i)
                     .address("Address " + i)

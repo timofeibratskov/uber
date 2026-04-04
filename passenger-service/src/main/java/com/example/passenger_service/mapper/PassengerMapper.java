@@ -13,7 +13,7 @@ import org.mapstruct.ReportingPolicy;
 )
 public interface PassengerMapper {
 
-    @Mapping(target = "id", expression = "java(java.util.UUID.randomUUID())")
+    @Mapping(target = "id", ignore = true)
     @Mapping(target = "password", ignore = true)
     @Mapping(target = "rating", ignore = true)
     PassengerEntity toEntity(RegisterPassengerDto registerPassengerDto);
