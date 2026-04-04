@@ -1,5 +1,6 @@
 package com.example.passenger_service.unit;
 
+import com.example.passenger_service.exception.AlreadyExistsException;
 import com.example.passenger_service.exception.FavoriteAddressLimitException;
 import com.example.passenger_service.exception.FavoriteAddressNotFoundException;
 import com.example.passenger_service.mapper.FavoriteAddressMapper;
@@ -130,6 +131,40 @@ class FavoriteAddressServiceTest {
         FavoriteAddressLimitException exception = assertThrows(FavoriteAddressLimitException.class, action);
         assertThat(exception.getMessage()).isEqualTo("favorite addresses is too much!");
         verify(favoriteAddressRepo, times(1)).findByPassengerId(passengerId);
+        verify(favoriteAddressRepo, never()).save(any(FavoriteAddressEntity.class));
+    }
+
+    @Test
+    @DisplayName("Выброс исключения при повторяющимся названии любимого адреса")
+    void addFavoriteAddress_ShouldThrowException_WhenLabelAlreadyExists() {
+        // Arrange
+        UUID passengerId = UUID.randomUUID();
+        FavoriteAddressRequestDto requestDto = FavoriteAddressRequestDto.builder()
+                .label("Work")
+                .address("sovetskaya 5, 1")
+                .label("Work")
+                .longitude(1.1d)
+                .latitude(2.2d)
+                .build();
+
+        List<FavoriteAddressEntity> existingAddresses = List.of(FavoriteAddressEntity.builder()
+                .id(UUID.randomUUID())
+                .address("sovetskaya 5, 1")
+                .label("Work")
+                .longitude(1.1d)
+                .latitude(2.2d)
+                .build());
+
+        when(favoriteAddressRepo.findByPassengerId(passengerId)).thenReturn(existingAddresses);
+
+        // Act
+        Executable action = () -> favoriteAddressService.addFavoriteAddress(passengerId, requestDto);
+
+        // Assert
+        AlreadyExistsException exception = assertThrows(AlreadyExistsException.class, action);
+        assertThat(exception.getMessage()).isEqualTo("favorite address with this label already exists");
+        verify(favoriteAddressRepo, times(1)).findByPassengerId(passengerId);
+        verify(favoriteAddressRepo, never()).save(any(FavoriteAddressEntity.class));
         verify(favoriteAddressRepo, never()).save(any(FavoriteAddressEntity.class));
     }
 

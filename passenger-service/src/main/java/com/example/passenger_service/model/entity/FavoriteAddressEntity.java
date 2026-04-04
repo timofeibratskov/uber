@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -20,7 +21,9 @@ import java.util.UUID;
 @Setter
 @Builder
 @Entity
-@Table(name = "favourite_address_table")
+@Table(name = "favourite_address_table", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_passenger_label", columnNames = {"passenger_id", "label"})
+})
 public class FavoriteAddressEntity {
     @Id
     @UuidGenerator

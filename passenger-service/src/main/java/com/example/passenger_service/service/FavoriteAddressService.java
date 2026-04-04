@@ -1,5 +1,6 @@
 package com.example.passenger_service.service;
 
+import com.example.passenger_service.exception.AlreadyExistsException;
 import com.example.passenger_service.exception.FavoriteAddressLimitException;
 import com.example.passenger_service.exception.FavoriteAddressNotFoundException;
 import com.example.passenger_service.mapper.FavoriteAddressMapper;
@@ -35,15 +36,21 @@ public class FavoriteAddressService {
     public FavoriteAddressResponseDto addFavoriteAddress(UUID passengerId,
                                                          FavoriteAddressRequestDto favoriteAddressRequestDto) {
         var addresses = favoriteAddressRepo.findByPassengerId(passengerId);
-        if (addresses.size() < MAX_FAVORITES_ADDRESSES) {
-            var entity = favoriteAddressMapper.toEntity(passengerId, favoriteAddressRequestDto);
-            favoriteAddressRepo.save(entity);
-            log.info("Saving favorite address with passengerId: {}", entity.getPassengerId());
-            return favoriteAddressMapper.toResponseDto(entity);
-        } else {
+
+        if (addresses.size() + 1 > MAX_FAVORITES_ADDRESSES) {
             log.info("favorite address is too much");
             throw new FavoriteAddressLimitException("favorite addresses is too much!");
         }
+        boolean labelExists = addresses.stream()
+                .anyMatch(a -> a.getLabel().equalsIgnoreCase(favoriteAddressRequestDto.label()));
+        if (labelExists) {
+            log.info("favorite address with label: {} already exists",favoriteAddressRequestDto.label());
+            throw new AlreadyExistsException("favorite address with this label already exists");
+        }
+        var entity = favoriteAddressMapper.toEntity(passengerId, favoriteAddressRequestDto);
+        favoriteAddressRepo.save(entity);
+        log.info("Saving favorite address with passengerId: {}", entity.getPassengerId());
+        return favoriteAddressMapper.toResponseDto(entity);
     }
 
     @Transactional
