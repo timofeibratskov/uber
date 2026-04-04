@@ -1,0 +1,18 @@
+databaseChangeLog:
+  - changeSet:
+      id: 03-add-current-car-to-driver
+      author: user
+      changes:
+        - addColumn:
+            tableName: driver_table
+            columns:
+              - column:
+                  name: car_id
+                  type: UUID
+        - addForeignKeyConstraint:
+            constraintName: fk_driver_current_car
+            baseTableName: driver_table
+            baseColumnNames: car_id
+            referencedTableName: car_table
+            referencedColumnNames: id
+            onDelete: SET NULL

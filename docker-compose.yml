@@ -11,5 +11,18 @@ services:
     volumes:
       - passenger_data:/var/lib/postgresql/data
 
+  driver-db:
+    image: postgres:15-alpine
+    container_name: driver-db
+    environment:
+      POSTGRES_DB: driver_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1111
+    ports:
+      - "5551:5432"
+    volumes:
+      - driver_data:/var/lib/postgresql/data
+
 volumes:
   passenger_data:
+  driver_data:

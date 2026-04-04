@@ -15,48 +15,39 @@ java {
 	}
 }
 
-configurations {
-	compileOnly {
-		extendsFrom(configurations.annotationProcessor.get())
-	}
-}
-
 repositories {
 	mavenCentral()
 }
 
-extra["springCloudVersion"] = "2024.0.0"
-
-
 dependencies {
-	implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")
-	implementation("org.springframework.cloud:spring-cloud-starter-openfeign")
-	implementation("org.springframework.kafka:spring-kafka")
 	implementation("org.springframework.boot:spring-boot-starter-web")
+	implementation("org.springframework.boot:spring-boot-starter-validation")
 	implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
 	implementation("org.liquibase:liquibase-core")
 	implementation("org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.4")
 	runtimeOnly("org.postgresql:postgresql")
-	testImplementation("org.springframework.boot:spring-boot-starter-test")
-	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
-	testImplementation("org.mybatis.spring.boot:mybatis-spring-boot-starter-test:3.0.4")
-	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+	implementation("org.springframework.security:spring-security-crypto")
+	implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
 	implementation("org.mapstruct:mapstruct:1.5.5.Final")
 	kapt("org.mapstruct:mapstruct-processor:1.5.5.Final")
 	kapt("org.springframework.boot:spring-boot-configuration-processor")
+	testImplementation("org.springframework.boot:spring-boot-starter-test")
+	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
+	testImplementation("io.mockk:mockk:1.13.8")
+	testImplementation("org.mybatis.spring.boot:mybatis-spring-boot-starter-test:3.0.4")
+	testImplementation("org.testcontainers:junit-jupiter")
+	testImplementation("org.testcontainers:postgresql")
+	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
-kapt{
-	arguments{
-		arg("mapstruct.defaultComponentModel","spring")
+
+kapt {
+	arguments {
+		arg("mapstruct.defaultComponentModel", "spring")
 		arg("mapstruct.unmappedTargetPolicy", "IGNORE")
 	}
 }
-dependencyManagement {
-	imports {
-		mavenBom("org.springframework.cloud:spring-cloud-dependencies:${property("springCloudVersion")}")
-	}
-}
+
 kotlin {
 	compilerOptions {
 		freeCompilerArgs.addAll("-Xjsr305=strict")

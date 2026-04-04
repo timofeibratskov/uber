@@ -1,0 +1,56 @@
+databaseChangeLog:
+  - changeSet:
+      id: 02-create-car-table
+      author: user
+      changes:
+        - createTable:
+            tableName: car_table
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: color
+                  type: VARCHAR(50)
+              - column:
+                  name: license_plate
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: brand
+                  type: VARCHAR(100)
+              - column:
+                  name: model
+                  type: VARCHAR(100)
+              - column:
+                  name: seats
+                  type: INT
+                  defaultValueNumeric: 4
+              - column:
+                  name: driver_id
+                  type: UUID
+                  constraints:
+                    foreignKeyName: fk_car_driver
+                    references: driver_table(id)
+                    nullable: true
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_deleted
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
