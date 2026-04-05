@@ -27,6 +27,7 @@ dependencies {
 	implementation("org.liquibase:liquibase-core")
 	implementation("org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.4")
 	runtimeOnly("org.postgresql:postgresql")
+	implementation("org.springframework.boot:spring-boot-starter-data-redis")
 	implementation("org.springframework.security:spring-security-crypto")
 	implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
 	implementation("org.mapstruct:mapstruct:1.5.5.Final")
@@ -38,6 +39,7 @@ dependencies {
 	testImplementation("org.mybatis.spring.boot:mybatis-spring-boot-starter-test:3.0.4")
 	testImplementation("org.testcontainers:junit-jupiter")
 	testImplementation("org.testcontainers:postgresql")
+	testImplementation("org.testcontainers:testcontainers:1.19.3")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

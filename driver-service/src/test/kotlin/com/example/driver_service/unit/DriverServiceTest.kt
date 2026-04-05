@@ -21,6 +21,7 @@ import com.example.driver_service.model.enums.WorkStatus
 import com.example.driver_service.repository.DriverRepository
 import com.example.driver_service.service.CarService
 import com.example.driver_service.service.DriverService
+import com.example.driver_service.service.LocationService
 import io.mockk.every
 import io.mockk.impl.annotations.InjectMockKs
 import io.mockk.impl.annotations.MockK
@@ -49,6 +50,9 @@ class DriverServiceTest {
 
     @MockK
     lateinit var carMapper: CarMapper
+
+    @MockK
+    lateinit var locationService: LocationService
 
     @MockK
     lateinit var carService: CarService
@@ -738,6 +742,7 @@ class DriverServiceTest {
             workStatus = WorkStatus.OFF_DUTY,
         )
 
+        every { locationService.updateSession(any(), any()) } returns Unit
         every { driverRepository.findById(id) } returns driver
         every { driverRepository.update(any()) } returns Unit
 
@@ -748,6 +753,7 @@ class DriverServiceTest {
         assertEquals(WorkStatus.AVAILABLE, driver.workStatus)
         verify(exactly = 1) { driverRepository.findById(id) }
         verify(exactly = 1) { driverRepository.update(match { it.workStatus == WorkStatus.AVAILABLE }) }
+        verify(exactly = 1) { locationService.updateSession(any(), any()) }
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.example.driver_service.it
 
+import com.example.driver_service.constant.RedisSchema
 import com.example.driver_service.exception.models.ErrorResponse
 import com.example.driver_service.exception.models.ValidationErrorResponse
 import com.example.driver_service.model.dto.CarResponseDto
@@ -15,6 +16,7 @@ import com.example.driver_service.model.enums.Gender
 import com.example.driver_service.model.enums.WorkStatus
 import com.example.driver_service.repository.CarRepository
 import com.example.driver_service.repository.DriverRepository
+import com.example.driver_service.service.LocationService
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -31,6 +33,8 @@ import org.springframework.boot.test.web.client.getForEntity
 import org.springframework.boot.test.web.client.patchForObject
 import org.springframework.boot.test.web.client.postForEntity
 import org.springframework.core.ParameterizedTypeReference
+import org.springframework.data.geo.Point
+import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
@@ -40,8 +44,9 @@ class DriverControllerIT @Autowired constructor(
     private val restTemplate: TestRestTemplate,
     private val passwordEncoder: PasswordEncoder,
     private val driverRepository: DriverRepository,
-    @Autowired private val carRepository: CarRepository,
-    repository: CarRepository
+    private val carRepository: CarRepository,
+    private val redisTemplate: RedisTemplate<String, Any>,
+    private val locationService: LocationService
 ) : BaseIT() {
 
     @BeforeEach
@@ -962,7 +967,7 @@ class DriverControllerIT @Autowired constructor(
     }
 
     @Test
-    @DisplayName("Успешное изменение статуса на свободен")
+    @DisplayName("Успешное изменение статуса: off_duty->available")
     fun setWorkStatus_Success() {
         // Arrange
         val driverId = UUID.randomUUID()
@@ -995,7 +1000,7 @@ class DriverControllerIT @Autowired constructor(
 
         // Act
         val response = restTemplate.exchange<Void>(
-            "/api/v1/drivers/$driverId/status/${WorkStatus.AVAILABLE}",
+            "/api/v1/drivers/$driverId/duty/start",
             HttpMethod.PATCH
         )
 
@@ -1006,8 +1011,8 @@ class DriverControllerIT @Autowired constructor(
     }
 
     @Test
-    @DisplayName("Успешное изменение статуса на свободен")
-    fun setWorkStatus_Success_whenDriverIsBisy() {
+    @DisplayName("Успешное изменение статуса: available->off_duty")
+    fun setWorkStatus_Success_whenDriverIsBusy() {
         // Arrange
         val driverId = UUID.randomUUID()
         val carId = UUID.randomUUID()
@@ -1020,7 +1025,7 @@ class DriverControllerIT @Autowired constructor(
             gender = Gender.MALE,
             rating = 5.0f,
             carId = null,
-            workStatus = WorkStatus.BUSY,
+            workStatus = WorkStatus.AVAILABLE,
         )
         val car = CarEntity(
             id = carId,
@@ -1039,7 +1044,7 @@ class DriverControllerIT @Autowired constructor(
 
         // Act
         val response = restTemplate.exchange<Void>(
-            "/api/v1/drivers/$driverId/status/${WorkStatus.OFF_DUTY}",
+            "/api/v1/drivers/$driverId/duty/stop",
             HttpMethod.PATCH
         )
 
@@ -1069,7 +1074,7 @@ class DriverControllerIT @Autowired constructor(
 
         // Act
         val response = restTemplate.patchForObject<ErrorResponse>(
-            "/api/v1/drivers/$driverId/status/${WorkStatus.AVAILABLE}",
+            "/api/v1/drivers/$driverId/duty/start",
         )
 
         // Assert
@@ -1086,12 +1091,52 @@ class DriverControllerIT @Autowired constructor(
 
         // Act
         val response = restTemplate.patchForObject<ErrorResponse>(
-            "/api/v1/drivers/$driverId/status/${WorkStatus.AVAILABLE}",
+            "/api/v1/drivers/$driverId/duty/start",
         )
 
         // Assert
         assertNotNull(response)
         assertEquals(response.code, "NOT_FOUND")
         assertNull(driverRepository.findById(driverId))
+    }
+
+    @Test
+    @DisplayName("Успешный пинг локации: данные сохраняются в Redis")
+    fun pingLocation_Success() {
+        // Arrange
+        val id = UUID.randomUUID()
+        val point = Point(53.67, 23.83)
+
+        locationService.updateSession(id, WorkStatus.AVAILABLE)
+
+        // Act
+        val response = restTemplate.postForEntity<Void>(
+            "/api/v1/drivers/$id/ping",
+            point
+        )
+
+        // Assert
+        assertEquals(HttpStatus.NO_CONTENT, response.statusCode)
+        assertEquals(redisTemplate.hasKey(RedisSchema.driverStatusKey(id)), true)
+        assertNotNull(redisTemplate.opsForGeo().position(RedisSchema.DRIVER_LOCATIONS_KEY, id.toString()))
+    }
+
+    @Test
+    @DisplayName("Ошибка пинга: водитель не на смене (нет ключа в Redis)")
+    fun pingLocation_Fail_DriverOffline() {
+        // Arrange
+        val id = UUID.randomUUID()
+        val point = Point(53.0, 23.0)
+
+        // Act
+        val response = restTemplate.postForEntity<ErrorResponse>(
+            "/api/v1/drivers/$id/ping",
+            point
+        )
+
+        // Assert
+        assertEquals(HttpStatus.NOT_FOUND, response.statusCode)
+        assertEquals("NOT_FOUND", response.body?.code)
+        assertNull(redisTemplate.opsForGeo().position(RedisSchema.DRIVER_LOCATIONS_KEY, id.toString())!![0])
     }
 }

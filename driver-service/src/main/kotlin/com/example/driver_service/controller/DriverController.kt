@@ -10,8 +10,10 @@ import com.example.driver_service.model.dto.UpdateDriverDto
 import com.example.driver_service.model.enums.WorkStatus
 import com.example.driver_service.service.CarService
 import com.example.driver_service.service.DriverService
+import com.example.driver_service.service.LocationService
 import jakarta.validation.Valid
 import java.util.UUID
+import org.springframework.data.geo.Point
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -27,7 +29,8 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/api/v1/drivers")
 class DriverController(
     private val driverService: DriverService,
-    private val carService: CarService
+    private val carService: CarService,
+    private val locationService: LocationService
 ) {
     @PostMapping("/register")
     fun register(@Valid @RequestBody dto: RegisterDriverDto):
@@ -104,12 +107,28 @@ class DriverController(
         return ResponseEntity.noContent().build()
     }
 
-    @PatchMapping("/{id}/status/{status}")
-    fun setWorkStatus(
-        @PathVariable id: UUID,
-        @PathVariable status: WorkStatus,
+    @PatchMapping("/{id}/duty/start")
+    fun startDuty(
+        @PathVariable id: UUID
     ): ResponseEntity<Void> {
-        driverService.setWorkStatus(id, status)
+        driverService.setWorkStatus(id, WorkStatus.AVAILABLE)
+        return ResponseEntity.noContent().build()
+    }
+
+    @PatchMapping("/{id}/duty/stop")
+    fun stopDuty(
+        @PathVariable id: UUID
+    ): ResponseEntity<Void> {
+        driverService.setWorkStatus(id, WorkStatus.OFF_DUTY)
+        return ResponseEntity.noContent().build()
+    }
+
+    @PostMapping("/{id}/ping")
+    fun pingLocation(
+        @PathVariable id: UUID,
+        @Valid @RequestBody point: Point
+    ): ResponseEntity<Void> {
+        locationService.pingLocation(id, point)
         return ResponseEntity.noContent().build()
     }
 }

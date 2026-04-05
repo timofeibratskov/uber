@@ -28,7 +28,8 @@ class DriverService(
     private val carMapper: CarMapper,
     private val driverRepository: DriverRepository,
     private val passwordEncoder: PasswordEncoder,
-    private val carService: CarService
+    private val carService: CarService,
+    private val locationService: LocationService,
 ) {
     companion object {
         private val log = KotlinLogging.logger {}
@@ -171,6 +172,8 @@ class DriverService(
                     throw DriverIncompleteProfileException("Driver must have an assigned car to start duty").also {
                         log.error { "driver with id: $id must have an assigned car to start duty" }
                     }
+                if (driver.workStatus == WorkStatus.OFF_DUTY)
+                    locationService.updateSession(id, status)
             }
 
             WorkStatus.BUSY -> {
@@ -178,11 +181,13 @@ class DriverService(
                     throw InvalidStatusTransitionException("driver cannot go BUSY from OFF_DUTY. Start duty first").also {
                         log.error { "driver with id: $id cannot go BUSY from OFF_DUTY. Start duty first" }
                     }
+                locationService.updateSession(id, status)
             }
 
             WorkStatus.OFF_DUTY -> {
                 if (driver.workStatus == WorkStatus.BUSY)
                     log.warn { "driver with $id is trying to go OFF_DUTY while having an active ride" }
+                locationService.deleteSession(id)
             }
         }
         driver.workStatus = status
