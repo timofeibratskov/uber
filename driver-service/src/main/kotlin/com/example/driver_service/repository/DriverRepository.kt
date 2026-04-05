@@ -21,10 +21,10 @@ interface DriverRepository {
     @Select("SELECT * FROM driver_table WHERE email = #{email}")
     fun findByEmail(email: String): DriverEntity?
 
-    @Insert("""INSERT INTO driver_table (id, name, email, password, phone_number, rating, gender, car_id, created_at, updated_at) VALUES (#{id}, #{name}, #{email}, #{password}, #{phoneNumber}, #{rating}, #{gender}, #{carId}, NOW(), NOW())""")
+    @Insert("""INSERT INTO driver_table (id, name, email, password, phone_number, rating, gender, car_id, work_status, created_at, updated_at) VALUES (#{id}, #{name}, #{email}, #{password}, #{phoneNumber}, #{rating}, #{gender}, #{carId}, #{workStatus}, NOW(), NOW())""")
     fun save(driver: DriverEntity): Int
 
-    @Update("""UPDATE driver_table SET updated_at = NOW(), name = #{name},  car_id = #{carId}, gender = #{gender}, phone_number = #{phoneNumber} WHERE id = #{id}""")
+    @Update("""UPDATE driver_table SET updated_at = NOW(), name = #{name},  car_id = #{carId}, gender = #{gender}, phone_number = #{phoneNumber}, work_status = #{workStatus} WHERE id = #{id}""")
     fun update(driver: DriverEntity)
 
     @Update("TRUNCATE TABLE driver_table RESTART IDENTITY CASCADE")

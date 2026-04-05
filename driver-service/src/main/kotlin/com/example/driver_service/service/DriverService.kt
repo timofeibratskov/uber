@@ -1,8 +1,10 @@
 package com.example.driver_service.service
 
+import com.example.driver_service.exception.DriverIncompleteProfileException
 import com.example.driver_service.exception.DriverNotFoundException
 import com.example.driver_service.exception.EmailAlreadyExistsException
 import com.example.driver_service.exception.InvalidCredentialsException
+import com.example.driver_service.exception.InvalidStatusTransitionException
 import com.example.driver_service.exception.PhoneNumberAlreadyExistsException
 import com.example.driver_service.mapper.CarMapper
 import com.example.driver_service.mapper.DriverMapper
@@ -12,6 +14,7 @@ import com.example.driver_service.model.dto.DriverResponseDto
 import com.example.driver_service.model.dto.LoginDriverDto
 import com.example.driver_service.model.dto.RegisterDriverDto
 import com.example.driver_service.model.dto.UpdateDriverDto
+import com.example.driver_service.model.enums.WorkStatus
 import com.example.driver_service.repository.DriverRepository
 import java.util.UUID
 import mu.KotlinLogging
@@ -150,5 +153,39 @@ class DriverService(
             log.info { "Driver $driverId now has car ${mainCar.id} as main" }
         }
         return mainCar
+    }
+
+    @Transactional
+    fun setWorkStatus(id: UUID, status: WorkStatus) {
+        val driver = driverRepository.findById(id)
+            ?: throw DriverNotFoundException("Driver not found").also {
+                log.error { "Driver not found with ID: $id" }
+            }
+        if (driver.workStatus == status) {
+            log.info { "driver with id: $id already has status: ${driver.workStatus}, skipping update" }
+            return
+        }
+        when (status) {
+            WorkStatus.AVAILABLE -> {
+                if (driver.carId == null)
+                    throw DriverIncompleteProfileException("Driver must have an assigned car to start duty").also {
+                        log.error { "driver with id: $id must have an assigned car to start duty" }
+                    }
+            }
+
+            WorkStatus.BUSY -> {
+                if (driver.workStatus == WorkStatus.OFF_DUTY)
+                    throw InvalidStatusTransitionException("driver cannot go BUSY from OFF_DUTY. Start duty first").also {
+                        log.error { "driver with id: $id cannot go BUSY from OFF_DUTY. Start duty first" }
+                    }
+            }
+
+            WorkStatus.OFF_DUTY -> {
+                if (driver.workStatus == WorkStatus.BUSY)
+                    log.warn { "driver with $id is trying to go OFF_DUTY while having an active ride" }
+            }
+        }
+        driver.workStatus = status
+        driverRepository.update(driver)
     }
 }

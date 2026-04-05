@@ -7,6 +7,7 @@ import com.example.driver_service.model.dto.LoginDriverDto
 import com.example.driver_service.model.dto.RegisterDriverDto
 import com.example.driver_service.model.dto.UpdateCarDto
 import com.example.driver_service.model.dto.UpdateDriverDto
+import com.example.driver_service.model.enums.WorkStatus
 import com.example.driver_service.service.CarService
 import com.example.driver_service.service.DriverService
 import jakarta.validation.Valid
@@ -100,6 +101,15 @@ class DriverController(
         @PathVariable carId: UUID,
     ): ResponseEntity<Void> {
         driverService.unlinkCar(driverId, carId)
+        return ResponseEntity.noContent().build()
+    }
+
+    @PatchMapping("/{id}/status/{status}")
+    fun setWorkStatus(
+        @PathVariable id: UUID,
+        @PathVariable status: WorkStatus,
+    ): ResponseEntity<Void> {
+        driverService.setWorkStatus(id, status)
         return ResponseEntity.noContent().build()
     }
 }

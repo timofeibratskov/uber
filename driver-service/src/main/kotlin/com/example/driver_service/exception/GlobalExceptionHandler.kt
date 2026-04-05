@@ -43,6 +43,24 @@ class GlobalExceptionHandler {
         )
     }
 
+    @ExceptionHandler(InvalidStatusTransitionException::class)
+    fun handleInvalidStatusTransitionException(ex: InvalidStatusTransitionException):
+            ResponseEntity<ErrorResponse> {
+        return ResponseEntity(
+            ErrorResponse("INVALID_STATUS_TRANSITION", ex.message!!),
+            HttpStatus.CONFLICT
+        )
+    }
+
+    @ExceptionHandler(DriverIncompleteProfileException::class)
+    fun handleDriverIncompleteProfileException(ex: DriverIncompleteProfileException):
+            ResponseEntity<ErrorResponse> {
+        return ResponseEntity(
+            ErrorResponse("INCOMPLETE_PROFILE", ex.message!!),
+            HttpStatus.BAD_REQUEST
+        )
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException::class)
     fun handleMethodArgumentNotValidException(ex: MethodArgumentNotValidException):
             ResponseEntity<ValidationErrorResponse> {

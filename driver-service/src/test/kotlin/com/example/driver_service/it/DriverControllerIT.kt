@@ -12,11 +12,13 @@ import com.example.driver_service.model.dto.UpdateDriverDto
 import com.example.driver_service.model.entity.CarEntity
 import com.example.driver_service.model.entity.DriverEntity
 import com.example.driver_service.model.enums.Gender
+import com.example.driver_service.model.enums.WorkStatus
 import com.example.driver_service.repository.CarRepository
 import com.example.driver_service.repository.DriverRepository
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
@@ -38,7 +40,8 @@ class DriverControllerIT @Autowired constructor(
     private val restTemplate: TestRestTemplate,
     private val passwordEncoder: PasswordEncoder,
     private val driverRepository: DriverRepository,
-    private val carRepository: CarRepository
+    @Autowired private val carRepository: CarRepository,
+    repository: CarRepository
 ) : BaseIT() {
 
     @BeforeEach
@@ -956,5 +959,139 @@ class DriverControllerIT @Autowired constructor(
         assertThat(response.body!!.id).isEqualTo(carId)
         assertThat(response.body!!.licensePlate).isEqualTo("1111AA-1")
         assertThat(response.body!!.driverId).isEqualTo(driverId)
+    }
+
+    @Test
+    @DisplayName("Успешное изменение статуса на свободен")
+    fun setWorkStatus_Success() {
+        // Arrange
+        val driverId = UUID.randomUUID()
+        val carId = UUID.randomUUID()
+        val driver = DriverEntity(
+            id = driverId,
+            name = "john",
+            email = "john@test.com",
+            password = "password",
+            phoneNumber = "+375290000000",
+            gender = Gender.MALE,
+            rating = 5.0f,
+            carId = null,
+            workStatus = WorkStatus.OFF_DUTY,
+        )
+        val car = CarEntity(
+            id = carId,
+            color = "Blue",
+            licensePlate = "1111AA-1",
+            brand = "Tesla",
+            model = "Model 3",
+            seats = 5,
+            driverId = driverId,
+            isDeleted = false
+        )
+        driverRepository.save(driver)
+        carRepository.save(car)
+        driver.carId = carId
+        driverRepository.update(driver)
+
+        // Act
+        val response = restTemplate.exchange<Void>(
+            "/api/v1/drivers/$driverId/status/${WorkStatus.AVAILABLE}",
+            HttpMethod.PATCH
+        )
+
+        // Assert
+        assertThat(response.statusCode).isEqualTo(HttpStatus.NO_CONTENT)
+        val updatedDriver = driverRepository.findById(driverId)
+        assertThat(updatedDriver?.workStatus).isEqualTo(WorkStatus.AVAILABLE)
+    }
+
+    @Test
+    @DisplayName("Успешное изменение статуса на свободен")
+    fun setWorkStatus_Success_whenDriverIsBisy() {
+        // Arrange
+        val driverId = UUID.randomUUID()
+        val carId = UUID.randomUUID()
+        val driver = DriverEntity(
+            id = driverId,
+            name = "john",
+            email = "john@test.com",
+            password = "password",
+            phoneNumber = "+375290000000",
+            gender = Gender.MALE,
+            rating = 5.0f,
+            carId = null,
+            workStatus = WorkStatus.BUSY,
+        )
+        val car = CarEntity(
+            id = carId,
+            color = "Blue",
+            licensePlate = "1111AA-1",
+            brand = "Tesla",
+            model = "Model 3",
+            seats = 5,
+            driverId = driverId,
+            isDeleted = false
+        )
+        driverRepository.save(driver)
+        carRepository.save(car)
+        driver.carId = carId
+        driverRepository.update(driver)
+
+        // Act
+        val response = restTemplate.exchange<Void>(
+            "/api/v1/drivers/$driverId/status/${WorkStatus.OFF_DUTY}",
+            HttpMethod.PATCH
+        )
+
+        // Assert
+        assertThat(response.statusCode).isEqualTo(HttpStatus.NO_CONTENT)
+        val updatedDriver = driverRepository.findById(driverId)
+        assertThat(updatedDriver?.workStatus).isEqualTo(WorkStatus.OFF_DUTY)
+    }
+
+    @Test
+    @DisplayName("Ошибка изменения статуса: водитель без машины")
+    fun setWorkStatus_NoCar_ReturnsBadRequest() {
+        // Arrange
+        val driverId = UUID.randomUUID()
+        val driverWithoutCar = DriverEntity(
+            id = driverId,
+            name = "NoCarDriver",
+            email = "nocar@test.com",
+            password = "password",
+            phoneNumber = "+375291112233",
+            gender = Gender.OTHER,
+            rating = 4.0f,
+            carId = null,
+            workStatus = WorkStatus.OFF_DUTY,
+        )
+        driverRepository.save(driverWithoutCar)
+
+        // Act
+        val response = restTemplate.patchForObject<ErrorResponse>(
+            "/api/v1/drivers/$driverId/status/${WorkStatus.AVAILABLE}",
+        )
+
+        // Assert
+        assertNotNull(response)
+        assertEquals(response.code, "INCOMPLETE_PROFILE")
+        assertEquals(driverRepository.findById(driverId)!!.workStatus, WorkStatus.OFF_DUTY)
+    }
+
+    @Test
+    @DisplayName("Ошибка изменения статуса: водитель не найден")
+    fun setWorkStatus_NoCar_ReturnsNotFound() {
+        // Arrange
+        val driverId = UUID.randomUUID()
+
+        // Act
+        val response = restTemplate.patchForObject<ErrorResponse>(
+            "/api/v1/drivers/$driverId/status/${WorkStatus.AVAILABLE}",
+        )
+
+        // Assert
+        assertNotNull(response)
+        assertEquals(response.code, "NOT_FOUND")
+        assertNull(driverRepository.findById(driverId))
     }
 }

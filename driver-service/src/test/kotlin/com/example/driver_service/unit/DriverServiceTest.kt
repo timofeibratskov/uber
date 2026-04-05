@@ -1,8 +1,10 @@
 package com.example.driver_service.unit
 
+import com.example.driver_service.exception.DriverIncompleteProfileException
 import com.example.driver_service.exception.DriverNotFoundException
 import com.example.driver_service.exception.EmailAlreadyExistsException
 import com.example.driver_service.exception.InvalidCredentialsException
+import com.example.driver_service.exception.InvalidStatusTransitionException
 import com.example.driver_service.exception.PhoneNumberAlreadyExistsException
 import com.example.driver_service.mapper.CarMapper
 import com.example.driver_service.mapper.DriverMapper
@@ -15,6 +17,7 @@ import com.example.driver_service.model.dto.UpdateDriverDto
 import com.example.driver_service.model.entity.CarEntity
 import com.example.driver_service.model.entity.DriverEntity
 import com.example.driver_service.model.enums.Gender
+import com.example.driver_service.model.enums.WorkStatus
 import com.example.driver_service.repository.DriverRepository
 import com.example.driver_service.service.CarService
 import com.example.driver_service.service.DriverService
@@ -25,6 +28,7 @@ import io.mockk.junit5.MockKExtension
 import io.mockk.verify
 import java.util.UUID
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -714,5 +718,119 @@ class DriverServiceTest {
         assertEquals("Driver not found", exception.message)
         verify(exactly = 1) { driverRepository.findById(driverId) }
         verify(exactly = 0) { carService.findByCarIdAndDriverId(any(), any()) }
+    }
+
+    @Test
+    @DisplayName("Успешное изменение рабочего статуса: статус изменен на AVAILABLE")
+    fun setWorkStatus_Available_Success() {
+        // Arrange
+        val id = UUID.randomUUID()
+        val carId = UUID.randomUUID()
+        val driver = DriverEntity(
+            id = id,
+            name = "john",
+            email = "johhn@grsu.by",
+            password = "secure_password_hash",
+            phoneNumber = "+375291112233",
+            rating = 4.8f,
+            gender = Gender.OTHER,
+            carId = carId,
+            workStatus = WorkStatus.OFF_DUTY,
+        )
+
+        every { driverRepository.findById(id) } returns driver
+        every { driverRepository.update(any()) } returns Unit
+
+        // Act
+        driverService.setWorkStatus(id, WorkStatus.AVAILABLE)
+
+        // Assert
+        assertEquals(WorkStatus.AVAILABLE, driver.workStatus)
+        verify(exactly = 1) { driverRepository.findById(id) }
+        verify(exactly = 1) { driverRepository.update(match { it.workStatus == WorkStatus.AVAILABLE }) }
+    }
+
+    @Test
+    @DisplayName("Ошибка изменения статуса: попытка стать AVAILABLE без привязанного автомобиля")
+    fun setWorkStatus_Available_NoCar_ThrowsException() {
+        // Arrange
+        val id = UUID.randomUUID()
+        val driverWithoutCar = DriverEntity(
+            id = id,
+            name = "Ivan",
+            email = "ivan@example.com",
+            password = "password123",
+            phoneNumber = "+375336667788",
+            rating = 5.0f,
+            gender = Gender.OTHER,
+            carId = null,
+            workStatus = WorkStatus.OFF_DUTY,
+        )
+
+        every { driverRepository.findById(id) } returns driverWithoutCar
+
+        // Act
+        val exception = assertThrows<DriverIncompleteProfileException> {
+            driverService.setWorkStatus(id, WorkStatus.AVAILABLE)
+        }
+        // Assert
+        assertEquals("Driver must have an assigned car to start duty", exception.message)
+        verify(exactly = 0) { driverRepository.update(any()) }
+    }
+
+    @Test
+    @DisplayName("Ошибка изменения статуса: переход в BUSY невозможен, если статус OFF_DUTY")
+    fun setWorkStatus_BusyWhileOffDuty_ThrowsException() {
+        // Arrange
+        val id = UUID.randomUUID()
+        val driverOffDuty = DriverEntity(
+            id = id,
+            name = "Dmitry",
+            email = "dima@test.com",
+            password = "hidden_pass",
+            phoneNumber = "+375259990011",
+            rating = 4.5f,
+            gender = Gender.OTHER,
+            carId = UUID.randomUUID(),
+            workStatus = WorkStatus.OFF_DUTY
+        )
+
+        every { driverRepository.findById(id) } returns driverOffDuty
+
+        // Act
+        val exception = assertThrows<InvalidStatusTransitionException> {
+            driverService.setWorkStatus(id, WorkStatus.BUSY)
+        }
+        // Assert
+        assertTrue(exception.message!!.contains("driver cannot go BUSY from OFF_DUTY. Start duty first"))
+        verify(exactly = 0) { driverRepository.update(any()) }
+    }
+
+    @Test
+    @DisplayName("Идемпотентность: пропуск обновления, если статус уже совпадает")
+    fun setWorkStatus_SameStatus_NoUpdate() {
+        // Arrange
+        val id = UUID.randomUUID()
+        val currentStatus = WorkStatus.AVAILABLE
+        val driverAlreadyAvailable = DriverEntity(
+            id = id,
+            name = "Alex",
+            email = "alex@mail.com",
+            password = "hash",
+            phoneNumber = "+375441234567",
+            rating = 4.9f,
+            gender = Gender.OTHER,
+            carId = UUID.randomUUID(),
+            workStatus = currentStatus,
+        )
+
+        every { driverRepository.findById(id) } returns driverAlreadyAvailable
+
+        // Act
+        driverService.setWorkStatus(id, currentStatus)
+
+        // Assert
+        verify(exactly = 1) { driverRepository.findById(id) }
+        verify(exactly = 0) { driverRepository.update(any()) }
     }
 }
