@@ -18,6 +18,8 @@ import com.example.driver_service.model.entity.CarEntity
 import com.example.driver_service.model.entity.DriverEntity
 import com.example.driver_service.model.enums.Gender
 import com.example.driver_service.model.enums.WorkStatus
+import com.example.driver_service.model.view.CarView
+import com.example.driver_service.model.view.DriverView
 import com.example.driver_service.repository.DriverRepository
 import com.example.driver_service.service.CarService
 import com.example.driver_service.service.DriverService
@@ -28,6 +30,7 @@ import io.mockk.impl.annotations.MockK
 import io.mockk.junit5.MockKExtension
 import io.mockk.verify
 import java.util.UUID
+import kotlin.test.assertNotNull
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
@@ -838,5 +841,59 @@ class DriverServiceTest {
         // Assert
         verify(exactly = 1) { driverRepository.findById(id) }
         verify(exactly = 0) { driverRepository.update(any()) }
+    }
+
+    @Test
+    @DisplayName("Успешный Поиск свободных водителей: пустой список")
+    fun findAllAvailableDrivers_getEmptyList() {
+        // Arrange
+        val ids = listOf(UUID.randomUUID())
+        val seats = 4
+
+        every { driverRepository.findAvailableDrivers(ids, seats) } returns emptyList()
+
+        // Act
+        driverService.findAllAvailableDrivers(ids, seats)
+
+        // Assert
+        verify(exactly = 1) { driverRepository.findAvailableDrivers(any(), any()) }
+    }
+
+    @Test
+    @DisplayName("Успешный Поиск свободных водителей: непустой список")
+    fun findAllAvailableDrivers_getDriversList() {
+        // Arrange
+        val driverId = UUID.randomUUID()
+        val carId = UUID.randomUUID()
+        val ids = listOf(driverId)
+        val seats = 4
+
+        val availableDriver = DriverView(
+            driverId,
+            "john",
+            "john@gmail.com",
+            "+375295555555",
+            5f,
+            Gender.MALE,
+            CarView(
+                carId,
+                "red",
+                "1122AA-1",
+                "BMW",
+                "3",
+                4
+            )
+        )
+
+        every { driverRepository.findAvailableDrivers(ids, seats) } returns listOf(availableDriver)
+
+        // Act
+        val result = driverService.findAllAvailableDrivers(ids, seats)
+
+        // Assert
+        verify(exactly = 1) { driverRepository.findAvailableDrivers(any(), any()) }
+        assertNotNull(result)
+        assertEquals(1, result.size)
+        assertEquals(seats, result.first().car!!.seats)
     }
 }

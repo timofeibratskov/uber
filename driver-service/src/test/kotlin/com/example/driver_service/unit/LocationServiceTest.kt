@@ -10,17 +10,23 @@ import io.mockk.impl.annotations.MockK
 import io.mockk.junit5.MockKExtension
 import io.mockk.mockk
 import io.mockk.verify
+import java.time.Duration
+import java.util.UUID
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
+import org.springframework.data.geo.Distance
+import org.springframework.data.geo.GeoResult
+import org.springframework.data.geo.GeoResults
+import org.springframework.data.geo.Metrics
 import org.springframework.data.geo.Point
+import org.springframework.data.redis.connection.RedisGeoCommands
 import org.springframework.data.redis.core.GeoOperations
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.data.redis.core.ValueOperations
-import java.time.Duration
-import java.util.UUID
+import org.springframework.data.redis.domain.geo.GeoReference
 
 @ExtendWith(MockKExtension::class)
 class LocationServiceTest {
@@ -107,5 +113,78 @@ class LocationServiceTest {
         // Assert
         verify(exactly = 1) { redisTemplate.delete(statusKey) }
         verify(exactly = 1) { geoOps.remove(RedisSchema.DRIVER_LOCATIONS_KEY, *anyVararg()) }
+    }
+
+    @Test
+    @DisplayName("getAvailableIds: успешный поиск и фильтрация доступных водителей")
+    fun getAvailableIds_Success() {
+        // Arrange
+        val searchPoint = Point(53.67, 23.83)
+
+        val driverId1 = UUID.randomUUID()
+        val driverId2 = UUID.randomUUID()
+
+        val location1 = RedisGeoCommands.GeoLocation<Any>(driverId1, Point(53.1, 23.1))
+        val location2 = RedisGeoCommands.GeoLocation<Any>(driverId2, Point(53.2, 23.2))
+
+        val res1 = GeoResult(location1, Distance(1.0, Metrics.KILOMETERS))
+        val res2 = GeoResult(location2, Distance(2.0, Metrics.KILOMETERS))
+
+        val geoResults = GeoResults(listOf(res1, res2))
+
+        val geoOps = mockk<GeoOperations<String, Any>>()
+        val valueOps = mockk<ValueOperations<String, Any>>()
+
+        every { redisTemplate.opsForGeo() } returns geoOps
+        every { redisTemplate.opsForValue() } returns valueOps
+
+        every {
+            geoOps.search(
+                any<String>(),
+                any<GeoReference<Any>>(),
+                any<Distance>(),
+                any<RedisGeoCommands.GeoSearchCommandArgs>()
+            )
+        } returns geoResults
+
+        every { valueOps.get(RedisSchema.driverStatusKey(driverId1)) } returns "AVAILABLE"
+        every { valueOps.get(RedisSchema.driverStatusKey(driverId2)) } returns "BUSY"
+
+        // Act
+        val result = locationService.getAvailableIds(searchPoint)
+
+        // Assert
+        assertEquals(1, result.size)
+        assertEquals(driverId1, result[0])
+        verify(exactly = 1) {
+            geoOps.search(
+                any<String>(),
+                any<GeoReference<Any>>(),
+                any<Distance>(),
+                any<RedisGeoCommands.GeoSearchCommandArgs>()
+            )
+        }
+        verify(exactly = 2) { valueOps.get(any()) }
+    }
+
+    @Test
+    @DisplayName("getAvailableIds: возврат пустого списка, если Redis ничего не нашел")
+    fun getAvailableIds_EmptyResults() {
+        val searchPoint = Point(53.67, 23.83)
+        val geoOps = mockk<GeoOperations<String, Any>>()
+
+        every { redisTemplate.opsForGeo() } returns geoOps
+        every {
+            geoOps.search(
+                any<String>(),
+                any<GeoReference<Any>>(),
+                any<Distance>(),
+                any<RedisGeoCommands.GeoSearchCommandArgs>()
+            )
+        } returns null
+
+        val result = locationService.getAvailableIds(searchPoint)
+
+        assertEquals(0, result.size)
     }
 }

@@ -15,6 +15,7 @@ import com.example.driver_service.model.dto.LoginDriverDto
 import com.example.driver_service.model.dto.RegisterDriverDto
 import com.example.driver_service.model.dto.UpdateDriverDto
 import com.example.driver_service.model.enums.WorkStatus
+import com.example.driver_service.model.view.DriverView
 import com.example.driver_service.repository.DriverRepository
 import java.util.UUID
 import mu.KotlinLogging
@@ -192,5 +193,10 @@ class DriverService(
         }
         driver.workStatus = status
         driverRepository.update(driver)
+    }
+
+    @Transactional(readOnly = true)
+    fun findAllAvailableDrivers(ids: List<UUID>, seats: Int): List<DriverView> {
+        return driverRepository.findAvailableDrivers(ids, seats)
     }
 }

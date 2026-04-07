@@ -1,9 +1,11 @@
 package com.example.driver_service.repository
 
 import com.example.driver_service.model.entity.DriverEntity
+import com.example.driver_service.model.view.DriverView
 import java.util.UUID
 import org.apache.ibatis.annotations.Insert
 import org.apache.ibatis.annotations.Mapper
+import org.apache.ibatis.annotations.ResultMap
 import org.apache.ibatis.annotations.Select
 import org.apache.ibatis.annotations.Update
 
@@ -29,4 +31,6 @@ interface DriverRepository {
 
     @Update("TRUNCATE TABLE driver_table RESTART IDENTITY CASCADE")
     fun deleteAll()
+
+    fun findAvailableDrivers(ids: List<UUID>, seats: Int): List<DriverView>
 }

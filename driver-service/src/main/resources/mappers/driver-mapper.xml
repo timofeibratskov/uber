@@ -1,0 +1,52 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<!DOCTYPE mapper PUBLIC '-//mybatis.org//DTD Mapper 3.0//EN'
+        'http://mybatis.org/dtd/mybatis-3-mapper.dtd'>
+<mapper namespace="com.example.driver_service.repository.DriverRepository">
+
+    <resultMap id="CarViewMap" type="com.example.driver_service.model.view.CarView">
+        <id property="id" column="c_id"/>
+        <result property="color" column="c_color"/>
+        <result property="licensePlate" column="c_license_plate"/>
+        <result property="brand" column="c_brand"/>
+        <result property="model" column="c_model"/>
+        <result property="seats" column="c_seats"/>
+    </resultMap>
+
+    <resultMap id="DriverWithCarMap" type="com.example.driver_service.model.view.DriverView">
+        <id property="id" column="d_id"/>
+        <result property="name" column="d_name"/>
+        <result property="email" column="d_email"/>
+        <result property="phoneNumber" column="d_phone_number"/>
+        <result property="rating" column="d_rating"/>
+        <result property="gender" column="d_gender"/>
+        <association property="car" resultMap="CarViewMap"/>
+    </resultMap>
+
+    <select id="findAvailableDrivers" resultMap="DriverWithCarMap">
+        SELECT
+        d.id AS d_id,
+        d.name AS d_name,
+        d.email AS d_email,
+        d.phone_number AS d_phone_number,
+        d.rating AS d_rating,
+        d.gender AS d_gender,
+
+        c.id AS c_id,
+        c.color AS c_color,
+        c.license_plate AS c_license_plate,
+        c.brand AS c_brand,
+        c.model AS c_model,
+        c.seats AS c_seats
+
+        FROM driver_table d
+        LEFT JOIN car_table c ON d.car_id = c.id
+        WHERE
+        d.work_status = 'AVAILABLE'
+        AND c.seats >= #{seats}
+        AND d.id IN
+        <foreach item="id" collection="ids" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        ORDER BY d.rating DESC NULLS LAST
+    </select>
+</mapper>
