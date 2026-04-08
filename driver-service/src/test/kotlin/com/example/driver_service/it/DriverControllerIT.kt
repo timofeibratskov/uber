@@ -18,6 +18,7 @@ import com.example.driver_service.repository.CarRepository
 import com.example.driver_service.repository.DriverRepository
 import com.example.driver_service.service.DriverMatchingService
 import com.example.driver_service.service.LocationService
+import java.math.BigDecimal
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -99,7 +100,7 @@ class DriverControllerIT @Autowired constructor(
             password = "password",
             phoneNumber = "+375290000000",
             gender = Gender.MALE,
-            rating = 5.0f,
+            rating = BigDecimal.valueOf(5.0),
             carId = null
         )
         driverRepository.save(existingDriver)
@@ -138,7 +139,7 @@ class DriverControllerIT @Autowired constructor(
             password = "password",
             phoneNumber = phoneNumber,
             gender = Gender.MALE,
-            rating = 5.0f,
+            rating = BigDecimal.valueOf(5.0),
             carId = null
         )
         driverRepository.save(existingDriver)
@@ -177,7 +178,7 @@ class DriverControllerIT @Autowired constructor(
             password = passwordEncoder.encode(password),
             phoneNumber = "+375291111111",
             gender = Gender.MALE,
-            rating = 5.0f,
+            rating = BigDecimal.valueOf(5.0),
             carId = null
         )
         driverRepository.save(driver)
@@ -215,7 +216,7 @@ class DriverControllerIT @Autowired constructor(
             password = passwordEncoder.encode("password"),
             phoneNumber = "+375291111111",
             gender = Gender.MALE,
-            rating = 5.0f,
+            rating = BigDecimal.valueOf(5.0),
             carId = null
         )
         driverRepository.save(driver)
@@ -248,7 +249,7 @@ class DriverControllerIT @Autowired constructor(
             password = "password",
             phoneNumber = "+375291111111",
             gender = Gender.MALE,
-            rating = 5.0f,
+            rating = BigDecimal.valueOf(5.0),
             carId = null
         )
         driverRepository.save(driver)
@@ -278,7 +279,7 @@ class DriverControllerIT @Autowired constructor(
             password = "password",
             phoneNumber = "+375291234567",
             gender = Gender.MALE,
-            rating = 4.8f,
+            rating = BigDecimal.valueOf(4.8),
             carId = null,
         )
         driverRepository.save(driverEntity)
@@ -324,7 +325,7 @@ class DriverControllerIT @Autowired constructor(
             password = "password123",
             phoneNumber = "+375291111111",
             gender = Gender.MALE,
-            rating = 5.0f,
+            rating = BigDecimal.valueOf(5.0),
             carId = null,
         )
         driverRepository.save(john)
@@ -367,7 +368,7 @@ class DriverControllerIT @Autowired constructor(
             password = "password",
             phoneNumber = "+375291111111",
             gender = Gender.MALE,
-            rating = 5.0f,
+            rating = BigDecimal.valueOf(5.0),
             carId = null,
         )
         val otherDriver = DriverEntity(
@@ -377,7 +378,7 @@ class DriverControllerIT @Autowired constructor(
             password = "password",
             phoneNumber = "+375299999999",
             gender = Gender.MALE,
-            rating = 4.0f,
+            rating = BigDecimal.valueOf(4.0),
             carId = null,
         )
         driverRepository.save(john)
@@ -438,7 +439,7 @@ class DriverControllerIT @Autowired constructor(
             password = "hashed_password",
             phoneNumber = "+375291111111",
             gender = Gender.MALE,
-            rating = 5.0f,
+            rating = BigDecimal.valueOf(5.0),
             carId = null
         )
         driverRepository.save(driver)
@@ -477,7 +478,7 @@ class DriverControllerIT @Autowired constructor(
             DriverEntity(
                 id = driverId, name = "John", email = "john2@example.com",
                 password = "pass", phoneNumber = "+375292222222",
-                gender = Gender.MALE, rating = 5.0f, carId = null
+                gender = Gender.MALE, rating = BigDecimal.valueOf(5.0), carId = null
             )
         )
 
@@ -528,7 +529,7 @@ class DriverControllerIT @Autowired constructor(
             password = "password",
             phoneNumber = "+375291111111",
             gender = Gender.MALE,
-            rating = 5.0f,
+            rating = BigDecimal.valueOf(5.0),
             carId = null
         )
         driverRepository.save(driver)
@@ -588,7 +589,7 @@ class DriverControllerIT @Autowired constructor(
             password = "pass",
             phoneNumber = "+375291111111",
             gender = Gender.MALE,
-            rating = 5.0f,
+            rating = BigDecimal.valueOf(5.0),
             carId = null
         )
         val car = CarEntity(
@@ -630,7 +631,7 @@ class DriverControllerIT @Autowired constructor(
             DriverEntity(
                 id = johnId, name = "John", email = "john.fake@example.com",
                 password = "pass", phoneNumber = "+375292222222",
-                gender = Gender.MALE, rating = 5.0f, carId = null
+                gender = Gender.MALE, rating = BigDecimal.valueOf(5.0), carId = null
             )
         )
 
@@ -677,7 +678,7 @@ class DriverControllerIT @Autowired constructor(
             password = "pass",
             phoneNumber = "+375291111111",
             gender = Gender.MALE,
-            rating = 5.0f,
+            rating = BigDecimal.valueOf(5.0),
             carId = null
         )
         val car = CarEntity(
@@ -734,7 +735,7 @@ class DriverControllerIT @Autowired constructor(
             password = "password",
             phoneNumber = "+375291111111",
             gender = Gender.MALE,
-            rating = 5.0f,
+            rating = BigDecimal.valueOf(5.0),
             carId = null
         )
 
@@ -745,7 +746,7 @@ class DriverControllerIT @Autowired constructor(
             password = "password",
             phoneNumber = "+375292222222",
             gender = Gender.MALE,
-            rating = 5.0f,
+            rating = BigDecimal.valueOf(5.0),
             carId = null
         )
 
@@ -797,7 +798,8 @@ class DriverControllerIT @Autowired constructor(
         val driver = DriverEntity(
             id = driverId, name = "John", email = "john.valid@example.com",
             password = "pass", phoneNumber = "+375293333333",
-            gender = Gender.MALE, rating = 5.0f, carId = null
+            gender = Gender.MALE, rating = BigDecimal.valueOf(5.0),
+            carId = null
         )
         driverRepository.save(driver)
 
@@ -841,7 +843,7 @@ class DriverControllerIT @Autowired constructor(
             password = "pass",
             phoneNumber = "+375291111111",
             gender = Gender.MALE,
-            rating = 5.0f,
+            rating = BigDecimal.valueOf(5.0),
             carId = null
         )
         driverRepository.save(driver)
@@ -936,7 +938,7 @@ class DriverControllerIT @Autowired constructor(
             password = "password",
             phoneNumber = "+375291111111",
             gender = Gender.MALE,
-            rating = 5.0f,
+            rating = BigDecimal.valueOf(5.0),
             carId = null
         )
 
@@ -981,7 +983,7 @@ class DriverControllerIT @Autowired constructor(
             password = "password",
             phoneNumber = "+375290000000",
             gender = Gender.MALE,
-            rating = 5.0f,
+            rating = BigDecimal.valueOf(5.0),
             carId = null,
             workStatus = WorkStatus.OFF_DUTY,
         )
@@ -1025,7 +1027,7 @@ class DriverControllerIT @Autowired constructor(
             password = "password",
             phoneNumber = "+375290000000",
             gender = Gender.MALE,
-            rating = 5.0f,
+            rating = BigDecimal.valueOf(5.0),
             carId = null,
             workStatus = WorkStatus.AVAILABLE,
         )
@@ -1068,7 +1070,7 @@ class DriverControllerIT @Autowired constructor(
             password = "password",
             phoneNumber = "+375291112233",
             gender = Gender.OTHER,
-            rating = 4.0f,
+            rating = BigDecimal.valueOf(4.0),
             carId = null,
             workStatus = WorkStatus.OFF_DUTY,
         )
@@ -1168,7 +1170,7 @@ class DriverControllerIT @Autowired constructor(
             password = "password",
             phoneNumber = "+375291112233",
             gender = Gender.OTHER,
-            rating = 5.0f,
+            rating = BigDecimal.valueOf(5.0),
             carId = null,
             workStatus = WorkStatus.OFF_DUTY,
         )
@@ -1194,7 +1196,7 @@ class DriverControllerIT @Autowired constructor(
             password = "passw2ord",
             phoneNumber = "+375292112233",
             gender = Gender.OTHER,
-            rating = 4.0f,
+            rating = BigDecimal.valueOf(4.0),
             carId = null,
             workStatus = WorkStatus.OFF_DUTY,
         )

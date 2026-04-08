@@ -29,6 +29,7 @@ import io.mockk.impl.annotations.InjectMockKs
 import io.mockk.impl.annotations.MockK
 import io.mockk.junit5.MockKExtension
 import io.mockk.verify
+import java.math.BigDecimal
 import java.util.UUID
 import kotlin.test.assertNotNull
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -180,7 +181,7 @@ class DriverServiceTest {
             password = "encoded_password",
             phoneNumber = "+375291112233",
             gender = Gender.MALE,
-            rating = 4.79F,
+            rating = BigDecimal.valueOf(4.8),
             carId = null
         )
 
@@ -189,7 +190,7 @@ class DriverServiceTest {
             name = "Timofei",
             email = "tim@example.com",
             phoneNumber = "+375291112233",
-            rating = 4.97F,
+            rating = BigDecimal.valueOf(4.8),
             gender = Gender.MALE,
             carId = null
         )
@@ -245,7 +246,7 @@ class DriverServiceTest {
             password = encodedPassword,
             phoneNumber = "+375291112233",
             gender = Gender.MALE,
-            rating = 5.0F,
+            rating = BigDecimal.valueOf(5.0),
             carId = carId
         )
 
@@ -254,7 +255,7 @@ class DriverServiceTest {
             name = "Timofei",
             email = "tim@example.com",
             phoneNumber = "+375291112233",
-            rating = 5.0F,
+            rating = BigDecimal.valueOf(5.0),
             gender = Gender.MALE,
             carId = carId
         )
@@ -270,7 +271,7 @@ class DriverServiceTest {
         assertEquals(driverId, result.id)
         assertEquals("Timofei", result.name)
         assertEquals("tim@example.com", result.email)
-        assertEquals(5.0F, result.rating)
+        assertEquals(BigDecimal.valueOf(5.0), result.rating)
         assertEquals(carId, result.carId)
         verify(exactly = 1) { driverRepository.findByEmail(loginDto.email) }
         verify(exactly = 1) { passwordEncoder.matches("raw_password", encodedPassword) }
@@ -296,7 +297,7 @@ class DriverServiceTest {
             password = encodedPassword,
             phoneNumber = "+375291112233",
             gender = Gender.MALE,
-            rating = 4.8F,
+            rating = BigDecimal.valueOf(4.8),
             carId = null
         )
 
@@ -358,7 +359,7 @@ class DriverServiceTest {
             password = "encoded_password",
             phoneNumber = "+375291112233",
             gender = Gender.OTHER,
-            rating = 4.5f,
+            rating = BigDecimal.valueOf(4.5),
             carId = carId
         )
 
@@ -367,7 +368,7 @@ class DriverServiceTest {
             name = "Timofei New",
             email = "tim@example.com",
             phoneNumber = "+375299998877",
-            rating = 4.5f,
+            rating = BigDecimal.valueOf(4.5),
             gender = Gender.MALE,
             carId = carId
         )
@@ -407,7 +408,7 @@ class DriverServiceTest {
             password = "encoded_password",
             phoneNumber = "+375291112233",
             gender = Gender.MALE,
-            rating = 5.0f,
+            rating = BigDecimal.valueOf(5.0),
             carId = null
         )
 
@@ -471,7 +472,7 @@ class DriverServiceTest {
             password = "encoded_password",
             phoneNumber = "+375291112233",
             gender = Gender.MALE,
-            rating = 5.0f,
+            rating = BigDecimal.valueOf(5.0),
             carId = null
         )
 
@@ -553,8 +554,8 @@ class DriverServiceTest {
             password = "encoded_password",
             phoneNumber = "+375291112233",
             gender = Gender.MALE,
-            rating = 4.9f,
-            carId = carId // Машина сейчас активна
+            rating = BigDecimal.valueOf(4.9),
+            carId = carId
         )
 
         every { driverRepository.findById(driverId) } returns driverEntity
@@ -586,7 +587,7 @@ class DriverServiceTest {
             password = "encoded_password",
             phoneNumber = "+375291112233",
             gender = Gender.MALE,
-            rating = 4.7f,
+            rating = BigDecimal.valueOf(4.7),
             carId = activeCarId
         )
 
@@ -638,7 +639,7 @@ class DriverServiceTest {
             password = "encoded_password",
             phoneNumber = "+375291112233",
             gender = Gender.MALE,
-            rating = 4.8f,
+            rating = BigDecimal.valueOf(4.8),
             carId = oldCarId
         )
 
@@ -681,7 +682,7 @@ class DriverServiceTest {
             password = "encoded_password",
             phoneNumber = "+375291112233",
             gender = Gender.MALE,
-            rating = 5.0f,
+            rating = BigDecimal.valueOf(5.0),
             carId = carId
         )
 
@@ -739,7 +740,7 @@ class DriverServiceTest {
             email = "johhn@grsu.by",
             password = "secure_password_hash",
             phoneNumber = "+375291112233",
-            rating = 4.8f,
+            rating = BigDecimal.valueOf(4.8),
             gender = Gender.OTHER,
             carId = carId,
             workStatus = WorkStatus.OFF_DUTY,
@@ -770,7 +771,7 @@ class DriverServiceTest {
             email = "ivan@example.com",
             password = "password123",
             phoneNumber = "+375336667788",
-            rating = 5.0f,
+            rating = BigDecimal.valueOf(5.0),
             gender = Gender.OTHER,
             carId = null,
             workStatus = WorkStatus.OFF_DUTY,
@@ -798,7 +799,7 @@ class DriverServiceTest {
             email = "dima@test.com",
             password = "hidden_pass",
             phoneNumber = "+375259990011",
-            rating = 4.5f,
+            rating = BigDecimal.valueOf(4.5),
             gender = Gender.OTHER,
             carId = UUID.randomUUID(),
             workStatus = WorkStatus.OFF_DUTY
@@ -827,7 +828,7 @@ class DriverServiceTest {
             email = "alex@mail.com",
             password = "hash",
             phoneNumber = "+375441234567",
-            rating = 4.9f,
+            rating = BigDecimal.valueOf(4.9),
             gender = Gender.OTHER,
             carId = UUID.randomUUID(),
             workStatus = currentStatus,
@@ -873,7 +874,7 @@ class DriverServiceTest {
             "john",
             "john@gmail.com",
             "+375295555555",
-            5f,
+            BigDecimal.valueOf(5.0),
             Gender.MALE,
             CarView(
                 carId,

@@ -12,6 +12,7 @@ import io.mockk.impl.annotations.InjectMockKs
 import io.mockk.impl.annotations.MockK
 import io.mockk.junit5.MockKExtension
 import io.mockk.verify
+import java.math.BigDecimal
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -43,7 +44,7 @@ class SimpleDriverMatchingServiceTest {
             "driver",
             "driver@gmail.com",
             "+375295865864",
-            5f,
+            BigDecimal.valueOf(5.0),
             Gender.MALE,
             CarView(
                 UUID.randomUUID(),

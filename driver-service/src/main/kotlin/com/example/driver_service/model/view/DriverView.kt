@@ -1,6 +1,7 @@
 package com.example.driver_service.model.view
 
 import com.example.driver_service.model.enums.Gender
+import java.math.BigDecimal
 import java.util.UUID
 
 data class DriverView(
@@ -8,7 +9,7 @@ data class DriverView(
     var name: String? = null,
     var email: String? = null,
     var phoneNumber: String? = null,
-    var rating: Float? = null,
+    var rating: BigDecimal? = null,
     var gender: Gender? = Gender.OTHER,
     var car: CarView? = null
 )
