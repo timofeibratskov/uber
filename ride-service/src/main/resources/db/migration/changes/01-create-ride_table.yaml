@@ -1,0 +1,71 @@
+databaseChangeLog:
+  - changeSet:
+      id: 01-create-ride_table
+      author: user
+      changes:
+        - createTable:
+            tableName: ride_table
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: passenger_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: driver_id
+                  type: UUID
+              - column:
+                  name: start_address
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: stop_address
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: start_point
+                  type: BYTEA
+                  constraints:
+                    nullable: false
+              - column:
+                  name: stop_point
+                  type: BYTEA
+                  constraints:
+                    nullable: false
+              - column:
+                  name: final_amount
+                  type: DECIMAL(8, 2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: seats
+                  type: INT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: polyline
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP

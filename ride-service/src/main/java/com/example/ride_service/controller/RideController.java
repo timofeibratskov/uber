@@ -1,75 +1,32 @@
 package com.example.ride_service.controller;
 
-import com.example.ride_service.dto.RideDto;
-import com.example.ride_service.dto.RideRequestDto;
-import com.example.ride_service.enums.RideStatus;
+import com.example.ride_service.model.dto.RideCreateRequestDto;
+import com.example.ride_service.model.dto.RideCreateResponseDto;
+import com.example.ride_service.model.dto.RideEstimateRequestDto;
+import com.example.ride_service.model.dto.RideEstimateResponseDto;
 import com.example.ride_service.service.RideService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-
 @RestController
-@RequestMapping("/api/rides")
+@RequestMapping("/api/v1/rides")
 @RequiredArgsConstructor
 public class RideController {
     private final RideService rideService;
 
+    @PostMapping("/calculate")
+    public ResponseEntity<RideEstimateResponseDto> calculate(@Valid @RequestBody RideEstimateRequestDto request) {
+        return ResponseEntity.ok(rideService.calculateRide(request));
+    }
+
     @PostMapping
-    public ResponseEntity<RideStatus> createRide(@Valid @RequestBody RideRequestDto request) {
-        return ResponseEntity.ok(rideService.createRide(request));
-    }
-
-    @GetMapping("/passenger/{id}")
-    public List<RideDto> getPassengerRides(@PathVariable Long id) {
-        return rideService.getRidesByPassengerId(id);
-    }
-
-    @GetMapping("/driver/{userId}")
-    public List<RideDto> getDriverRides(@PathVariable Long userId) {
-        return rideService.getRidesByDriverId(userId);
-    }
-
-    @GetMapping("/status/{status}")
-    public List<RideDto> getRidesByStatus(@PathVariable RideStatus status) {
-        return rideService.getRidesByStatus(status);
-    }
-
-    @PutMapping("/{rideId}/assign-driver")
-    public void assignDriver(
-            @PathVariable String rideId,
-            @RequestParam Long driverId
-    ) {
-        rideService.assignDriver(rideId, driverId);
-    }
-
-    @PutMapping("/{rideId}/start")
-    public String startRide(@PathVariable String rideId) {
-        return rideService.changeStatus(rideId, RideStatus.IN_PROGRESS);
-    }
-
-    @PutMapping("/{rideId}/complete")
-    public String completeRide(@PathVariable String rideId) {
-        return rideService.changeStatus(rideId, RideStatus.COMPLETED);
-    }
-
-    @PutMapping("/{rideId}/pay")
-    public String payRide(@PathVariable String rideId) {
-        return rideService.changeStatus(rideId, RideStatus.PAID);
-    }
-
-    @PatchMapping("/{rideId}/cancel")
-    public String cancelRide(@PathVariable String rideId) {
-        return rideService.changeStatus(rideId, RideStatus.CANCELLED);
+    public ResponseEntity<RideCreateResponseDto> create(@Valid @RequestBody RideCreateRequestDto request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(rideService.createRide(request));
     }
 }
