@@ -7,6 +7,7 @@ import com.example.ride_service.exception.RideNotFoundException;
 import com.example.ride_service.mapper.RideMapper;
 import com.example.ride_service.model.dto.RideAcceptedRequestDto;
 import com.example.ride_service.model.dto.RideAcceptedResponseDto;
+import com.example.ride_service.model.dto.RideCancelRequestDto;
 import com.example.ride_service.model.dto.RideCreateRequestDto;
 import com.example.ride_service.model.dto.RideCreateResponseDto;
 import com.example.ride_service.model.dto.RideEstimateRequestDto;
@@ -21,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.UUID;
 
 @Service
 @Slf4j
@@ -87,5 +89,17 @@ public class RideService {
         log.info("ride with id {} accepted successfully", ride.getId());
 
         return mapper.toRideAcceptedResponseDto(ride);
+    }
+
+    @Transactional
+    public void cancelRide(UUID rideId,
+                           RideCancelRequestDto request) {
+        var ride = rideRepo.findById(rideId)
+                .orElseThrow(() -> new RideNotFoundException("ride not found"));
+
+        if (ride.getStatus() == RideStatus.ACCEPTED || ride.getStatus() == RideStatus.CREATED) {
+            mapper.cancelRideFromDto(request, ride);
+            ride.setStatus(RideStatus.CANCELLED);
+        } else throw new InvalidStatusTransitionException("invalid ride status");
     }
 }

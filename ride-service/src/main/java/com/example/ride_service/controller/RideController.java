@@ -2,6 +2,7 @@ package com.example.ride_service.controller;
 
 import com.example.ride_service.model.dto.RideAcceptedRequestDto;
 import com.example.ride_service.model.dto.RideAcceptedResponseDto;
+import com.example.ride_service.model.dto.RideCancelRequestDto;
 import com.example.ride_service.model.dto.RideCreateRequestDto;
 import com.example.ride_service.model.dto.RideCreateResponseDto;
 import com.example.ride_service.model.dto.RideEstimateRequestDto;
@@ -12,10 +13,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/rides")
@@ -36,5 +40,12 @@ public class RideController {
     @PostMapping("/accept")
     public ResponseEntity<RideAcceptedResponseDto> accept(@Valid @RequestBody RideAcceptedRequestDto request) {
         return ResponseEntity.ok(rideService.acceptRide(request));
+    }
+
+    @PatchMapping("/{rideId}/cancel")
+    public ResponseEntity<Void> cancel(@PathVariable UUID rideId,
+                                       @Valid @RequestBody RideCancelRequestDto request) {
+        rideService.cancelRide(rideId, request);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -3,6 +3,7 @@ package com.example.ride_service.mapper;
 import com.example.ride_service.model.cache.RideEstimateCache;
 import com.example.ride_service.model.dto.RideAcceptedRequestDto;
 import com.example.ride_service.model.dto.RideAcceptedResponseDto;
+import com.example.ride_service.model.dto.RideCancelRequestDto;
 import com.example.ride_service.model.dto.RideCreateResponseDto;
 import com.example.ride_service.model.dto.RideEstimateResponseDto;
 import com.example.ride_service.model.entity.RideEntity;
@@ -33,4 +34,8 @@ public interface RideMapper {
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "seats", ignore = true)
     void updateRideFromDto(RideAcceptedRequestDto dto, @MappingTarget RideEntity entity);
+
+    @Mapping(target = "cancelAt", expression = "java(java.time.LocalDateTime.now())")
+    @Mapping(target = "cancelReasonComment", source = "comment")
+    void cancelRideFromDto(RideCancelRequestDto dto, @MappingTarget RideEntity entity);
 }

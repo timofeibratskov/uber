@@ -4,10 +4,12 @@ import com.example.ride_service.exception.models.ErrorResponse;
 import com.example.ride_service.model.cache.RideEstimateCache;
 import com.example.ride_service.model.dto.RideAcceptedRequestDto;
 import com.example.ride_service.model.dto.RideAcceptedResponseDto;
+import com.example.ride_service.model.dto.RideCancelRequestDto;
 import com.example.ride_service.model.dto.RideCreateRequestDto;
 import com.example.ride_service.model.dto.RideCreateResponseDto;
 import com.example.ride_service.model.dto.RideEstimateRequestDto;
 import com.example.ride_service.model.entity.RideEntity;
+import com.example.ride_service.model.enums.CancelInitiator;
 import com.example.ride_service.model.enums.RideStatus;
 import com.example.ride_service.repo.db.RideRepo;
 import com.example.ride_service.repo.redis.RideEstimateCacheRepo;
@@ -28,6 +30,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -174,7 +177,6 @@ class RideControllerIT extends BaseIT {
         assertEquals(RideStatus.ACCEPTED.getDescription(), responseDto.statusDescription());
     }
 
-
     @Test
     @DisplayName("ошибка: добавление водителя к несуществующей поездке")
     void shouldAcceptRide_whenRideNotFound_throwNotFoundException() throws Exception {
@@ -254,5 +256,43 @@ class RideControllerIT extends BaseIT {
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY.value(), response.getResponse().getStatus());
         assertEquals("INVALID_STATUS_TRANSITION", responseDto.getCode());
+    }
+
+    @Test
+    @DisplayName("успешная отмена поездки")
+    void shouldCancelRideAndSaveSuccessfully() throws Exception {
+        // arrange
+        RideEntity entity = RideEntity.builder()
+                .seats(4)
+                .polyline("randomPolyline")
+                .finalAmount(new BigDecimal("15.00"))
+                .startAddress("address1")
+                .startPoint(new Point(53.675434, 23.827427))
+                .stopAddress("address2")
+                .stopPoint(new Point(53.648446, 23.782834))
+                .passengerId(UUID.randomUUID())
+                .status(RideStatus.CREATED)
+                .build();
+
+        rideRepo.save(entity);
+
+        var request = RideCancelRequestDto.builder()
+                .cancelInitiator(CancelInitiator.PASSENGER)
+                .comment("123")
+                .build();
+
+        // act
+        mockMvc.perform(patch("/api/v1/rides/" + entity.getId() + "/cancel")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andReturn();
+
+        // assert
+        var savedEntity = rideRepo.findById(entity.getId());
+        assertThat(savedEntity).isPresent();
+        assertEquals(RideStatus.CANCELLED, savedEntity.get().getStatus());
+        assertEquals(CancelInitiator.PASSENGER, savedEntity.get().getCancelInitiator());
+        assertNotNull(savedEntity.get().getCancelAt());
+        assertNotNull(savedEntity.get().getCancelReasonComment());
     }
 }
