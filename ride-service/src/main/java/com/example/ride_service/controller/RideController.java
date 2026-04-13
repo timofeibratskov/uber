@@ -1,5 +1,7 @@
 package com.example.ride_service.controller;
 
+import com.example.ride_service.model.dto.RideAcceptedRequestDto;
+import com.example.ride_service.model.dto.RideAcceptedResponseDto;
 import com.example.ride_service.model.dto.RideCreateRequestDto;
 import com.example.ride_service.model.dto.RideCreateResponseDto;
 import com.example.ride_service.model.dto.RideEstimateRequestDto;
@@ -9,6 +11,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,5 +31,10 @@ public class RideController {
     @PostMapping
     public ResponseEntity<RideCreateResponseDto> create(@Valid @RequestBody RideCreateRequestDto request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(rideService.createRide(request));
+    }
+
+    @PostMapping("/accept")
+    public ResponseEntity<RideAcceptedResponseDto> accept(@Valid @RequestBody RideAcceptedRequestDto request) {
+        return ResponseEntity.ok(rideService.acceptRide(request));
     }
 }

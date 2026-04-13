@@ -41,6 +41,8 @@ public class RideEntity {
 
     private UUID driverId;
 
+    private String driverName;
+
     @Column(nullable = false)
     private String startAddress;
 
@@ -58,6 +60,16 @@ public class RideEntity {
 
     @Column(nullable = false)
     private Integer seats;
+
+    private UUID carId;
+
+    private String carLicensePlate;
+
+    private String carModel;
+
+    private String carBrand;
+
+    private String carColor;
 
     @Column(nullable = false)
     private String polyline;

@@ -2,11 +2,16 @@ package com.example.ride_service.service;
 
 import com.example.ride_service.client.OpenRouteServiceClient;
 import com.example.ride_service.exception.EstimateExpiredException;
+import com.example.ride_service.exception.InvalidStatusTransitionException;
+import com.example.ride_service.exception.RideNotFoundException;
 import com.example.ride_service.mapper.RideMapper;
+import com.example.ride_service.model.dto.RideAcceptedRequestDto;
+import com.example.ride_service.model.dto.RideAcceptedResponseDto;
 import com.example.ride_service.model.dto.RideCreateRequestDto;
 import com.example.ride_service.model.dto.RideCreateResponseDto;
 import com.example.ride_service.model.dto.RideEstimateRequestDto;
 import com.example.ride_service.model.dto.RideEstimateResponseDto;
+import com.example.ride_service.model.enums.RideStatus;
 import com.example.ride_service.repo.db.RideRepo;
 import com.example.ride_service.repo.redis.RideEstimateCacheRepo;
 import lombok.RequiredArgsConstructor;
@@ -67,5 +72,20 @@ public class RideService {
         rideEstimateCacheRepo.delete(cache);
         log.info("ride with id {} saved successfully", savedEntity.getId());
         return mapper.toRideCreateResponseDto(savedEntity);
+    }
+
+    @Transactional
+    public RideAcceptedResponseDto acceptRide(RideAcceptedRequestDto request) {
+        var ride = rideRepo.findById(request.rideId())
+                .orElseThrow(() -> new RideNotFoundException("ride not found"));
+
+        if (ride.getStatus() != RideStatus.CREATED)
+            throw new InvalidStatusTransitionException("invalid ride status");
+
+        mapper.updateRideFromDto(request, ride);
+        ride.setStatus(RideStatus.ACCEPTED);
+        log.info("ride with id {} accepted successfully", ride.getId());
+
+        return mapper.toRideAcceptedResponseDto(ride);
     }
 }

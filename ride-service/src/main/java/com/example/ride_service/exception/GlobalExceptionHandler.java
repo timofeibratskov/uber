@@ -50,6 +50,15 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(error);
     }
 
+    @ExceptionHandler(InvalidStatusTransitionException.class)
+    public ResponseEntity<ErrorResponse> handleStatusTransition(InvalidStatusTransitionException ex) {
+        ErrorResponse error = new ErrorResponse(
+                "INVALID_STATUS_TRANSITION",
+                ex.getMessage()
+        );
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(error);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleAll(Exception ex) {
         log.error(ex.getMessage(), ex);
