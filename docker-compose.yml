@@ -23,6 +23,18 @@ services:
     volumes:
       - driver_data:/var/lib/postgresql/data
 
+  ride-db:
+    image: postgres:15-alpine
+    container_name: ride-db
+    environment:
+      POSTGRES_DB: ride_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1111
+    ports:
+      - "5552:5432"
+    volumes:
+      - ride_data:/var/lib/postgresql/data
+
   redis:
     image: redis:7-alpine
     container_name: redis-cache
@@ -37,3 +49,4 @@ volumes:
   passenger_data:
   driver_data:
   redis_data:
+  ride_data:

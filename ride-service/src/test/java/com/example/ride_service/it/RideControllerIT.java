@@ -7,6 +7,7 @@ import com.example.ride_service.model.dto.RideAcceptedResponseDto;
 import com.example.ride_service.model.dto.RideCancelRequestDto;
 import com.example.ride_service.model.dto.RideCreateRequestDto;
 import com.example.ride_service.model.dto.RideCreateResponseDto;
+import com.example.ride_service.model.dto.RideEndResponseDto;
 import com.example.ride_service.model.dto.RideEstimateRequestDto;
 import com.example.ride_service.model.entity.RideEntity;
 import com.example.ride_service.model.enums.CancelInitiator;
@@ -25,11 +26,13 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -294,5 +297,79 @@ class RideControllerIT extends BaseIT {
         assertEquals(CancelInitiator.PASSENGER, savedEntity.get().getCancelInitiator());
         assertNotNull(savedEntity.get().getCancelAt());
         assertNotNull(savedEntity.get().getCancelReasonComment());
+    }
+
+    @Test
+    @DisplayName("успешное начало поездки")
+    void shouldStartRide_whenRideExistsAndStatusIsValid_shouldUpdateRideSuccessfully() throws Exception {
+        // arrange
+        RideEntity entity = RideEntity.builder()
+                .seats(4)
+                .polyline("randomPolyline")
+                .finalAmount(new BigDecimal("15.00"))
+                .startAddress("address1")
+                .startPoint(new Point(53.675434, 23.827427))
+                .stopAddress("address2")
+                .stopPoint(new Point(53.648446, 23.782834))
+                .passengerId(UUID.randomUUID())
+                .driverId(UUID.randomUUID())
+                .status(RideStatus.ACCEPTED)
+                .build();
+
+        rideRepo.save(entity);
+
+        // act
+        mockMvc.perform(patch("/api/v1/rides/" + entity.getId() + "/start")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNoContent())
+                .andReturn();
+
+        // assert
+        var savedEntity = rideRepo.findById(entity.getId());
+        assertThat(savedEntity).isPresent();
+        assertEquals(RideStatus.STARTED, savedEntity.get().getStatus());
+        assertNotNull(savedEntity.get().getStartAt());
+        assertNull(savedEntity.get().getEndAt());
+    }
+
+    @Test
+    @DisplayName("успешное завершение поездки")
+    void shouldEndRide_whenRideExistsAndStatusIsValid_shouldUpdateRideSuccessfully() throws Exception {
+        // arrange
+        RideEntity entity = RideEntity.builder()
+                .seats(4)
+                .polyline("randomPolyline")
+                .finalAmount(new BigDecimal("15.00"))
+                .startAddress("address1")
+                .startPoint(new Point(53.675434, 23.827427))
+                .stopAddress("address2")
+                .stopPoint(new Point(53.648446, 23.782834))
+                .passengerId(UUID.randomUUID())
+                .driverId(UUID.randomUUID())
+                .startAt(LocalDateTime.of(2020, 1, 1, 0, 0, 0))
+                .status(RideStatus.STARTED)
+                .build();
+
+        rideRepo.save(entity);
+
+        // act
+        var response = mockMvc.perform(patch("/api/v1/rides/" + entity.getId() + "/end")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        // assert
+        String content = response.getResponse().getContentAsString(StandardCharsets.UTF_8);
+        var responseDto = objectMapper.readValue(content, RideEndResponseDto.class);
+
+        var savedEntity = rideRepo.findById(entity.getId());
+
+        assertThat(savedEntity).isPresent();
+        assertEquals(RideStatus.COMPLETED, savedEntity.get().getStatus());
+        assertNotNull(savedEntity.get().getStartAt());
+        assertNotNull(savedEntity.get().getEndAt());
+        assertNotNull(responseDto.durationMinutes());
+        assertNotNull(responseDto.finalAmount());
+        assertEquals(RideStatus.COMPLETED, responseDto.status());
     }
 }

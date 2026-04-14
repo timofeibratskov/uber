@@ -5,6 +5,7 @@ import com.example.ride_service.model.dto.RideAcceptedResponseDto;
 import com.example.ride_service.model.dto.RideCancelRequestDto;
 import com.example.ride_service.model.dto.RideCreateRequestDto;
 import com.example.ride_service.model.dto.RideCreateResponseDto;
+import com.example.ride_service.model.dto.RideEndResponseDto;
 import com.example.ride_service.model.dto.RideEstimateRequestDto;
 import com.example.ride_service.model.dto.RideEstimateResponseDto;
 import com.example.ride_service.service.RideService;
@@ -47,5 +48,16 @@ public class RideController {
                                        @Valid @RequestBody RideCancelRequestDto request) {
         rideService.cancelRide(rideId, request);
         return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{rideId}/start")
+    public ResponseEntity<Void> start(@PathVariable UUID rideId) {
+        rideService.startRide(rideId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{rideId}/end")
+    public ResponseEntity<RideEndResponseDto> end(@PathVariable UUID rideId) {
+        return ResponseEntity.ok(rideService.endRide(rideId));
     }
 }

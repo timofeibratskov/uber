@@ -93,4 +93,8 @@ public class RideEntity {
     private LocalDateTime cancelAt;
 
     private String cancelReasonComment;
+
+    private LocalDateTime startAt;
+
+    private LocalDateTime endAt;
 }

@@ -10,6 +10,7 @@ import com.example.ride_service.model.dto.RideAcceptedResponseDto;
 import com.example.ride_service.model.dto.RideCancelRequestDto;
 import com.example.ride_service.model.dto.RideCreateRequestDto;
 import com.example.ride_service.model.dto.RideCreateResponseDto;
+import com.example.ride_service.model.dto.RideEndResponseDto;
 import com.example.ride_service.model.dto.RideEstimateRequestDto;
 import com.example.ride_service.model.dto.RideEstimateResponseDto;
 import com.example.ride_service.model.enums.RideStatus;
@@ -22,6 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
@@ -100,6 +103,42 @@ public class RideService {
         if (ride.getStatus() == RideStatus.ACCEPTED || ride.getStatus() == RideStatus.CREATED) {
             mapper.cancelRideFromDto(request, ride);
             ride.setStatus(RideStatus.CANCELLED);
-        } else throw new InvalidStatusTransitionException("invalid ride status");
+            log.info("ride with id {} cancelled successfully", ride.getId());
+        } else {
+            log.error("ride with id: {} has not valid status for canceling: {}", ride.getId(), ride.getStatus());
+            throw new InvalidStatusTransitionException("invalid ride status");
+        }
+    }
+
+    @Transactional
+    public void startRide(UUID rideId) {
+        var ride = rideRepo.findById(rideId)
+                .orElseThrow(() -> new RideNotFoundException("ride not found"));
+
+        if (ride.getStatus() != RideStatus.ACCEPTED) {
+            log.error("ride with id: {} has not valid status for starting: {}", ride.getId(), ride.getStatus());
+            throw new InvalidStatusTransitionException("invalid ride status");
+        }
+
+        ride.setStatus(RideStatus.STARTED);
+        ride.setStartAt(LocalDateTime.now());
+        log.info("ride with id {} started successfully", ride.getId());
+    }
+
+    @Transactional
+    public RideEndResponseDto endRide(UUID rideId) {
+        var ride = rideRepo.findById(rideId)
+                .orElseThrow(() -> new RideNotFoundException("ride not found"));
+
+        if (ride.getStatus() != RideStatus.STARTED) {
+            log.error("ride has not valid status for completing: {}", ride.getStatus());
+            throw new InvalidStatusTransitionException("invalid ride status");
+        }
+
+        ride.setStatus(RideStatus.COMPLETED);
+        ride.setEndAt(LocalDateTime.now());
+        log.info("ride with id {} completed successfully", ride.getId());
+
+        return mapper.toRideEndResponseDto(ride);
     }
 }
