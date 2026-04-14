@@ -1,6 +1,7 @@
 package com.example.ride_service.it;
 
 import com.example.ride_service.exception.models.ErrorResponse;
+import com.example.ride_service.it.support.KafkaTestSupport;
 import com.example.ride_service.model.cache.RideEstimateCache;
 import com.example.ride_service.model.dto.RideAcceptedRequestDto;
 import com.example.ride_service.model.dto.RideAcceptedResponseDto;
@@ -11,10 +12,16 @@ import com.example.ride_service.model.dto.RideEndResponseDto;
 import com.example.ride_service.model.dto.RideEstimateRequestDto;
 import com.example.ride_service.model.entity.RideEntity;
 import com.example.ride_service.model.enums.CancelInitiator;
+import com.example.ride_service.model.enums.EventType;
 import com.example.ride_service.model.enums.RideStatus;
+import com.example.ride_service.model.enums.TopicType;
+import com.example.ride_service.repo.db.OutboxEventRepo;
 import com.example.ride_service.repo.db.RideRepo;
 import com.example.ride_service.repo.redis.RideEstimateCacheRepo;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,10 +33,13 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -52,10 +62,18 @@ class RideControllerIT extends BaseIT {
     @Autowired
     private RideRepo rideRepo;
 
+    @Autowired
+    private OutboxEventRepo outboxRepo;
+
+    private KafkaTestSupport kafkaTestSupport;
+
     @BeforeEach
     void setUp() {
         estimateCacheRepo.deleteAll();
         rideRepo.deleteAll();
+        outboxRepo.deleteAll();
+
+        this.kafkaTestSupport = new KafkaTestSupport(kafka.getBootstrapServers());
     }
 
     @Test
@@ -119,11 +137,49 @@ class RideControllerIT extends BaseIT {
         // assert
         RideCreateResponseDto responseDto = objectMapper.readValue(responseJson, RideCreateResponseDto.class);
         var savedEntity = rideRepo.findById(responseDto.id());
+        var outboxEntities = outboxRepo.findAllByOrderByCreatedAt();
+
+        assertThat(outboxEntities).hasSize(1);
+
+        var outboxEntity = outboxEntities.getFirst();
+        assertNotNull(outboxEntity.getId());
+        assertNotNull(outboxEntity.getCreatedAt());
+        assertEquals(TopicType.RIDE_LIFECYCLE, outboxEntity.getTopic());
+        assertEquals(EventType.RIDE_CREATED, outboxEntity.getEventType());
+        assertNotNull(outboxEntity.getPayload());
+
         assertThat(savedEntity).isPresent();
         assertThat(savedEntity.get().getPassengerId()).isEqualTo(passengerId);
         assertThat(savedEntity.get().getFinalAmount()).isEqualByComparingTo("15.00");
         assertThat(savedEntity.get().getSeats()).isEqualTo(4);
         assertThat(estimateCacheRepo.findById(passengerId)).isEmpty();
+
+        await().pollInterval(Duration.ofSeconds(6))
+                .atMost(Duration.ofSeconds(15))
+                .untilAsserted(() ->
+                        assertThat(outboxRepo.findAllByOrderByCreatedAt()).isEmpty()
+                );
+
+        try (KafkaConsumer<String, String> consumer = kafkaTestSupport.createConsumer()) {
+            consumer.subscribe(List.of(TopicType.RIDE_LIFECYCLE.getTopicName()));
+            ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(5));
+
+            ConsumerRecord<String, String> rideEvent = null;
+            for (ConsumerRecord<String, String> record : records) {
+                if (EventType.RIDE_CREATED.getEventName().equals(kafkaTestSupport.getEventType(record))) {
+                    rideEvent = record;
+                    break;
+                }
+            }
+
+            assertThat(rideEvent)
+                    .withFailMessage("RIDE_CREATED event not found in Kafka")
+                    .isNotNull();
+
+            var payload = objectMapper.readTree(rideEvent.value());
+            assertThat(payload.get("rideId").asText()).isEqualTo(responseDto.id().toString());
+            assertThat(payload.get("seats").asInt()).isEqualTo(4);
+        }
     }
 
     @Test

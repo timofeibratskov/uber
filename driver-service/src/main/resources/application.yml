@@ -2,6 +2,14 @@ spring:
   liquibase:
     change-log: classpath:db/migration/changelog-master.yaml
 
+  Kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: driver-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
   data:
     redis:
       host: localhost
@@ -29,3 +37,7 @@ mybatis:
 
 server:
   port: 8881
+
+app:
+  Kafka:
+    ride-topic: "ride_events_topic"

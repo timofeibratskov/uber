@@ -2,24 +2,10 @@ spring:
   liquibase:
     change-log: classpath:db/migration/changelog-master.yaml
 
-  data:
-    redis:
-      host: localhost
-      port: 6379
-      password: 1111
-      connect-timeout: 2s
-      client-name: driver-service
-      lettuce:
-        pool:
-          max-active: 8
-          max-idle: 8
-          min-idle: 0
-
-  datasource:
-    url: jdbc:postgresql://localhost:5551/driver_db
-    username: postgres
-    password: 1111
-    driver-class-name: org.postgresql.Driver
+  Kafka:
+    consumer:
+      auto-offset-reset: earliest
+      group-id: driver-group
 
 mybatis:
   mapper-locations: classpath:mappers/*.xml
@@ -27,5 +13,6 @@ mybatis:
   configuration:
     map-underscore-to-camel-case: true
 
-server:
-  port: 8881
+app:
+  Kafka:
+    ride-topic: "ride_events_topic"

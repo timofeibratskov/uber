@@ -22,10 +22,14 @@ class SimpleDriverMatchingService(
         seats: Int
     ): DriverView? {
         val ids = locationService.getAvailableIds(point)
-        val candidate = driverService.findAllAvailableDrivers(ids, seats).getOrNull(0)
-            ?: return null
-        driverService.setWorkStatus(candidate.id, WorkStatus.BUSY)
-        log.info { "Found: ${candidate.id}, with seats: $seats" }
-        return candidate
+        if (ids.isEmpty()) return null
+
+        val candidates = driverService.findAllAvailableDrivers(ids, seats)
+        val bestCandidate = candidates[0]
+
+        driverService.setWorkStatus(bestCandidate.id, WorkStatus.BUSY)
+        log.info { "Found: ${bestCandidate.id}, with seats: $seats" }
+
+        return bestCandidate
     }
 }

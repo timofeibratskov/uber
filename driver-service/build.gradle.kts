@@ -31,6 +31,7 @@ dependencies {
 	implementation("org.springframework.security:spring-security-crypto")
 	implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
 	implementation("org.mapstruct:mapstruct:1.5.5.Final")
+	implementation("org.springframework.kafka:spring-kafka")
 	kapt("org.mapstruct:mapstruct-processor:1.5.5.Final")
 	kapt("org.springframework.boot:spring-boot-configuration-processor")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
@@ -40,6 +41,7 @@ dependencies {
 	testImplementation("org.testcontainers:junit-jupiter")
 	testImplementation("org.testcontainers:postgresql")
 	testImplementation("org.testcontainers:testcontainers:1.19.3")
+	testImplementation("org.springframework.kafka:spring-kafka-test")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

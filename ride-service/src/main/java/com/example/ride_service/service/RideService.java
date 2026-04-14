@@ -13,7 +13,10 @@ import com.example.ride_service.model.dto.RideCreateResponseDto;
 import com.example.ride_service.model.dto.RideEndResponseDto;
 import com.example.ride_service.model.dto.RideEstimateRequestDto;
 import com.example.ride_service.model.dto.RideEstimateResponseDto;
+import com.example.ride_service.model.enums.EventType;
 import com.example.ride_service.model.enums.RideStatus;
+import com.example.ride_service.model.enums.TopicType;
+import com.example.ride_service.model.event.RideCreateEvent;
 import com.example.ride_service.repo.db.RideRepo;
 import com.example.ride_service.repo.redis.RideEstimateCacheRepo;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +26,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -35,6 +37,7 @@ public class RideService {
     private final RideEstimateCacheRepo rideEstimateCacheRepo;
     private final RideMapper mapper;
     private final OpenRouteServiceClient openRouteServiceClient;
+    private final OutboxService outboxService;
 
     public RideEstimateResponseDto calculateRide(RideEstimateRequestDto request) {
         var jsonResponse = openRouteServiceClient.fetchRoute(request.startPoint(), request.stopPoint());
@@ -58,7 +61,7 @@ public class RideService {
                 .polyline(geometry)
                 .build();
 
-        var estimateCache = mapper.toCache(estimateDto, request.passengerId());
+        var estimateCache = mapper.toCache(estimateDto, request);
         rideEstimateCacheRepo.save(estimateCache);
         log.info("passenger with id {} saved cache successfully", request.passengerId());
         return estimateDto;
@@ -76,6 +79,15 @@ public class RideService {
         var savedEntity = rideRepo.save(entity);
         rideEstimateCacheRepo.delete(cache);
         log.info("ride with id {} saved successfully", savedEntity.getId());
+
+        var event = RideCreateEvent.builder()
+                .rideId(savedEntity.getId())
+                .seats(savedEntity.getSeats())
+                .startPoint(savedEntity.getStartPoint())
+                .build();
+
+        outboxService.saveEvent(event, EventType.RIDE_CREATED, TopicType.RIDE_LIFECYCLE);
+
         return mapper.toRideCreateResponseDto(savedEntity);
     }
 

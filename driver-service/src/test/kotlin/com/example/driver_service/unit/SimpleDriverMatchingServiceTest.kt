@@ -39,7 +39,7 @@ class SimpleDriverMatchingServiceTest {
         val point = Point(53.0, 23.0)
         val seats = 4
         val driverId = UUID.randomUUID()
-        val mockDto  = DriverView(
+        val mockDto = DriverView(
             driverId,
             "driver",
             "driver@gmail.com",
@@ -75,14 +75,14 @@ class SimpleDriverMatchingServiceTest {
         val point = Point(53.0, 23.0)
         val seats = 4
 
-        every { locationService.getAvailableIds(point) } returns listOf(UUID.randomUUID())
-        every { driverService.findAllAvailableDrivers(any(), any()) } returns emptyList()
+        every { locationService.getAvailableIds(point) } returns emptyList()
 
         // Act
         val result = driverMatchingService.findBestDriver(point, seats)
 
         // Assert
         assertNull(result)
+        verify(exactly = 0) { driverService.findAllAvailableDrivers(any(), any()) }
         verify(exactly = 0) { driverService.setWorkStatus(any(), any()) }
     }
 }

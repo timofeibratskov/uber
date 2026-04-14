@@ -6,6 +6,7 @@ import com.example.ride_service.model.dto.RideAcceptedResponseDto;
 import com.example.ride_service.model.dto.RideCancelRequestDto;
 import com.example.ride_service.model.dto.RideCreateResponseDto;
 import com.example.ride_service.model.dto.RideEndResponseDto;
+import com.example.ride_service.model.dto.RideEstimateRequestDto;
 import com.example.ride_service.model.dto.RideEstimateResponseDto;
 import com.example.ride_service.model.entity.RideEntity;
 import org.mapstruct.Mapper;
@@ -13,12 +14,11 @@ import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
 import java.time.Duration;
-import java.util.UUID;
 
 @Mapper(componentModel = "spring")
 public interface RideMapper {
     @Mapping(target = "expiration", constant = "600L")
-    RideEstimateCache toCache(RideEstimateResponseDto estimate, UUID passengerId);
+    RideEstimateCache toCache(RideEstimateResponseDto estimate, RideEstimateRequestDto request);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "finalAmount", source = "price")
