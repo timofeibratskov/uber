@@ -1,5 +1,6 @@
 package com.example.ride_service.it;
 
+import com.example.ride_service.client.OpenRouteServiceClient;
 import com.example.ride_service.exception.models.ErrorResponse;
 import com.example.ride_service.it.support.KafkaTestSupport;
 import com.example.ride_service.model.cache.RideEstimateCache;
@@ -29,6 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.geo.Point;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
@@ -43,6 +45,8 @@ import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -64,6 +68,9 @@ class RideControllerIT extends BaseIT {
 
     @Autowired
     private OutboxEventRepo outboxRepo;
+
+    @MockitoBean
+    private OpenRouteServiceClient openRouteServiceClient;
 
     private KafkaTestSupport kafkaTestSupport;
 
@@ -91,6 +98,21 @@ class RideControllerIT extends BaseIT {
                 "Мостовая улица, 35",
                 "улица Суворова, 302"
         );
+        String jsonResponse = """
+                {
+                    "routes": [{
+                        "summary": {
+                            "distance": 5200.0,
+                            "duration": 900.0
+                        },
+                        "geometry": "mock_encoded_polyline"
+                    }]
+                }
+                """;
+        var mockResponse = objectMapper.readTree(jsonResponse);
+
+        when(openRouteServiceClient.fetchRoute(any(Point.class), any(Point.class)))
+                .thenReturn(mockResponse);
 
         // act
         mockMvc.perform(post("/api/v1/rides/calculate")

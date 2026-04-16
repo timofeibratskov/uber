@@ -11,8 +11,3 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
-
-ors:
-  api:
-    key: ${ORS_API_KEY}
-  url: "https://api.openrouteservice.org/v2/directions/driving-car"
