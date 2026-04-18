@@ -1,7 +1,5 @@
 package com.example.ride_service.controller;
 
-import com.example.ride_service.model.dto.RideAcceptedRequestDto;
-import com.example.ride_service.model.dto.RideAcceptedResponseDto;
 import com.example.ride_service.model.dto.RideCancelRequestDto;
 import com.example.ride_service.model.dto.RideCreateRequestDto;
 import com.example.ride_service.model.dto.RideCreateResponseDto;
@@ -36,11 +34,6 @@ public class RideController {
     @PostMapping
     public ResponseEntity<RideCreateResponseDto> create(@Valid @RequestBody RideCreateRequestDto request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(rideService.createRide(request));
-    }
-
-    @PostMapping("/accept")
-    public ResponseEntity<RideAcceptedResponseDto> accept(@Valid @RequestBody RideAcceptedRequestDto request) {
-        return ResponseEntity.ok(rideService.acceptRide(request));
     }
 
     @PatchMapping("/{rideId}/cancel")

@@ -1,14 +1,13 @@
 package com.example.ride_service.mapper;
 
 import com.example.ride_service.model.cache.RideEstimateCache;
-import com.example.ride_service.model.dto.RideAcceptedRequestDto;
-import com.example.ride_service.model.dto.RideAcceptedResponseDto;
 import com.example.ride_service.model.dto.RideCancelRequestDto;
 import com.example.ride_service.model.dto.RideCreateResponseDto;
 import com.example.ride_service.model.dto.RideEndResponseDto;
 import com.example.ride_service.model.dto.RideEstimateRequestDto;
 import com.example.ride_service.model.dto.RideEstimateResponseDto;
 import com.example.ride_service.model.entity.RideEntity;
+import com.example.ride_service.model.event.DriverAssignedEvent;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
@@ -29,13 +28,10 @@ public interface RideMapper {
     @Mapping(target = "statusDescription", source = "status.description")
     RideCreateResponseDto toRideCreateResponseDto(RideEntity rideEntity);
 
-    @Mapping(target = "statusDescription", source = "status.description")
-    RideAcceptedResponseDto toRideAcceptedResponseDto(RideEntity entity);
-
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "seats", ignore = true)
-    void updateRideFromDto(RideAcceptedRequestDto dto, @MappingTarget RideEntity entity);
+    void updateRideFromDto(DriverAssignedEvent dto, @MappingTarget RideEntity entity);
 
     @Mapping(target = "cancelAt", expression = "java(java.time.LocalDateTime.now())")
     @Mapping(target = "cancelReasonComment", source = "comment")

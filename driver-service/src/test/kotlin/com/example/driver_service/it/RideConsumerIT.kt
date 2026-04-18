@@ -9,6 +9,7 @@ import com.example.driver_service.model.enums.WorkStatus
 import com.example.driver_service.model.event.RideCreateEvent
 import com.example.driver_service.repository.CarRepository
 import com.example.driver_service.repository.DriverRepository
+import com.example.driver_service.repository.OutboxEventRepository
 import com.fasterxml.jackson.databind.ObjectMapper
 import java.time.Duration
 import java.util.UUID
@@ -35,19 +36,20 @@ import org.springframework.kafka.test.context.EmbeddedKafka
         "port=0"
     ]
 )
-class RideConsumerListenerIT @Autowired constructor(
+class RideConsumerIT @Autowired constructor(
     private val driverRepository: DriverRepository,
     private val carRepository: CarRepository,
     private val redisTemplate: RedisTemplate<String, Any>,
     private val objectMapper: ObjectMapper,
-    private val kafkaTemplate: KafkaTemplate<String, String>
+    private val kafkaTemplate: KafkaTemplate<String, String>,
+    private val outboxEventRepository: OutboxEventRepository
 ) : BaseIT() {
 
     @Value("\${app.Kafka.ride-topic}")
     private lateinit var topic: String
 
     @Test
-    @DisplayName("Консьюмер должен получить сообщение из Embedded Kafka и вызвать DriverMatchingService")
+    @DisplayName("Консьюмер должен получить сообщение из Kafka и записать в outbox payload")
     fun testRideCreateEventConsumption() {
         // Arrange
         val point = Point(53.675434, 23.827427)
@@ -116,6 +118,15 @@ class RideConsumerListenerIT @Autowired constructor(
                 assertNotNull(updatedDriver)
                 assertEquals(WorkStatus.BUSY.toString(), redisStatus)
                 assertEquals(WorkStatus.BUSY, updatedDriver.workStatus)
+
+                val outbox = outboxEventRepository.findAllByOrderByCreatedAt()[0]
+
+                assertNotNull(outbox)
+                assertEquals(EventType.ASSIGNED_DRIVER.eventName, outbox.eventType!!.eventName)
+                assertNotNull(outbox.createdAt)
+                assertEquals(topic, outbox.topic)
+                assertNotNull(outbox.payload)
+                assertNotNull(outbox.id)
             }
     }
 }

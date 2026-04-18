@@ -5,8 +5,7 @@ import com.example.ride_service.exception.EstimateExpiredException;
 import com.example.ride_service.exception.InvalidStatusTransitionException;
 import com.example.ride_service.exception.RideNotFoundException;
 import com.example.ride_service.mapper.RideMapper;
-import com.example.ride_service.model.dto.RideAcceptedRequestDto;
-import com.example.ride_service.model.dto.RideAcceptedResponseDto;
+import com.example.ride_service.model.event.DriverAssignedEvent;
 import com.example.ride_service.model.dto.RideCancelRequestDto;
 import com.example.ride_service.model.dto.RideCreateRequestDto;
 import com.example.ride_service.model.dto.RideCreateResponseDto;
@@ -92,7 +91,7 @@ public class RideService {
     }
 
     @Transactional
-    public RideAcceptedResponseDto acceptRide(RideAcceptedRequestDto request) {
+    public void acceptRide(DriverAssignedEvent request) {
         var ride = rideRepo.findById(request.rideId())
                 .orElseThrow(() -> new RideNotFoundException("ride not found"));
 
@@ -100,10 +99,9 @@ public class RideService {
             throw new InvalidStatusTransitionException("invalid ride status");
 
         mapper.updateRideFromDto(request, ride);
+
         ride.setStatus(RideStatus.ACCEPTED);
         log.info("ride with id {} accepted successfully", ride.getId());
-
-        return mapper.toRideAcceptedResponseDto(ride);
     }
 
     @Transactional

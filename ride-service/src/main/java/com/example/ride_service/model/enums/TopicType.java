@@ -9,4 +9,6 @@ public enum TopicType {
     RIDE_LIFECYCLE("ride_events_topic");
 
     private final String topicName;
+
+    public static final String RIDE_LIFECYCLE_TOPIC = "ride_events_topic";
 }

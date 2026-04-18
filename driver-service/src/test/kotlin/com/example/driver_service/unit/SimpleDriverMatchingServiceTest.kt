@@ -1,7 +1,6 @@
 package com.example.driver_service.unit
 
 import com.example.driver_service.model.enums.Gender
-import com.example.driver_service.model.enums.WorkStatus
 import com.example.driver_service.model.view.CarView
 import com.example.driver_service.model.view.DriverView
 import com.example.driver_service.service.DriverService
@@ -39,6 +38,7 @@ class SimpleDriverMatchingServiceTest {
         val point = Point(53.0, 23.0)
         val seats = 4
         val driverId = UUID.randomUUID()
+
         val mockDto = DriverView(
             driverId,
             "driver",
@@ -52,20 +52,18 @@ class SimpleDriverMatchingServiceTest {
                 "3303AM-2",
                 "fiat",
                 "1",
-                5
+                4
             )
         )
 
         every { locationService.getAvailableIds(point) } returns listOf(driverId)
         every { driverService.findAllAvailableDrivers(listOf(driverId), seats) } returns listOf(mockDto)
-        every { driverService.setWorkStatus(driverId, WorkStatus.BUSY) } returns Unit
 
         // Act
         val result = driverMatchingService.findBestDriver(point, seats)
 
         // Assert
         assertEquals(mockDto, result)
-        verify(exactly = 1) { driverService.setWorkStatus(driverId, WorkStatus.BUSY) }
     }
 
     @Test

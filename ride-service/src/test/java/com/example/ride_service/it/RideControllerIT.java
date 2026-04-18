@@ -1,11 +1,8 @@
 package com.example.ride_service.it;
 
 import com.example.ride_service.client.OpenRouteServiceClient;
-import com.example.ride_service.exception.models.ErrorResponse;
 import com.example.ride_service.it.support.KafkaTestSupport;
 import com.example.ride_service.model.cache.RideEstimateCache;
-import com.example.ride_service.model.dto.RideAcceptedRequestDto;
-import com.example.ride_service.model.dto.RideAcceptedResponseDto;
 import com.example.ride_service.model.dto.RideCancelRequestDto;
 import com.example.ride_service.model.dto.RideCreateRequestDto;
 import com.example.ride_service.model.dto.RideCreateResponseDto;
@@ -28,7 +25,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.geo.Point;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -202,141 +198,6 @@ class RideControllerIT extends BaseIT {
             assertThat(payload.get("rideId").asText()).isEqualTo(responseDto.id().toString());
             assertThat(payload.get("seats").asInt()).isEqualTo(4);
         }
-    }
-
-    @Test
-    @DisplayName("успешное добавление водителя к поездке")
-    void shouldAcceptRideAndSaveSuccessfully() throws Exception {
-        // arrange
-        RideEntity entity = RideEntity.builder()
-                .seats(4)
-                .polyline("randomPolyline")
-                .finalAmount(new BigDecimal("15.00"))
-                .startAddress("address1")
-                .startPoint(new Point(53.675434, 23.827427))
-                .stopAddress("address2")
-                .stopPoint(new Point(53.648446, 23.782834))
-                .passengerId(UUID.randomUUID())
-                .status(RideStatus.CREATED)
-                .build();
-
-        rideRepo.save(entity);
-
-        RideAcceptedRequestDto request = RideAcceptedRequestDto.builder()
-                .rideId(entity.getId())
-                .carId(UUID.randomUUID())
-                .driverId(UUID.randomUUID())
-                .carBrand("brand")
-                .carModel("model")
-                .carColor("Red")
-                .driverName("name")
-                .carLicensePlate("plate")
-                .seats(4)
-                .build();
-
-        // act
-        var response = mockMvc.perform(post("/api/v1/rides/accept")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andReturn();
-
-
-        // assert
-        String content = response.getResponse().getContentAsString(StandardCharsets.UTF_8);
-        var responseDto = objectMapper.readValue(content, RideAcceptedResponseDto.class);
-        var savedEntity = rideRepo.findById(entity.getId());
-        assertThat(savedEntity).isPresent();
-        assertNotNull(savedEntity.get().getPassengerId());
-        assertNotNull(savedEntity.get().getDriverId());
-        assertEquals(savedEntity.get().getDriverId(), request.driverId());
-        assertNotNull(savedEntity.get().getCarBrand());
-        assertNotNull(savedEntity.get().getCarModel());
-        assertNotNull(savedEntity.get().getCarColor());
-        assertNotNull(savedEntity.get().getCarLicensePlate());
-        assertEquals(RideStatus.ACCEPTED, savedEntity.get().getStatus());
-        assertEquals(RideStatus.ACCEPTED.getDescription(), responseDto.statusDescription());
-    }
-
-    @Test
-    @DisplayName("ошибка: добавление водителя к несуществующей поездке")
-    void shouldAcceptRide_whenRideNotFound_throwNotFoundException() throws Exception {
-        // arrange
-        RideAcceptedRequestDto request = RideAcceptedRequestDto.builder()
-                .rideId(UUID.randomUUID())
-                .carId(UUID.randomUUID())
-                .driverId(UUID.randomUUID())
-                .carBrand("brand")
-                .carModel("model")
-                .carColor("Red")
-                .driverName("name")
-                .carLicensePlate("plate")
-                .seats(4)
-                .build();
-
-        // act
-        var response = mockMvc.perform(post("/api/v1/rides/accept")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andReturn();
-
-        // assert
-        String content = response.getResponse().getContentAsString(StandardCharsets.UTF_8);
-        var responseDto = objectMapper.readValue(content, ErrorResponse.class);
-
-        assertEquals(HttpStatus.NOT_FOUND.value(), response.getResponse().getStatus());
-        assertEquals("NOT_FOUND", responseDto.getCode());
-    }
-
-    @Test
-    @DisplayName("ошибка: добавление водителя к поездке которая уже имеет водителя")
-    void shouldAcceptRide_whenRideAlreadyAccepted_throwInvalidStatusTransitionException() throws Exception {
-        // arrange
-        RideEntity entity = RideEntity.builder()
-                .seats(4)
-                .polyline("randomPolyline")
-                .finalAmount(new BigDecimal("15.00"))
-                .startAddress("address1")
-                .startPoint(new Point(53.675434, 23.827427))
-                .stopAddress("address2")
-                .stopPoint(new Point(53.648446, 23.782834))
-                .passengerId(UUID.randomUUID())
-                .status(RideStatus.STARTED)
-                .driverId(UUID.randomUUID())
-                .carBrand("brand")
-                .carId(UUID.randomUUID())
-                .carModel("model")
-                .carColor("Red")
-                .driverName("name")
-                .carLicensePlate("plate")
-                .build();
-
-        rideRepo.save(entity);
-
-        RideAcceptedRequestDto request = RideAcceptedRequestDto.builder()
-                .rideId(entity.getId())
-                .carId(UUID.randomUUID())
-                .driverId(UUID.randomUUID())
-                .carBrand("brand")
-                .carModel("model")
-                .carColor("Red")
-                .driverName("name")
-                .carLicensePlate("plate")
-                .seats(4)
-                .build();
-
-        // act
-        var response = mockMvc.perform(post("/api/v1/rides/accept")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andReturn();
-
-        // assert
-        String content = response.getResponse().getContentAsString(StandardCharsets.UTF_8);
-        var responseDto = objectMapper.readValue(content, ErrorResponse.class);
-
-        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY.value(), response.getResponse().getStatus());
-        assertEquals("INVALID_STATUS_TRANSITION", responseDto.getCode());
     }
 
     @Test

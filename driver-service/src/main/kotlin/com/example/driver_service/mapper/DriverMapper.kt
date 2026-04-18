@@ -6,7 +6,7 @@ import com.example.driver_service.model.entity.DriverEntity
 import org.mapstruct.Mapper
 import org.mapstruct.Mapping
 
-@Mapper
+@Mapper(componentModel = "spring")
 interface DriverMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "carId", ignore = true)
