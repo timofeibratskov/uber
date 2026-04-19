@@ -8,7 +8,8 @@ import lombok.RequiredArgsConstructor;
 public enum EventType {
     RIDE_CREATED("ride_create"),
     ASSIGNED_DRIVER("driver_assigned"),
-    NO_AVAILABLE_DRIVERS("no_available_drivers");
+    NO_AVAILABLE_DRIVERS("no_available_drivers"),
+    RIDE_CANCELLED("ride_cancelled");
 
     private final String eventName;
 

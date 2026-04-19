@@ -4,6 +4,7 @@ import com.example.driver_service.model.enums.CancelInitiator
 import com.example.driver_service.model.enums.EventType
 import com.example.driver_service.model.enums.WorkStatus
 import com.example.driver_service.model.event.NoDriversEvent
+import com.example.driver_service.model.event.RideCancelledEvent
 import com.example.driver_service.model.event.RideCreateEvent
 import com.example.driver_service.model.view.toAssignedDriverEvent
 import com.example.driver_service.service.DriverMatchingService
@@ -67,6 +68,12 @@ class RideConsumer(
                         )
                         log.info { "available drivers not found!" }
                     }
+                }
+
+                EventType.RIDE_CANCELLED.eventName -> {
+                    val event = objectMapper.readValue<RideCancelledEvent>(payload)
+                    log.info { "driver with id: ${event.driverId} returned from ride with id: ${event.rideId}!" }
+                    driverService.setWorkStatus(event.driverId, WorkStatus.AVAILABLE)
                 }
             }
         } catch (e: Exception) {

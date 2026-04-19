@@ -213,7 +213,12 @@ class RideControllerIT extends BaseIT {
                 .stopAddress("address2")
                 .stopPoint(new Point(53.648446, 23.782834))
                 .passengerId(UUID.randomUUID())
-                .status(RideStatus.CREATED)
+                .status(RideStatus.ACCEPTED)
+                .carBrand("brand")
+                .carColor("red")
+                .carLicensePlate("1111AA-4")
+                .driverName("driver")
+                .driverId(UUID.randomUUID())
                 .build();
 
         rideRepo.save(entity);
@@ -230,6 +235,15 @@ class RideControllerIT extends BaseIT {
                 .andReturn();
 
         // assert
+        var outboxes = outboxRepo.findAllByOrderByCreatedAt();
+        assertThat(outboxes).hasSize(1);
+        var outboxEntity = outboxes.getFirst();
+        assertNotNull(outboxEntity.getId());
+        assertNotNull(outboxEntity.getCreatedAt());
+        assertNotNull(outboxEntity.getPayload());
+        assertEquals(TopicType.RIDE_LIFECYCLE, outboxEntity.getTopic());
+        assertEquals(EventType.RIDE_CANCELLED, outboxEntity.getEventType());
+
         var savedEntity = rideRepo.findById(entity.getId());
         assertThat(savedEntity).isPresent();
         assertEquals(RideStatus.CANCELLED, savedEntity.get().getStatus());

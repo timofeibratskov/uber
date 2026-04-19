@@ -3,15 +3,18 @@ package com.example.driver_service.it
 import com.example.driver_service.constant.RedisSchema
 import com.example.driver_service.model.entity.CarEntity
 import com.example.driver_service.model.entity.DriverEntity
+import com.example.driver_service.model.enums.CancelInitiator
 import com.example.driver_service.model.enums.EventType
 import com.example.driver_service.model.enums.Gender
 import com.example.driver_service.model.enums.WorkStatus
+import com.example.driver_service.model.event.RideCancelledEvent
 import com.example.driver_service.model.event.RideCreateEvent
 import com.example.driver_service.repository.CarRepository
 import com.example.driver_service.repository.DriverRepository
 import com.example.driver_service.repository.OutboxEventRepository
 import com.fasterxml.jackson.databind.ObjectMapper
 import java.time.Duration
+import java.time.LocalDateTime
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
@@ -173,6 +176,63 @@ class RideConsumerIT @Autowired constructor(
                 assertEquals(topic, outbox.topic)
                 assertNotNull(outbox.payload)
                 assertNotNull(outbox.id)
+            }
+    }
+
+    @Test
+    @DisplayName("Консьюмер должен получить RIDE_CANCELLED,  найти водителя и сменить ему статус на  AVAILABLE")
+    fun testRideCancelEventSetDriverWorkStatus() {
+        // Arrange
+        val rideId = UUID.randomUUID()
+
+        val driverEntity = DriverEntity(
+            UUID.randomUUID(),
+            "driverName",
+            "driver@gmail.com",
+            "password",
+            "+35295555555",
+            gender = Gender.MALE,
+            workStatus = WorkStatus.BUSY
+        )
+        driverRepository.save(driverEntity)
+
+        val carEntity = CarEntity(
+            UUID.randomUUID(),
+            driverEntity.id,
+            "white",
+            "3305AM-4",
+            "BMW",
+            "3",
+            4
+        )
+
+        carRepository.save(carEntity)
+        driverEntity.carId = carEntity.id
+        driverRepository.update(driverEntity)
+
+        val event = RideCancelledEvent(
+            rideId = rideId,
+            driverId = driverEntity.id,
+            initiator = CancelInitiator.DRIVER,
+            cancelAt = LocalDateTime.now()
+        )
+
+        val payload = objectMapper.writeValueAsString(event)
+
+        val record = ProducerRecord<String, String>(topic, payload)
+        record.headers().add("eventType", EventType.RIDE_CANCELLED.eventName.toByteArray())
+
+        // Act
+        kafkaTemplate.send(record).get(3, TimeUnit.SECONDS)
+
+        // Assert
+        await()
+            .atMost(Duration.ofSeconds(15))
+            .pollInterval(Duration.ofMillis(500))
+            .untilAsserted {
+                val driver = driverRepository.findById(driverEntity.id)
+                assertNotNull(driver)
+                assertEquals(WorkStatus.AVAILABLE, driver.workStatus)
             }
     }
 }
