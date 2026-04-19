@@ -18,6 +18,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.awaitility.Awaitility.await
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -48,9 +49,17 @@ class RideConsumerIT @Autowired constructor(
     @Value("\${app.Kafka.ride-topic}")
     private lateinit var topic: String
 
+    @BeforeEach
+    fun cleanTable() {
+        driverRepository.deleteAll()
+        carRepository.deleteAll()
+        outboxEventRepository.deleteAll()
+        redisTemplate.delete(redisTemplate.keys("*"))
+    }
+
     @Test
-    @DisplayName("Консьюмер должен получить сообщение из Kafka и записать в outbox payload")
-    fun testRideCreateEventConsumption() {
+    @DisplayName("Консьюмер должен получить RIDE_CREATED, найти водителя и записать ASSIGNED_DRIVER в outbox")
+    fun testRideCreateEventWithDriverFound() {
         // Arrange
         val point = Point(53.675434, 23.827427)
 
@@ -123,6 +132,43 @@ class RideConsumerIT @Autowired constructor(
 
                 assertNotNull(outbox)
                 assertEquals(EventType.ASSIGNED_DRIVER.eventName, outbox.eventType!!.eventName)
+                assertNotNull(outbox.createdAt)
+                assertEquals(topic, outbox.topic)
+                assertNotNull(outbox.payload)
+                assertNotNull(outbox.id)
+            }
+    }
+
+    @Test
+    @DisplayName("Консьюмер должен получить RIDE_CREATED, НЕ найти водителя и записать NO_AVAILABLE_DRIVERS в outbox")
+    fun testRideCreateEventWithNoDriversFound() {
+        // Arrange
+        val point = Point(53.675434, 23.827427)
+        val rideId = UUID.randomUUID()
+
+        val event = RideCreateEvent(
+            rideId = rideId,
+            startPoint = point,
+            seats = 4
+        )
+
+        val payload = objectMapper.writeValueAsString(event)
+
+        val record = ProducerRecord<String, String>(topic, payload)
+        record.headers().add("eventType", EventType.RIDE_CREATED.eventName.toByteArray())
+
+        // Act
+        kafkaTemplate.send(record).get(3, TimeUnit.SECONDS)
+
+        // Assert
+        await()
+            .atMost(Duration.ofSeconds(15))
+            .pollInterval(Duration.ofMillis(500))
+            .untilAsserted {
+                val outbox = outboxEventRepository.findAllByOrderByCreatedAt()[0]
+
+                assertNotNull(outbox)
+                assertEquals(EventType.NO_AVAILABLE_DRIVERS.eventName, outbox.eventType!!.eventName)
                 assertNotNull(outbox.createdAt)
                 assertEquals(topic, outbox.topic)
                 assertNotNull(outbox.payload)

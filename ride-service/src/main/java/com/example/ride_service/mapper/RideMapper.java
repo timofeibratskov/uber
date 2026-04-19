@@ -8,6 +8,7 @@ import com.example.ride_service.model.dto.RideEstimateRequestDto;
 import com.example.ride_service.model.dto.RideEstimateResponseDto;
 import com.example.ride_service.model.entity.RideEntity;
 import com.example.ride_service.model.event.DriverAssignedEvent;
+import com.example.ride_service.model.event.NoDriversEvent;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
@@ -39,6 +40,10 @@ public interface RideMapper {
 
     @Mapping(target = "durationMinutes", source = "rideEntity")
     RideEndResponseDto toRideEndResponseDto(RideEntity rideEntity);
+
+    @Mapping(target = "cancelInitiator", source = "initiator")
+    @Mapping(target = "comment", source = "reason")
+    RideCancelRequestDto toRideCancelRequestDto(NoDriversEvent noDriversEvent);
 
     default Long mapDuration(RideEntity entity) {
         return (entity.getStartAt() == null || entity.getEndAt() == null) ?

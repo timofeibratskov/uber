@@ -16,7 +16,6 @@ import com.example.driver_service.model.enums.Gender
 import com.example.driver_service.model.enums.WorkStatus
 import com.example.driver_service.repository.CarRepository
 import com.example.driver_service.repository.DriverRepository
-import com.example.driver_service.service.DriverMatchingService
 import com.example.driver_service.service.LocationService
 import java.math.BigDecimal
 import java.util.UUID
@@ -49,13 +48,13 @@ class DriverControllerIT @Autowired constructor(
     private val carRepository: CarRepository,
     private val redisTemplate: RedisTemplate<String, Any>,
     private val locationService: LocationService,
-    private val driverMatchingService: DriverMatchingService
 ) : BaseIT() {
 
     @BeforeEach
     fun cleanTable() {
         driverRepository.deleteAll()
         carRepository.deleteAll()
+        redisTemplate.delete(redisTemplate.keys("*"))
     }
 
     @Test

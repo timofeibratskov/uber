@@ -5,6 +5,7 @@ import org.apache.ibatis.annotations.Delete
 import org.apache.ibatis.annotations.Insert
 import org.apache.ibatis.annotations.Mapper
 import org.apache.ibatis.annotations.Select
+import org.apache.ibatis.annotations.Update
 
 @Mapper
 interface OutboxEventRepository {
@@ -16,4 +17,7 @@ interface OutboxEventRepository {
 
     @Delete("delete from outbox_event_table where id = #{id}")
     fun deleteById(id: Long): Int
+
+    @Update("TRUNCATE TABLE outbox_event_table")
+    fun deleteAll()
 }

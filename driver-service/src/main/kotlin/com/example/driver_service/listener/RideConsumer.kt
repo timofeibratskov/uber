@@ -1,7 +1,9 @@
 package com.example.driver_service.listener
 
+import com.example.driver_service.model.enums.CancelInitiator
 import com.example.driver_service.model.enums.EventType
 import com.example.driver_service.model.enums.WorkStatus
+import com.example.driver_service.model.event.NoDriversEvent
 import com.example.driver_service.model.event.RideCreateEvent
 import com.example.driver_service.model.view.toAssignedDriverEvent
 import com.example.driver_service.service.DriverMatchingService
@@ -52,7 +54,19 @@ class RideConsumer(
                         driverService.setWorkStatus(driver.id, WorkStatus.BUSY)
 
                         log.info { "available driver with id: ${driver.id} is assigned to ride with id: ${event.rideId}" }
-                    } else log.info { "available drivers not found!" }
+                    } else {
+                        val noDriversEvent = NoDriversEvent(
+                            event.rideId,
+                            "available drivers not found",
+                            CancelInitiator.SYSTEM
+                        )
+                        outboxEventService.saveEvent(
+                            noDriversEvent,
+                            EventType.NO_AVAILABLE_DRIVERS,
+                            rideTopic
+                        )
+                        log.info { "available drivers not found!" }
+                    }
                 }
             }
         } catch (e: Exception) {
