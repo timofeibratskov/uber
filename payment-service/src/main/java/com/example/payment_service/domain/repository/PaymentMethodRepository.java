@@ -13,5 +13,7 @@ public interface PaymentMethodRepository {
 
     Optional<PaymentMethod> findDefaultByUserId(UUID userId);
 
-    void save(PaymentMethod paymentMethod);
+    void update(PaymentMethod paymentMethod);
+
+    PaymentMethod insert(PaymentMethod paymentMethod);
 }

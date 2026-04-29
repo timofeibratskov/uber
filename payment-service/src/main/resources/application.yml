@@ -7,3 +7,8 @@ spring:
     username: postgres
     password: 1111
     driver-class-name: org.postgresql.Driver
+
+  liquibase:
+    change-log: classpath:db/migration/changelog-master.yaml
+    enabled: true
+    default-schema: public

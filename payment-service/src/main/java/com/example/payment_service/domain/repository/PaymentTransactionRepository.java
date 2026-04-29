@@ -6,7 +6,9 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface PaymentTransactionRepository {
-    void save(PaymentTransaction paymentTransaction);
+    PaymentTransaction insert(PaymentTransaction paymentTransaction);
+
+    void update(PaymentTransaction paymentTransaction);
 
     Optional<PaymentTransaction> findById(UUID id);
 

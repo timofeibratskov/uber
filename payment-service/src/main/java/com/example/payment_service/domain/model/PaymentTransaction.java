@@ -1,10 +1,15 @@
 package com.example.payment_service.domain.model;
 
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 
 import java.util.UUID;
 
 @Getter
+@Builder(access = AccessLevel.PRIVATE)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class PaymentTransaction {
     private final UUID id;
     private final UUID rideId;
@@ -18,6 +23,16 @@ public class PaymentTransaction {
         this.userId = userId;
         this.amount = amount;
         this.status = TransactionStatus.CREATED;
+    }
+
+    public static PaymentTransaction restore(UUID id, UUID rideId, UUID userId, Money amount, TransactionStatus status) {
+        return PaymentTransaction.builder()
+                .id(id)
+                .rideId(rideId)
+                .userId(userId)
+                .amount(amount)
+                .status(status)
+                .build();
     }
 
     public void startProcessing() {

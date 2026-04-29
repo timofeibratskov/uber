@@ -1,11 +1,16 @@
 package com.example.payment_service.domain.model;
 
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 
 import java.util.Objects;
 import java.util.UUID;
 
 @Getter
+@Builder(access = AccessLevel.PRIVATE)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class PaymentMethod {
     private final UUID id;
     private final UUID userId;
@@ -27,6 +32,16 @@ public class PaymentMethod {
         this.type = type;
         this.externalToken = externalToken;
         this.isDefault = false;
+    }
+
+    public static PaymentMethod restore(UUID id, UUID userId, PaymentType type, String externalToken, boolean isDefault) {
+        return PaymentMethod.builder()
+                .id(id)
+                .userId(userId)
+                .type(type)
+                .externalToken(externalToken)
+                .isDefault(isDefault)
+                .build();
     }
 
     public static PaymentMethod createCashMethod(UUID userId) {

@@ -1,19 +1,26 @@
 package com.example.payment_service.domain.model;
 
-import lombok.Builder;
-
 import java.math.BigDecimal;
 import java.util.Currency;
 
-@Builder
 public record Money(
         BigDecimal amount,
         Currency currency
 ) {
     public Money {
-        if (amount.compareTo(BigDecimal.ZERO) == 0) {
-            throw new IllegalArgumentException("Amount cannot be zero");
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Amount must be greater than zero");
         }
+        if (currency == null) {
+            throw new IllegalArgumentException("Currency cannot be null");
+        }
+    }
+
+    public static Money of(BigDecimal amount, String currencyCode) {
+        if (currencyCode == null) throw new IllegalArgumentException("Currency code is null");
+
+        Currency parsedCurrency = Currency.getInstance(currencyCode.trim().toUpperCase());
+        return new Money(amount, parsedCurrency);
     }
 
     public Money add(Money other) {

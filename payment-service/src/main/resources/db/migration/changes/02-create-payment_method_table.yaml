@@ -1,0 +1,33 @@
+databaseChangeLog:
+  - changeSet:
+      id: 02-create-payment_method_table
+      author: user
+      changes:
+        - createTable:
+            tableName: payment_methods_table
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: type
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: external_token
+                  type: VARCHAR(255)
+              - column:
+                  name: is_default
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
