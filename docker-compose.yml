@@ -1,7 +1,49 @@
-version: '3.8'
-
 services:
+  passenger-db:
+    image: postgres:15-alpine
+    container_name: passenger-db
+    environment:
+      POSTGRES_DB: passenger_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1111
+    ports:
+      - "5550:5432"
+    volumes:
+      - passenger_data:/var/lib/postgresql/data
 
+  driver-db:
+    image: postgres:15-alpine
+    container_name: driver-db
+    environment:
+      POSTGRES_DB: driver_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1111
+    ports:
+      - "5551:5432"
+    volumes:
+      - driver_data:/var/lib/postgresql/data
+
+  ride-db:
+    image: postgres:15-alpine
+    container_name: ride-db
+    environment:
+      POSTGRES_DB: ride_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1111
+    ports:
+      - "5552:5432"
+    volumes:
+      - ride_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis-cache
+    ports:
+      - "6379:6379"
+    command: [ "redis-server", "--notify-keyspace-events", "Ex" ]
+    volumes:
+      - redis_data:/data
+    restart: always
 
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
@@ -9,19 +51,25 @@ services:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
     ports:
-      - 22818:2181
+      - "22818:2181"
 
-
-  kafka:
-    image: confluentinc/cp-kafka:latest
+  Kafka:
+    image: confluentinc/cp-kafka:7.5.0
     depends_on:
       - zookeeper
     ports:
-      - "29092:29092"
+      - "9092:9092"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT_HOST://localhost:29092
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_HOST
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://Kafka:29092,EXTERNAL://localhost:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_ENABLE_KRAFT: "false"
+
+volumes:
+  passenger_data:
+  driver_data:
+  redis_data:
+  ride_data:

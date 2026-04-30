@@ -1,129 +1,95 @@
 package com.example.passenger_service.service;
 
-import com.example.passenger_service.dto.LoginPassengerRequest;
-import com.example.passenger_service.dto.PassengerDto;
-import com.example.passenger_service.dto.PassengerRatingEvent;
-import com.example.passenger_service.dto.PassengerRequest;
-import com.example.passenger_service.entity.PassengerEntity;
+import com.example.passenger_service.exception.AlreadyExistsException;
 import com.example.passenger_service.exception.InvalidCredentialsException;
-import com.example.passenger_service.exception.ResourceAlreadyExistsException;
-import com.example.passenger_service.repo.PassengerRepo;
+import com.example.passenger_service.exception.PassengerNotFoundException;
 import com.example.passenger_service.mapper.PassengerMapper;
-import jakarta.persistence.EntityNotFoundException;
+import com.example.passenger_service.model.dto.LoginPassengerDto;
+import com.example.passenger_service.model.dto.PassengerResponseDto;
+import com.example.passenger_service.model.dto.RegisterPassengerDto;
+import com.example.passenger_service.model.dto.UpdatePassengerDto;
+import com.example.passenger_service.repo.PassengerRepo;
 import lombok.RequiredArgsConstructor;
-import org.springframework.kafka.annotation.KafkaListener;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.UUID;
 
 @RequiredArgsConstructor
 @Service
+@Slf4j
 public class PassengerService {
     private final PassengerRepo passengerRepo;
-
     private final PassengerMapper passengerMapper;
+    private final PasswordEncoder passwordEncoder;
 
+    @Transactional
+    public PassengerResponseDto registerPassenger(RegisterPassengerDto request) {
+        if (passengerRepo.existsByEmail(request.email())) {
+            throw new AlreadyExistsException("Email already exists!");
+        }
+        if (passengerRepo.existsByPhoneNumber(request.phoneNumber())) {
+            throw new AlreadyExistsException("Phone number already exists!");
+        }
+        var passenger = passengerMapper.toEntity(request);
+        passenger.setPassword(passwordEncoder.encode(request.password()));
 
-    public PassengerDto findPassenger(Long id) {
-        PassengerEntity passenger = passengerRepo.findPassengerById(id)
-                .orElseThrow(() -> new EntityNotFoundException(String.format("Пассажир с ID: %d не существует", id)));
-        return passengerMapper.toDto(passenger);
+        var savedPassenger = passengerRepo.save(passenger);
+        log.info("Passenger registered successfully with email: {}", request.email());
+        return passengerMapper.toResponseDto(savedPassenger);
     }
 
-    public List<PassengerDto> findAllPassengers() {
-        List<PassengerEntity> passengers = passengerRepo.findAll();
-        return passengers.stream()
-                .map(passengerMapper::toDto)
-                .collect(Collectors.toList());
-    }
-
-    public String registerPassenger(PassengerRequest request) {
-        PassengerEntity passenger = passengerMapper.toEntity(request);
-        System.out.println(request.gmail() + " " + request.name());
-        passengerRepo.findPassengerByGmail(request.gmail())
-                .ifPresent(existingPassenger -> {
-                    throw new ResourceAlreadyExistsException(String.format("Пассажир с email %s уже зарегистрирован.", request.gmail()));
+    @Transactional(readOnly = true)
+    public PassengerResponseDto loginPassenger(LoginPassengerDto request) {
+        var passenger = passengerRepo.findByEmail(request.email())
+                .orElseThrow(() -> {
+                    log.info("Incorrect email: {}", request.email());
+                    return new InvalidCredentialsException("Incorrect email or password!");
                 });
-
-        passengerRepo.findPassengerByName(request.name())
-                .ifPresent(existingPassenger -> {
-                    throw new ResourceAlreadyExistsException(String.format("Пассажир с именем %s уже зарегистрирован.", request.name()));
-                });
-        passengerRepo.findPassengerByPhoneNumber(request.phoneNumber())
-                .ifPresent(existingPassenger -> {
-                    throw new ResourceAlreadyExistsException(String.format("Пассажир с телефоном %s уже зарегистрирован.", request.phoneNumber()));
-                });
-        passengerRepo.save(passenger);
-        return "АККАУНТ УСПЕШНО СОЗДАН!";
+        if (passwordEncoder.matches(request.password(), passenger.getPassword())) {
+            return passengerMapper.toResponseDto(passenger);
+        } else {
+            log.info("Incorrect password, email: {}", request.email());
+            throw new InvalidCredentialsException("Incorrect email or password!");
+        }
     }
 
-
-    public PassengerDto loginPassenger(LoginPassengerRequest request) {
-        return passengerMapper.toDto(passengerRepo.findPassengerByGmail(request.gmail())
-                .filter(passenger -> passenger.getPassword().equals(request.password()))
-                .orElseThrow(() -> new InvalidCredentialsException("Неверное имя пользователя или пароль."))
-
-        );
-    }
-
-    public String updatePassenger(Long id, PassengerRequest request) {
-        PassengerEntity existingPassenger = passengerRepo.findPassengerById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Пассажир с ID " + id + " не найден."));
-        if (request.gmail() != null && !request.gmail().equals(existingPassenger.getGmail())) {
-            passengerRepo.findPassengerByGmail(request.gmail())
-                    .ifPresent(p -> {
-                        if (!p.getId().equals(id)) {
-                            throw new ResourceAlreadyExistsException("Пассажир с таким email уже существует.");
+    @Transactional(readOnly = true)
+    public PassengerResponseDto findPassengerById(UUID id) {
+        var passenger = passengerRepo.findById(id)
+                .orElseThrow(() -> {
+                            log.info("Incorrect id: {}", id);
+                            return new PassengerNotFoundException("Passenger not found!");
                         }
-                    });
-            existingPassenger.setGmail(request.gmail());
-        }
-        if (request.name() != null && !request.name().equals(existingPassenger.getName())) {
-            passengerRepo.findPassengerByName(request.name())
-                    .ifPresent(p -> {
-                        if (!p.getId().equals(id)) {
-                            throw new ResourceAlreadyExistsException("Пассажир с таким именем уже существует.");
-                        }
-                    });
-            existingPassenger.setName(request.name());
-        }
-        if (request.phoneNumber() != null && !request.phoneNumber().equals(existingPassenger.getPhoneNumber())) {
-            passengerRepo.findPassengerByPhoneNumber(request.phoneNumber())
-                    .ifPresent(p -> {
-                        if (!p.getId().equals(id)) {
-                            throw new ResourceAlreadyExistsException("Пассажир с таким номером телефона уже существует.");
-                        }
-                    });
-            existingPassenger.setPhoneNumber(request.phoneNumber());
-        }
-        if (request.password() != null) {
-            existingPassenger.setPassword(request.password());
-        }
-        passengerRepo.save(existingPassenger);
-        return "ОБНОВЛЕНО УСПЕШНО";
+                );
+        return passengerMapper.toResponseDto(passenger);
     }
 
-
-    public void deletePassenger(Long id) {
-        PassengerEntity passenger = passengerRepo.findPassengerById(id)
-                .orElseThrow(() -> new InvalidCredentialsException("Пользователь не найден."));
-        passengerRepo.delete(passenger);
-    }
-
-    @KafkaListener(
-            topics = "PASSENGER-rating-event",
-            groupId = "passenger-rating-group",
-            containerFactory = "passengerRatingListenerContainerFactory"
-    )
-    public void updatePassengerRating(PassengerRatingEvent event) {
-        PassengerEntity passenger = passengerRepo.findPassengerById(event.recipientId())
-                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден"));
-
-        passenger.setRating(event.rating());
-        passengerRepo.save(passenger);
-
-        System.out.printf("Пассажир с id %d обновлен! Новый рейтинг: %.2f%n",
-                passenger.getId(), passenger.getRating());
+    @Transactional
+    public PassengerResponseDto updatePassenger(UUID id,
+                                                UpdatePassengerDto updatePassenger) {
+        var passenger = passengerRepo.findById(id)
+                .orElseThrow(() -> {
+                            log.info("Update failed: Passenger with id {} not found", id);
+                            return new PassengerNotFoundException("Passenger not found!");
+                        }
+                );
+        if (updatePassenger.phoneNumber() != null &&
+                !updatePassenger.phoneNumber().equals(passenger.getPhoneNumber())) {
+            if (passengerRepo.existsByPhoneNumber(updatePassenger.phoneNumber())) {
+                throw new AlreadyExistsException("Phone number " + updatePassenger.phoneNumber() + " already exists!");
+            }
+            passenger.setPhoneNumber(updatePassenger.phoneNumber());
+        }
+        if (updatePassenger.name() != null) {
+            passenger.setName(updatePassenger.name());
+        }
+        if (updatePassenger.gender() != null) {
+            passenger.setGender(updatePassenger.gender());
+        }
+        log.info("Updating passenger with id {}", id);
+        return passengerMapper.toResponseDto(passenger);
     }
 }

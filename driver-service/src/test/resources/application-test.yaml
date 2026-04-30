@@ -1,0 +1,18 @@
+spring:
+  liquibase:
+    change-log: classpath:db/migration/changelog-master.yaml
+
+  Kafka:
+    consumer:
+      auto-offset-reset: earliest
+      group-id: driver-group
+
+mybatis:
+  mapper-locations: classpath:mappers/*.xml
+  type-handlers-package: com.example.driver_service.config.mybatis
+  configuration:
+    map-underscore-to-camel-case: true
+
+app:
+  Kafka:
+    ride-topic: "ride_events_topic"

@@ -1,0 +1,51 @@
+databaseChangeLog:
+  - changeSet:
+      id: 01-create-passengers-table
+      author: user
+      changes:
+        - createTable:
+            tableName: passenger_table
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  defaultValueComputed: "gen_random_uuid()"
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: email
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: password
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: phone_number
+                  type: varchar(20)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: rating
+                  type: decimal(3,2)
+              - column:
+                  name: gender
+                  type: varchar(20)
+              - column:
+                  name: created_at
+                  type: timestamp
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp

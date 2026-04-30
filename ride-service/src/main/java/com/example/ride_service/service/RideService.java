@@ -1,139 +1,158 @@
 package com.example.ride_service.service;
 
-import com.example.ride_service.dto.RatingIdEvent;
-import com.example.ride_service.dto.RideCreatedEvent;
-import com.example.ride_service.dto.RideDto;
-import com.example.ride_service.dto.RideRequestDto;
-import com.example.ride_service.entity.RideEntity;
-import com.example.ride_service.enums.RideStatus;
-import com.example.ride_service.enums.SenderType;
-import com.example.ride_service.exception.InvalidStatusException;
-import com.example.ride_service.exception.NotFoundException;
+import com.example.ride_service.client.OpenRouteServiceClient;
+import com.example.ride_service.exception.EstimateExpiredException;
+import com.example.ride_service.exception.InvalidStatusTransitionException;
+import com.example.ride_service.exception.RideNotFoundException;
 import com.example.ride_service.mapper.RideMapper;
-import com.example.ride_service.repo.RideRepo;
+import com.example.ride_service.model.dto.RideCancelRequestDto;
+import com.example.ride_service.model.dto.RideCreateRequestDto;
+import com.example.ride_service.model.dto.RideCreateResponseDto;
+import com.example.ride_service.model.dto.RideEndResponseDto;
+import com.example.ride_service.model.dto.RideEstimateRequestDto;
+import com.example.ride_service.model.dto.RideEstimateResponseDto;
+import com.example.ride_service.model.enums.EventType;
+import com.example.ride_service.model.enums.RideStatus;
+import com.example.ride_service.model.enums.TopicType;
+import com.example.ride_service.model.event.DriverAssignedEvent;
+import com.example.ride_service.model.event.RideCreateEvent;
+import com.example.ride_service.repo.db.RideRepo;
+import com.example.ride_service.repo.redis.RideEstimateCacheRepo;
 import lombok.RequiredArgsConstructor;
-import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.core.KafkaTemplate;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.UUID;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class RideService {
     private final RideRepo rideRepo;
+    private final RideEstimateCacheRepo rideEstimateCacheRepo;
     private final RideMapper mapper;
-    private final KafkaTemplate<String, RideCreatedEvent> kafkaTemplate;
+    private final OpenRouteServiceClient openRouteServiceClient;
+    private final OutboxService outboxService;
 
-    public RideStatus createRide(RideRequestDto request) {
-        RideEntity ride = mapper.toEntity(request);
-        String id = rideRepo.save(ride).getId();
-        ride.setStatus(RideStatus.CREATED);
-        ride.setCreatedAt(LocalDateTime.now());
-        ride.setUpdatedAt(LocalDateTime.now());
-        RideCreatedEvent event = mapper.requestToEvent(request);
-        event.setId(id);
-        rideRepo.save(ride);
-        kafkaTemplate.send("ride-created", event);
-        System.out.println(ride.toString());
-        return ride.getStatus();
+    public RideEstimateResponseDto calculateRide(RideEstimateRequestDto request) {
+        var jsonResponse = openRouteServiceClient.fetchRoute(request.startPoint(), request.stopPoint());
+        log.info("Получен ответ от ORS для маршрута");
+
+        double distanceMeters = jsonResponse.at("/routes/0/summary/distance").asDouble();
+        double durationSeconds = jsonResponse.at("/routes/0/summary/duration").asDouble();
+        String geometry = jsonResponse.at("/routes/0/geometry").asText();
+        double distanceKm = distanceMeters / 1000.0;
+        long durationMin = Math.round(durationSeconds / 60.0);
+
+        BigDecimal price = BigDecimal.valueOf(3.0)
+                .add(BigDecimal.valueOf(distanceKm)
+                        .multiply(BigDecimal.valueOf(0.8)))
+                .setScale(2, RoundingMode.HALF_UP);
+
+        var estimateDto = RideEstimateResponseDto.builder()
+                .distanceKm(Math.round(distanceKm * 100.0) / 100.0)
+                .durationMin(durationMin)
+                .price(price)
+                .polyline(geometry)
+                .build();
+
+        var estimateCache = mapper.toCache(estimateDto, request);
+        rideEstimateCacheRepo.save(estimateCache);
+        log.info("passenger with id {} saved cache successfully", request.passengerId());
+        return estimateDto;
     }
 
-    public void assignDriver(String rideId, Long driverId) {
-        RideEntity ride = findRideOrThrow(rideId);
-        if (ride.getStatus() != RideStatus.CREATED) {
-            throw new InvalidStatusException("водителя можно назначить только на CREATED поездку");
-        }
-        ride.setDriverId(driverId);
-        ride.setStatus(RideStatus.DRIVER_FOUND);
-        ride.setUpdatedAt(LocalDateTime.now());
-        rideRepo.save(ride);
-        System.out.println(ride.toString());
+    @Transactional
+    public RideCreateResponseDto createRide(RideCreateRequestDto request) {
+        var cache = rideEstimateCacheRepo.findById(request.passengerId())
+                .orElseThrow(() -> new EstimateExpiredException("The preliminary estimate has expired. Please recalculate your ride"));
+        log.info("ride with id {} found in cache", cache.getPassengerId());
+
+        var entity = mapper.toEntity(cache);
+        entity.setSeats(request.seats());
+
+        var savedEntity = rideRepo.save(entity);
+        rideEstimateCacheRepo.delete(cache);
+        log.info("ride with id {} saved successfully", savedEntity.getId());
+
+        var event = RideCreateEvent.builder()
+                .rideId(savedEntity.getId())
+                .seats(savedEntity.getSeats())
+                .startPoint(savedEntity.getStartPoint())
+                .build();
+
+        outboxService.saveEvent(event, EventType.RIDE_CREATED, TopicType.RIDE_LIFECYCLE);
+
+        return mapper.toRideCreateResponseDto(savedEntity);
     }
 
-    public String changeStatus(String rideId, RideStatus newStatus) {
-        RideEntity ride = findRideOrThrow(rideId);
-        validateStatusTransition(ride.getStatus(), newStatus);
-        ride.setStatus(newStatus);
-        ride.setUpdatedAt(LocalDateTime.now());
-        rideRepo.save(ride);
-        if (newStatus == RideStatus.COMPLETED) ride.setCompletedIn(LocalDateTime.now());
-        return "СТАТУС БЫЛ ИЗМЕНЕН УСПЕШНО";
+    @Transactional
+    public void acceptRide(DriverAssignedEvent request) {
+        var ride = rideRepo.findById(request.rideId())
+                .orElseThrow(() -> new RideNotFoundException("ride not found"));
+
+        if (ride.getStatus() != RideStatus.CREATED)
+            throw new InvalidStatusTransitionException("invalid ride status");
+
+        mapper.updateRideFromDto(request, ride);
+
+        ride.setStatus(RideStatus.ACCEPTED);
+        log.info("ride with id {} accepted successfully", ride.getId());
     }
 
-    @KafkaListener(topics = "drivers-not-found",
-            groupId = "ride-service-group")
-    public void handleCancelledRide(String message) {
-        System.out.println("получено сообщение!!! " + message);
-        rideRepo.findById(message).ifPresentOrElse(ride -> {
-            ride.setStatus(RideStatus.CANCELLED);
-            rideRepo.save(ride);
-            System.out.println("Поездка " + message + " отменена");
-        }, () -> System.out.println("Поездка с ID " + message + " не найдена"));
-    }
+    @Transactional
+    public void cancelRide(UUID rideId,
+                           RideCancelRequestDto request) {
+        var ride = rideRepo.findById(rideId)
+                .orElseThrow(() -> new RideNotFoundException("ride not found"));
 
-    private void validateStatusTransition(RideStatus current, RideStatus newStatus) {
-            if (newStatus == RideStatus.PAID && current != RideStatus.COMPLETED) {
-                throw new InvalidStatusException("Оплата должна быть после COMPLETED");
+        if (ride.getStatus() == RideStatus.ACCEPTED || ride.getStatus() == RideStatus.CREATED) {
+            mapper.cancelRideFromDto(request, ride);
+
+            if (ride.getDriverId() != null) {
+                var event = mapper.toRideCancelledEvent(ride);
+                outboxService.saveEvent(event, EventType.RIDE_CANCELLED, TopicType.RIDE_LIFECYCLE);
+                log.info("ride with id {} cancelled successfully by {}", ride.getId(), request.cancelInitiator());
             }
-        //todo
-    //        if (current == RideStatus.CANCELLED) {
-    //            throw new InvalidStatusException("Поездка отменена. Создайте новую поездку");
-    //        }
-    //        if (current == RideStatus.CREATED && newStatus != RideStatus.DRIVER_FOUND) {
-    //            throw new InvalidStatusException("статус должен поменяться только на DRIVER_FOUND");
-    //        }
-    //        if (current == RideStatus.DRIVER_FOUND && newStatus != RideStatus.IN_PROGRESS) {
-    //            throw new InvalidStatusException("статус должен поменяться только на IN_PROGRESS");
-    //        }
-    //        if (current == RideStatus.COMPLETED && newStatus != RideStatus.PAID) {
-    //            throw new InvalidStatusException("статус должен поменяться только на PAID");
-    //        }
-    }
-
-    public List<RideDto> getRidesByPassengerId(Long id) {
-        List<RideDto> rides = rideRepo.findAllByCreatorId(id)
-                .stream()
-                .map(mapper::toDto)
-                .collect(Collectors.toList());
-        if (rides.isEmpty()) throw new NotFoundException("Поезки для пассажира с таким id не существует");
-        return rides;
-    }
-
-    public List<RideDto> getRidesByDriverId(Long id) {
-        List<RideDto> rides = rideRepo.findAllByDriverId(id).stream().map(mapper::toDto).collect(Collectors.toList());
-        if (rides.isEmpty()) throw new NotFoundException("Поезки для водителя с таким id не существует");
-        return rides;
-    }
-
-    public List<RideDto> getRidesByStatus(RideStatus status) {
-        List<RideDto> rides = rideRepo.findByStatus(status).stream().map(mapper::toDto).collect(Collectors.toList());
-        if (rides.isEmpty()) throw new NotFoundException("Поезки с таким статусом пока что не существует");
-        return rides;
-    }
-
-    private RideEntity findRideOrThrow(String rideId) {
-        return rideRepo.findById(rideId)
-                .orElseThrow(() -> new NotFoundException("Поездка не найдена"));
-    }
-
-    @KafkaListener(
-            topics = "rating-id-event",
-            groupId = "ride-rating-group",
-            containerFactory = "ratingIdListenerContainerFactory"
-    )
-    public void addRatingInRide(RatingIdEvent event) {
-        RideEntity ride = rideRepo.findById(event.rideId()).orElseThrow(() -> new NotFoundException("такой поездки не существует"));
-        if (event.type() == SenderType.DRIVER) {
-
-            ride.setPassengerRatingId(event.recipientRatingId());
         } else {
-            ride.setDriverRatingId(event.recipientRatingId());
+            log.error("ride with id: {} has not valid status for canceling: {}", ride.getId(), ride.getStatus());
+            throw new InvalidStatusTransitionException("invalid ride status");
         }
-        ride.setUpdatedAt(LocalDateTime.now());
-        rideRepo.save(ride);
-        System.out.println("в поездке " + ride.getId() + " был выставлен рейтинг ");
+    }
+
+    @Transactional
+    public void startRide(UUID rideId) {
+        var ride = rideRepo.findById(rideId)
+                .orElseThrow(() -> new RideNotFoundException("ride not found"));
+
+        if (ride.getStatus() != RideStatus.ACCEPTED) {
+            log.error("ride with id: {} has not valid status for starting: {}", ride.getId(), ride.getStatus());
+            throw new InvalidStatusTransitionException("invalid ride status");
+        }
+
+        ride.setStatus(RideStatus.STARTED);
+        ride.setStartAt(LocalDateTime.now());
+        log.info("ride with id {} started successfully", ride.getId());
+    }
+
+    @Transactional
+    public RideEndResponseDto endRide(UUID rideId) {
+        var ride = rideRepo.findById(rideId)
+                .orElseThrow(() -> new RideNotFoundException("ride not found"));
+
+        if (ride.getStatus() != RideStatus.STARTED) {
+            log.error("ride has not valid status for completing: {}", ride.getStatus());
+            throw new InvalidStatusTransitionException("invalid ride status");
+        }
+
+        ride.setStatus(RideStatus.COMPLETED);
+        ride.setEndAt(LocalDateTime.now());
+        log.info("ride with id {} completed successfully", ride.getId());
+
+        return mapper.toRideEndResponseDto(ride);
     }
 }

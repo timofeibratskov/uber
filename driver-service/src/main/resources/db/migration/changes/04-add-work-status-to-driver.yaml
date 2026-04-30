@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - changeSet:
+      id: 04-add-work-status-to-driver
+      author: user
+      changes:
+        - addColumn:
+            tableName: driver_table
+            columns:
+              - column:
+                  name: work_status
+                  type: varchar(20)
+                  defaultValue: "OFF_DUTY"
+                  constraints:
+                    nullable: false

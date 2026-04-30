@@ -1,0 +1,43 @@
+databaseChangeLog:
+  - changeSet:
+      id: 02-create-favorite-address-table
+      author: user
+      changes:
+        - createTable:
+            tableName: favourite_address_table
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  defaultValueComputed: "gen_random_uuid()"
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: address
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: label
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: passenger_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_favourite_addresses_passenger
+                    referencedTableName: passenger_table
+                    referencedColumnNames: id
+              - column:
+                  name: latitude
+                  type: double
+                  constraints:
+                    nullable: false
+              - column:
+                  name: longitude
+                  type: double
+                  constraints:
+                    nullable: false

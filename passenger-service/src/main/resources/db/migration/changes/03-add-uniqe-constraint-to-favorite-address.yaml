@@ -1,0 +1,9 @@
+databaseChangeLog:
+  - changeSet:
+      id: 03-add-unique-constraint-to-favorite-address
+      author: user
+      changes:
+        - addUniqueConstraint:
+            columnNames: passenger_id, label
+            constraintName: uk_passenger_label
+            tableName: favourite_address_table

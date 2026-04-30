@@ -1,45 +1,61 @@
 package com.example.ride_service.mapper;
 
-import com.example.ride_service.dto.RideCreatedEvent;
-import com.example.ride_service.dto.RideDto;
-import com.example.ride_service.dto.RideRequestDto;
-import com.example.ride_service.entity.RideEntity;
-import org.springframework.stereotype.Component;
+import com.example.ride_service.model.cache.RideEstimateCache;
+import com.example.ride_service.model.dto.RideCancelRequestDto;
+import com.example.ride_service.model.dto.RideCreateResponseDto;
+import com.example.ride_service.model.dto.RideEndResponseDto;
+import com.example.ride_service.model.dto.RideEstimateRequestDto;
+import com.example.ride_service.model.dto.RideEstimateResponseDto;
+import com.example.ride_service.model.entity.RideEntity;
+import com.example.ride_service.model.event.DriverAssignedEvent;
+import com.example.ride_service.model.event.NoDriversEvent;
+import com.example.ride_service.model.event.RideCancelledEvent;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 
-@Component
-public class RideMapper {
-    public RideEntity toEntity(RideRequestDto request) {
-        return RideEntity.builder()
-                .pointA(request.getPointA())
-                .pointB(request.getPointB())
-                .creatorId(request.getCreatorId())
-                .seats(request.getSeats())
-                .build();
-    }
+import java.time.Duration;
 
-    public RideDto toDto(RideEntity entity) {
-        return RideDto.builder()
-                .id(entity.getId())
-                .pointA(entity.getPointA())
-                .pointB(entity.getPointB())
-                .creatorId(entity.getCreatorId())
-                .seats(entity.getSeats())
-                .driverId(entity.getDriverId())
-                .amount(entity.getAmount())
-                .status(entity.getStatus())
-                .createdAt(entity.getCreatedAt())
-                .updatedAt(entity.getUpdatedAt())
-                .completedIn(entity.getCompletedIn())
-                .passengerRatingId(entity.getPassengerRatingId())
-                .driverRatingId(entity.getDriverRatingId())
-                .build();
-    }
-    public RideCreatedEvent requestToEvent(RideRequestDto request){
-        return RideCreatedEvent.builder()
-                .pointA(request.getPointA())
-                .pointB(request.getPointB())
-                .creatorId(request.getCreatorId())
-                .seats(request.getSeats())
-                .build();
+@Mapper(componentModel = "spring")
+public interface RideMapper {
+    @Mapping(target = "expiration", constant = "600L")
+    RideEstimateCache toCache(RideEstimateResponseDto estimate, RideEstimateRequestDto request);
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "finalAmount", source = "price")
+    @Mapping(target = "status", constant = "CREATED")
+    RideEntity toEntity(RideEstimateCache cache);
+
+    @Mapping(target = "price", source = "finalAmount")
+    @Mapping(target = "statusDescription", source = "status.description")
+    RideCreateResponseDto toRideCreateResponseDto(RideEntity rideEntity);
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "status", ignore = true)
+    @Mapping(target = "seats", ignore = true)
+    void updateRideFromDto(DriverAssignedEvent dto, @MappingTarget RideEntity entity);
+
+    @Mapping(target = "cancelAt", expression = "java(java.time.LocalDateTime.now())")
+    @Mapping(target = "cancelReasonComment", source = "comment")
+    @Mapping(target = "status", constant = "CANCELLED")
+    void cancelRideFromDto(RideCancelRequestDto dto, @MappingTarget RideEntity entity);
+
+    @Mapping(target = "durationMinutes", source = "rideEntity")
+    RideEndResponseDto toRideEndResponseDto(RideEntity rideEntity);
+
+    @Mapping(target = "cancelInitiator", source = "initiator")
+    @Mapping(target = "comment", source = "reason")
+    RideCancelRequestDto toRideCancelRequestDto(NoDriversEvent noDriversEvent);
+
+    @Mapping(target = "rideId", source = "rideEntity.id")
+    @Mapping(target = "driverId", source = "rideEntity.driverId")
+    @Mapping(target = "cancelAt", source = "rideEntity.cancelAt")
+    @Mapping(target = "initiator", source = "rideEntity.cancelInitiator")
+    RideCancelledEvent toRideCancelledEvent(RideEntity rideEntity);
+
+    default Long mapDuration(RideEntity entity) {
+        return (entity.getStartAt() == null || entity.getEndAt() == null) ?
+                null :
+                Duration.between(entity.getStartAt(), entity.getEndAt()).toMinutes();
     }
 }

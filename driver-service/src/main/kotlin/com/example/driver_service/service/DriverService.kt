@@ -1,132 +1,202 @@
 package com.example.driver_service.service
 
-import com.example.driver_service.client.RideServiceClient
-import com.example.driver_service.dto.DriverNotification
-import com.example.driver_service.dto.DriverRatingEvent
-import com.example.driver_service.entity.DriverEntity
-import com.example.driver_service.exception.EmailNotFoundException
-import com.example.driver_service.exception.EmailAlreadyExistsException
+import com.example.driver_service.exception.DriverIncompleteProfileException
 import com.example.driver_service.exception.DriverNotFoundException
+import com.example.driver_service.exception.EmailAlreadyExistsException
 import com.example.driver_service.exception.InvalidCredentialsException
+import com.example.driver_service.exception.InvalidStatusTransitionException
 import com.example.driver_service.exception.PhoneNumberAlreadyExistsException
-import com.example.driver_service.exception.NameAlreadyExistsException
-import com.example.driver_service.mybatisMapper.CarMapper
-import com.example.driver_service.mybatisMapper.DriverMapper
-import org.springframework.kafka.annotation.KafkaListener
-import org.springframework.kafka.core.KafkaTemplate
+import com.example.driver_service.mapper.CarMapper
+import com.example.driver_service.mapper.DriverMapper
+import com.example.driver_service.model.dto.CarResponseDto
+import com.example.driver_service.model.dto.CreateCarDto
+import com.example.driver_service.model.dto.DriverResponseDto
+import com.example.driver_service.model.dto.LoginDriverDto
+import com.example.driver_service.model.dto.RegisterDriverDto
+import com.example.driver_service.model.dto.UpdateDriverDto
+import com.example.driver_service.model.enums.WorkStatus
+import com.example.driver_service.model.view.DriverView
+import com.example.driver_service.repository.DriverRepository
+import java.util.UUID
+import mu.KotlinLogging
+import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service
-@Transactional
 class DriverService(
     private val driverMapper: DriverMapper,
     private val carMapper: CarMapper,
-    private val rideClient: RideServiceClient,
-    private val kafkaTemplate: KafkaTemplate<String, String>
+    private val driverRepository: DriverRepository,
+    private val passwordEncoder: PasswordEncoder,
+    private val carService: CarService,
+    private val locationService: LocationService,
 ) {
-
-    fun getAll(): List<DriverEntity> {
-        return driverMapper.findAll() ?: emptyList()
+    companion object {
+        private val log = KotlinLogging.logger {}
     }
 
-    fun getDriverById(id: Long): DriverEntity {
-        return driverMapper.findById(id)
-            ?: throw DriverNotFoundException(id)
+    @Transactional
+    fun register(dto: RegisterDriverDto): DriverResponseDto {
+        log.info { "Registering new driver with email: ${dto.email}" }
+
+        if (driverRepository.existsByEmail(dto.email) == 1) {
+            log.warn { "Registration failed: email ${dto.email} already exists" }
+            throw EmailAlreadyExistsException("Email already registered")
+        }
+        if (driverRepository.existsByPhoneNumber(dto.phoneNumber) == 1) {
+            log.warn { "Registration failed: phone ${dto.phoneNumber} already exists" }
+            throw PhoneNumberAlreadyExistsException("Phone number already registered")
+        }
+
+        val driver = driverMapper.toEntity(dto)
+        driver.password = passwordEncoder.encode(dto.password)
+
+        driverRepository.save(driver)
+        log.info { "Driver registered successfully with ID: ${driver.id}" }
+        return driverMapper.toDto(driver)
     }
 
-    fun login(gmail: String, password: String): DriverEntity {
-        val driver = driverMapper.findByEmail(gmail)
-            ?: throw EmailNotFoundException(gmail)
-
-        if (driver.password != password) {
-            throw InvalidCredentialsException()
-        }
-
-        return driver
+    @Transactional(readOnly = true)
+    fun findById(id: UUID): DriverResponseDto {
+        log.info { "Fetching driver profile for ID: $id" }
+        val driver = driverRepository.findById(id)
+            ?: throw DriverNotFoundException("Driver not found with ID: $id").also {
+                log.error { "Fetch failed: ${it.message}" }
+            }
+        return driverMapper.toDto(driver)
     }
 
-    fun createDriver(driver: DriverEntity): DriverEntity {
-        if (driverMapper.findByEmail(driver.gmail) != null) {
-            throw EmailAlreadyExistsException("Email ${driver.gmail} already exists")
-        }
-        if (driverMapper.findByPhoneNumber(driver.phoneNumber) != null) {
-            throw PhoneNumberAlreadyExistsException("Phone number ${driver.phoneNumber} already exists")
-        }
-        if (driverMapper.findByName(driver.name) != null) {
-            throw NameAlreadyExistsException("Name ${driver.name} already exists")
-        }
-        driverMapper.create(driver)
-        return driverMapper.findById(driver.id)
-            ?: throw DriverNotFoundException(driver.id)
-    }
+    @Transactional(readOnly = true)
+    fun login(dto: LoginDriverDto): DriverResponseDto {
+        log.info { "Login attempt for email: ${dto.email}" }
+        val driver = driverRepository.findByEmail(dto.email)
+            ?: throw InvalidCredentialsException("Invalid email or password").also {
+                log.warn { "Login failed: driver with email ${dto.email} not found" }
+            }
 
-    fun updateDriver(driver: DriverEntity): DriverEntity {
-        val driverByEmail = driverMapper.findByEmail(driver.gmail)
-        if (driverByEmail != null && driverByEmail.id != driver.id) {
-            throw EmailAlreadyExistsException("Email ${driver.gmail} already exists")
-        }
-        val driverByPhone = driverMapper.findByPhoneNumber(driver.phoneNumber)
-        if (driverByPhone != null && driverByPhone.id != driver.id) {
-            throw PhoneNumberAlreadyExistsException("Phone number ${driver.phoneNumber} already exists")
-        }
-        val driverByName = driverMapper.findByName(driver.name)
-        if (driverByName != null && driverByName.id != driver.id) {
-            throw NameAlreadyExistsException("Name ${driver.name} already exists")
-        }
-        driverMapper.update(driver)
-
-        return driver
-    }
-
-    fun deleteDriver(gmail: String, password: String) {
-        val driver = driverMapper.findByEmail(gmail)
-            ?: throw EmailNotFoundException("Driver with email $gmail not found for delete")
-
-        if (driver.password != password) {
-            throw InvalidCredentialsException()
-        }
-
-        val deletedCount = driverMapper.delete(driver.id)
-        if (deletedCount == 0) {
-            throw DriverNotFoundException(driver.id)
-        }
-    }
-
-    @KafkaListener(
-        topics = ["ride-created"],
-        groupId = "driver-service-group",
-        containerFactory = "driverNotificationListenerContainerFactory"
-    )
-    fun sendNotificationsForDriver(message: DriverNotification) {
-
-        val driversId = carMapper.findDriversIdBySeats(seats = message.seats)
-
-        if (driversId.isNotEmpty()) {
-            val randomDriverId = driversId.random()
-            println(message.id)
-            rideClient.assignDriver(message.id, randomDriverId)
-
-
+        if (passwordEncoder.matches(dto.password, driver.password)) {
+            log.info { "Login successful for driver: ${driver.email}" }
+            return driverMapper.toDto(driver)
         } else {
-            println("not found!")
-            kafkaTemplate.send("drivers-not-found", message.id)
+            log.warn { "Login failed: incorrect password for email ${dto.email}" }
+            throw InvalidCredentialsException("Invalid email or password")
         }
     }
 
-    @KafkaListener(
-        topics = ["DRIVER-rating-event"],
-        groupId = "driver-rating-group",
-        containerFactory = "driverRatingListenerContainerFactory"
-    )
-    fun setRatingForDriver(event: DriverRatingEvent) {
-        println(event.recipientId)
-        println(event.rating)
-        val driver = driverMapper.findById(event.recipientId)
-            ?: throw DriverNotFoundException(event.recipientId)
-        driver.rating = event.rating
-        driverMapper.update(driver)
-        println("Обновил водителя с id: ${driver.id} и изменил рейтинг на ${driver.rating}")
+    @Transactional
+    fun update(id: UUID, dto: UpdateDriverDto): DriverResponseDto {
+        log.info { "Updating driver profile for ID: $id" }
+        val driver = driverRepository.findById(id)
+            ?: throw DriverNotFoundException("Driver not found with ID: $id").also {
+                log.error { "Update failed: ${it.message}" }
+            }
+
+        if (dto.phoneNumber != null && dto.phoneNumber != driver.phoneNumber) {
+            if (driverRepository.existsByPhoneNumber(dto.phoneNumber) == 1) {
+                log.warn { "Update failed: phone ${dto.phoneNumber} already in use" }
+                throw PhoneNumberAlreadyExistsException("Phone number already exists")
+            }
+            driver.phoneNumber = dto.phoneNumber
+        }
+
+        dto.name?.let { driver.name = it }
+        dto.gender?.let { driver.gender = it }
+
+        driverRepository.update(driver)
+        log.info { "Successfully updated driver: $id" }
+        return driverMapper.toDto(driver)
     }
 
+    @Transactional
+    fun linkCar(driverId: UUID, createCarDto: CreateCarDto): CarResponseDto {
+        log.info { "Linking new car to driver: $driverId" }
+        val driver = driverRepository.findById(driverId)
+            ?: throw DriverNotFoundException("Driver not found").also {
+                log.error { "Link car failed: ${it.message}" }
+            }
+
+        val car = carService.add(driverId, createCarDto)
+        driver.carId = car.id
+        driverRepository.update(driver)
+
+        log.info { "Car ${car.id} successfully linked to driver $driverId" }
+        return carMapper.toDto(car)
+    }
+
+    @Transactional
+    fun unlinkCar(driverId: UUID, carId: UUID) {
+        log.info { "Unlinking car $carId from driver $driverId" }
+        val driver = driverRepository.findById(driverId)
+            ?: throw DriverNotFoundException("Driver not found").also {
+                log.error { "Unlink failed: ${it.message}" }
+            }
+
+        carService.softDeleteById(carId)
+
+        if (driver.carId == carId) {
+            log.info { "Car $carId was active for driver $driverId. Clearing current car ID." }
+            driver.carId = null
+            driverRepository.update(driver)
+        }
+    }
+
+    @Transactional
+    fun assignCarAsMain(driverId: UUID, carId: UUID): CarResponseDto {
+        log.info { "Assigning car $carId as main for driver $driverId" }
+        val driver = driverRepository.findById(driverId)
+            ?: throw DriverNotFoundException("Driver not found")
+
+        val mainCar = carService.findByCarIdAndDriverId(carId, driverId)
+
+        if (driver.carId != mainCar.id) {
+            driver.carId = mainCar.id
+            driverRepository.update(driver)
+            log.info { "Driver $driverId now has car ${mainCar.id} as main" }
+        }
+        return mainCar
+    }
+
+    @Transactional
+    fun setWorkStatus(id: UUID, status: WorkStatus) {
+        val driver = driverRepository.findById(id)
+            ?: throw DriverNotFoundException("Driver not found").also {
+                log.error { "Driver not found with ID: $id" }
+            }
+        if (driver.workStatus == status) {
+            log.info { "driver with id: $id already has status: ${driver.workStatus}, skipping update" }
+            return
+        }
+        when (status) {
+            WorkStatus.AVAILABLE -> {
+                if (driver.carId == null)
+                    throw DriverIncompleteProfileException("Driver must have an assigned car to start duty").also {
+                        log.error { "driver with id: $id must have an assigned car to start duty" }
+                    }
+                if (driver.workStatus == WorkStatus.OFF_DUTY)
+                    locationService.updateSession(id, status)
+            }
+
+            WorkStatus.BUSY -> {
+                if (driver.workStatus == WorkStatus.OFF_DUTY)
+                    throw InvalidStatusTransitionException("driver cannot go BUSY from OFF_DUTY. Start duty first").also {
+                        log.error { "driver with id: $id cannot go BUSY from OFF_DUTY. Start duty first" }
+                    }
+                locationService.updateSession(id, status)
+            }
+
+            WorkStatus.OFF_DUTY -> {
+                if (driver.workStatus == WorkStatus.BUSY)
+                    log.warn { "driver with $id is trying to go OFF_DUTY while having an active ride" }
+                locationService.deleteSession(id)
+            }
+        }
+        driver.workStatus = status
+        driverRepository.update(driver)
+    }
+
+    @Transactional(readOnly = true)
+    fun findAllAvailableDrivers(ids: List<UUID>, seats: Int): List<DriverView> {
+        return driverRepository.findAvailableDrivers(ids, seats)
+    }
 }

@@ -1,0 +1,13 @@
+spring:
+  liquibase:
+    change-log: classpath:db/migration/changelog-master.yaml
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+
+  Kafka:
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer

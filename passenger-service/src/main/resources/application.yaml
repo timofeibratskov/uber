@@ -1,0 +1,17 @@
+spring:
+  liquibase:
+    change-log: classpath:db/migration/changelog-master.yaml
+
+  datasource:
+    url: jdbc:postgresql://localhost:5550/passenger_db
+    username: postgres
+    password: 1111
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+
+server:
+  port: 8880

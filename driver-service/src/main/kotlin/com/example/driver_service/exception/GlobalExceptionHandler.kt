@@ -1,58 +1,101 @@
 package com.example.driver_service.exception
 
+import com.example.driver_service.exception.models.ErrorResponse
+import com.example.driver_service.exception.models.ValidationError
+import com.example.driver_service.exception.models.ValidationErrorResponse
+import mu.KotlinLogging
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
-import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler
 
 @RestControllerAdvice
-class GlobalExceptionHandler : ResponseEntityExceptionHandler() {
-
-    @ExceptionHandler(BaseException::class)
-    fun handleBaseException(ex: BaseException): ResponseEntity<ErrorResponse> {
-        return ResponseEntity(ex.errorResponse, ex.httpStatus)
+class GlobalExceptionHandler {
+    companion object {
+        private val log = KotlinLogging.logger {}
     }
 
-    @ExceptionHandler(DriverNotFoundException::class)
-    fun handleDriverNotFoundException(ex: DriverNotFoundException): ResponseEntity<ErrorResponse> {
-        return ResponseEntity(ex.errorResponse, ex.httpStatus)
-    }
-
-    @ExceptionHandler(CarNotFoundException::class)
-    fun handleCarNotFoundException(ex: CarNotFoundException): ResponseEntity<ErrorResponse> {
-        return ResponseEntity(ex.errorResponse, ex.httpStatus)
+    @ExceptionHandler(EntityNotFoundException::class)
+    fun handleEntityNotFoundException(ex: EntityNotFoundException):
+            ResponseEntity<ErrorResponse> {
+        return ResponseEntity(
+            ErrorResponse("NOT_FOUND", ex.message!!),
+            HttpStatus.NOT_FOUND
+        )
     }
 
     @ExceptionHandler(InvalidCredentialsException::class)
-    fun handleInvalidCredentialsException(ex: InvalidCredentialsException): ResponseEntity<ErrorResponse> {
-        return ResponseEntity(ex.errorResponse, ex.httpStatus)
+    fun handleInvalidCredentialsException(ex: InvalidCredentialsException):
+            ResponseEntity<ErrorResponse> {
+        return ResponseEntity(
+            ErrorResponse("UNAUTHORIZED", ex.message!!),
+            HttpStatus.UNAUTHORIZED
+        )
     }
 
-    @ExceptionHandler(EmailAlreadyExistsException::class)
-    fun handleEmailAlreadyExistsException(ex: EmailAlreadyExistsException): ResponseEntity<ErrorResponse> {
-        return ResponseEntity(ex.errorResponse, ex.httpStatus)
+    @ExceptionHandler(CarLimitExceededException::class)
+    fun handleCarLimitExceededException(ex: CarLimitExceededException):
+            ResponseEntity<ErrorResponse> {
+        return ResponseEntity(
+            ErrorResponse("CAR_LIMIT_EXCEEDED", ex.message!!),
+            HttpStatus.BAD_REQUEST
+        )
     }
 
-    @ExceptionHandler(PhoneNumberAlreadyExistsException::class)
-    fun handlePhoneNumberAlreadyExistsException(ex: PhoneNumberAlreadyExistsException): ResponseEntity<ErrorResponse> {
-        return ResponseEntity(ex.errorResponse, ex.httpStatus)
+    @ExceptionHandler(InvalidStatusTransitionException::class)
+    fun handleInvalidStatusTransitionException(ex: InvalidStatusTransitionException):
+            ResponseEntity<ErrorResponse> {
+        return ResponseEntity(
+            ErrorResponse("INVALID_STATUS_TRANSITION", ex.message!!),
+            HttpStatus.CONFLICT
+        )
     }
 
-    @ExceptionHandler(LicensePlateAlreadyExistsException::class)
-    fun handleLicensePlateAlreadyExistsException(ex: LicensePlateAlreadyExistsException): ResponseEntity<ErrorResponse> {
-        return ResponseEntity(ex.errorResponse, ex.httpStatus)
+    @ExceptionHandler(DriverIncompleteProfileException::class)
+    fun handleDriverIncompleteProfileException(ex: DriverIncompleteProfileException):
+            ResponseEntity<ErrorResponse> {
+        return ResponseEntity(
+            ErrorResponse("INCOMPLETE_PROFILE", ex.message!!),
+            HttpStatus.BAD_REQUEST
+        )
     }
 
-    @ExceptionHandler(EmailNotFoundException::class)
-    fun handleEmailNotFoundException(ex: EmailNotFoundException): ResponseEntity<ErrorResponse> {
-        return ResponseEntity(ex.errorResponse, ex.httpStatus)
+    @ExceptionHandler(MethodArgumentNotValidException::class)
+    fun handleMethodArgumentNotValidException(ex: MethodArgumentNotValidException):
+            ResponseEntity<ValidationErrorResponse> {
+        return ResponseEntity(
+            ValidationErrorResponse(
+                "VALIDATION_FAILED",
+                "One or more fields are invalid",
+                ex.bindingResult
+                    .fieldErrors
+                    .stream()
+                    .map { error
+                        ->
+                        ValidationError(error.field, error.defaultMessage!!)
+                    }
+                    .toList()
+            ),
+            HttpStatus.BAD_REQUEST
+        )
     }
 
+    @ExceptionHandler(ResourceAlreadyExistsException::class)
+    fun handleResourceAlreadyExistsException(ex: ResourceAlreadyExistsException):
+            ResponseEntity<ErrorResponse> {
+        return ResponseEntity(
+            ErrorResponse("CONFLICT", ex.message!!),
+            HttpStatus.CONFLICT
+        )
+    }
 
     @ExceptionHandler(Exception::class)
     fun handleAllExceptions(ex: Exception): ResponseEntity<ErrorResponse> {
-        val errorDetails = ErrorResponse("server.error", ex.message ?: "Unknown error")
-        return ResponseEntity(errorDetails, HttpStatus.INTERNAL_SERVER_ERROR)
+        log.error { "SERVER ERROR: ${ex.message}" }
+        return ResponseEntity(
+            ErrorResponse("SERVER_ERROR", "Unknown error"),
+            HttpStatus.INTERNAL_SERVER_ERROR
+        )
     }
 }
