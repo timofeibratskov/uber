@@ -2,7 +2,6 @@ package com.example.payment_service.infrastructure.persistence;
 
 import com.example.payment_service.domain.model.PaymentMethod;
 import com.example.payment_service.domain.repository.PaymentMethodRepository;
-import com.example.payment_service.infrastructure.persistence.entity.PaymentMethodEntity;
 import com.example.payment_service.infrastructure.persistence.jdbc.JdbcPaymentMethodRepository;
 import com.example.payment_service.infrastructure.persistence.mapper.PaymentMethodMapper;
 import lombok.RequiredArgsConstructor;
@@ -22,8 +21,8 @@ public class PaymentMethodRepositoryImpl implements PaymentMethodRepository {
 
     @Override
     public Optional<PaymentMethod> findById(UUID id) {
-        var entity = jdbcAggregateTemplate.findById(id, PaymentMethodEntity.class);
-        return Optional.of(entity).map(mapper::toDomain);
+        return jdbcPaymentMethodRepository.findById(id)
+                .map(mapper::toDomain);
     }
 
     @Override

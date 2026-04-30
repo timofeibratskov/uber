@@ -9,7 +9,7 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 @Builder
-public record PaymentRequest(
+public record CreatePaymentRequest(
         @NotNull(message = "User ID is required")
         UUID userId,
 

@@ -1,6 +1,6 @@
 package com.example.payment_service.infrastructure.web;
 
-import com.example.payment_service.application.dto.PaymentRequest;
+import com.example.payment_service.application.dto.CreatePaymentRequest;
 import com.example.payment_service.application.service.ProcessPaymentUseCase;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +17,7 @@ public class PaymentController {
     private final ProcessPaymentUseCase processPaymentUseCase;
 
     @PostMapping("/process")
-    public ResponseEntity<String> process(@RequestBody @Valid PaymentRequest request) {
+    public ResponseEntity<String> process(@RequestBody @Valid CreatePaymentRequest request) {
         processPaymentUseCase.execute(request);
         return ResponseEntity.ok("Payment processed successfully");
     }
