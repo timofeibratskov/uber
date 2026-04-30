@@ -4,17 +4,25 @@ import com.example.payment_service.application.dto.CreatePaymentMethodRequest;
 import com.example.payment_service.domain.model.PaymentMethod;
 import com.example.payment_service.domain.model.PaymentType;
 import com.example.payment_service.domain.repository.PaymentMethodRepository;
+import com.example.payment_service.domain.service.PaymentMethodValidator;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CreatePaymentMethodUseCase {
     private final PaymentMethodRepository paymentMethodRepository;
+    private final PaymentMethodValidator validator;
 
     @Transactional
     public void execute(CreatePaymentMethodRequest request) {
+        var existingMethods = paymentMethodRepository.findAllByUserId(request.userId());
+
+        validator.validate(existingMethods, request.paymentType(), request.externalToken());
+
         PaymentMethod method = request.paymentType().equals(PaymentType.CARD) ?
                 PaymentMethod.createCardMethod(request.userId(), request.externalToken()) :
                 PaymentMethod.createCashMethod(request.userId());

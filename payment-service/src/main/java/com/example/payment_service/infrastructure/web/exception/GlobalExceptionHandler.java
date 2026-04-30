@@ -2,6 +2,8 @@ package com.example.payment_service.infrastructure.web.exception;
 
 import com.example.payment_service.domain.exception.EntityNotFoundException;
 import com.example.payment_service.domain.exception.PaymentDeclinedException;
+import com.example.payment_service.domain.exception.PaymentMethodLimitExceededException;
+import com.example.payment_service.domain.exception.ResourceAlreadyExistsException;
 import com.example.payment_service.domain.exception.StripeServiceException;
 import com.example.payment_service.infrastructure.web.exception.models.ErrorResponse;
 import com.example.payment_service.infrastructure.web.exception.models.ValidationError;
@@ -31,6 +33,24 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ErrorResponse.builder()
                         .code("PAYMENT_DECLINED")
+                        .message(ex.getMessage())
+                        .build());
+    }
+
+    @ExceptionHandler(ResourceAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleResourceAlreadyExists(ResourceAlreadyExistsException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ErrorResponse.builder()
+                        .code("ALREADY_EXISTS")
+                        .message(ex.getMessage())
+                        .build());
+    }
+
+    @ExceptionHandler(PaymentMethodLimitExceededException.class)
+    public ResponseEntity<ErrorResponse> handleLimitExceeded(PaymentMethodLimitExceededException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ErrorResponse.builder()
+                        .code("LIMIT_EXCEEDED")
                         .message(ex.getMessage())
                         .build());
     }
