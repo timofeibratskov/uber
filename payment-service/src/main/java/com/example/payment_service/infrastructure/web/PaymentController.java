@@ -2,6 +2,7 @@ package com.example.payment_service.infrastructure.web;
 
 import com.example.payment_service.application.dto.PaymentRequest;
 import com.example.payment_service.application.service.ProcessPaymentUseCase;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,7 +17,7 @@ public class PaymentController {
     private final ProcessPaymentUseCase processPaymentUseCase;
 
     @PostMapping("/process")
-    public ResponseEntity<String> process(@RequestBody PaymentRequest request) {
+    public ResponseEntity<String> process(@RequestBody @Valid PaymentRequest request) {
         processPaymentUseCase.execute(request);
         return ResponseEntity.ok("Payment processed successfully");
     }
