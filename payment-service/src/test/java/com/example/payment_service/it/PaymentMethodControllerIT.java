@@ -1,6 +1,7 @@
 package com.example.payment_service.it;
 
 import com.example.payment_service.application.dto.CreatePaymentMethodRequest;
+import com.example.payment_service.domain.model.PaymentMethod;
 import com.example.payment_service.domain.model.PaymentType;
 import com.example.payment_service.domain.repository.PaymentMethodRepository;
 import com.stripe.StripeClient;
@@ -15,7 +16,9 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class PaymentMethodControllerIT extends BaseIT {
@@ -78,6 +81,31 @@ public class PaymentMethodControllerIT extends BaseIT {
         assertNull(method.getExternalToken());
         assertEquals(method.getUserId(), request.userId());
         assertEquals(method.getType(), request.paymentType());
+        assertNotNull(method.getId());
+    }
+
+    @Test
+    @DisplayName("чтение списка вариатнов оплаты пользователя")
+    void shouldGetUserPaymentMethods() throws Exception {
+        // arrange
+        UUID userId = UUID.randomUUID();
+        var cardPaymentMethod = PaymentMethod.createCardMethod(userId, "pm_card_visa");
+        methodRepository.insert(cardPaymentMethod);
+
+        // act
+        mockMvc.perform(get("/api/v1/payment-methods/users/{userId}", userId)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON));
+
+        // assert
+        var methods = methodRepository.findAllByUserId(userId);
+        assertNotNull(methods);
+        assertEquals(1, methods.size());
+        var method = methods.getFirst();
+        assertNotNull(method.getExternalToken());
+        assertEquals(method.getUserId(), userId);
+        assertEquals(method.getType(), cardPaymentMethod.getType());
         assertNotNull(method.getId());
     }
 }

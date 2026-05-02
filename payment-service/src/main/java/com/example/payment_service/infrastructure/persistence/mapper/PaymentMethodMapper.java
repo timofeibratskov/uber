@@ -1,5 +1,6 @@
 package com.example.payment_service.infrastructure.persistence.mapper;
 
+import com.example.payment_service.application.dto.UserPaymentMethodResponse;
 import com.example.payment_service.domain.model.PaymentMethod;
 import com.example.payment_service.infrastructure.persistence.entity.PaymentMethodEntity;
 import org.springframework.stereotype.Component;
@@ -24,5 +25,13 @@ public class PaymentMethodMapper {
                 entity.getExternalToken(),
                 entity.isDefault()
         );
+    }
+
+    public UserPaymentMethodResponse toResponse(PaymentMethod domain) {
+        return UserPaymentMethodResponse.builder()
+                .id(domain.getId())
+                .type(domain.getType())
+                .isDefault(domain.isDefault())
+                .build();
     }
 }
