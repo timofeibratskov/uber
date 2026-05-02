@@ -9,8 +9,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Objects;
 
-@Service
-public class PaymentMethodValidator { //todo refactor!!!
+public class PaymentMethodValidator {
     private static final int MAX_CARD_LIMIT = 3;
 
     public void validate(List<PaymentMethod> existingMethods, PaymentType newType, String newToken) {
