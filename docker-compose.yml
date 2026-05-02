@@ -35,6 +35,18 @@ services:
     volumes:
       - ride_data:/var/lib/postgresql/data
 
+  payment-db:
+    image: postgres:15-alpine
+    container_name: payment-db
+    environment:
+      POSTGRES_DB: payment_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1111
+    ports:
+      - "5553:5432"
+    volumes:
+      - payment_data:/var/lib/postgresql/data
+
   redis:
     image: redis:7-alpine
     container_name: redis-cache
@@ -73,3 +85,4 @@ volumes:
   driver_data:
   redis_data:
   ride_data:
+  payment_data:

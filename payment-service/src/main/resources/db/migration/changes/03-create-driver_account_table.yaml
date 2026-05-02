@@ -1,0 +1,20 @@
+databaseChangeLog:
+  - changeSet:
+      id: 03-create-driver_account_table
+      author: user
+      changes:
+        - createTable:
+            tableName: driver_account_table
+            columns:
+              - column:
+                  name: driver_id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: account_id
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+                    unique: true

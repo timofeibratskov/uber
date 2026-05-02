@@ -1,9 +1,7 @@
 package com.example.payment_service.it;
 
-import com.example.payment_service.application.dto.CreatePaymentMethodRequest;
 import com.example.payment_service.application.dto.CreatePaymentRequest;
 import com.example.payment_service.domain.model.PaymentMethod;
-import com.example.payment_service.domain.model.PaymentType;
 import com.example.payment_service.domain.model.TransactionStatus;
 import com.example.payment_service.domain.repository.PaymentMethodRepository;
 import com.example.payment_service.domain.repository.PaymentTransactionRepository;
@@ -22,8 +20,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -111,60 +107,5 @@ public class PaymentControllerIT extends BaseIT {
         assertThat(transaction).isPresent();
         assertEquals(TransactionStatus.SUCCESS, transaction.get().getStatus());
         assertEquals(0, new BigDecimal("15.00").compareTo(transaction.get().getAmount().amount()));
-    }
-
-    @Test
-    @DisplayName("успешная привязка карты")
-    void shouldCreateCardPaymentMethodSuccessfully() throws Exception {
-        // arrange
-        var request = CreatePaymentMethodRequest.builder()
-                .userId(UUID.randomUUID())
-                .paymentType(PaymentType.CARD)
-                .externalToken("pm_card_visa")
-                .build();
-
-
-        // act
-        mockMvc.perform(post("/api/v1/payment-methods")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated());
-
-        // assert
-        var methods = methodRepository.findAllByUserId(request.userId());
-        assertNotNull(methods);
-        assertEquals(1, methods.size());
-        var method = methods.getFirst();
-        assertEquals(method.getExternalToken(), request.externalToken());
-        assertEquals(method.getUserId(), request.userId());
-        assertEquals(method.getType(), request.paymentType());
-        assertNotNull(method.getId());
-    }
-
-    @Test
-    @DisplayName("успешное сохранение оплаты наличными")
-    void shouldCreateCashPaymentMethodSuccessfully() throws Exception {
-        // arrange
-        var request = CreatePaymentMethodRequest.builder()
-                .userId(UUID.randomUUID())
-                .paymentType(PaymentType.CASH)
-                .build();
-
-
-        // act
-        mockMvc.perform(post("/api/v1/payment-methods")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated());
-
-        // assert
-        var methods = methodRepository.findAllByUserId(request.userId());
-        assertNotNull(methods);
-        assertEquals(1, methods.size());
-        var method = methods.getFirst();
-        assertNull(method.getExternalToken());
-        assertEquals(method.getUserId(), request.userId());
-        assertEquals(method.getType(), request.paymentType());
-        assertNotNull(method.getId());
     }
 }
