@@ -10,8 +10,11 @@ import java.util.UUID;
 
 @Builder
 public record CreatePaymentRequest(
-        @NotNull(message = "User ID is required")
-        UUID userId,
+        @NotNull(message = "passenger ID is required")
+        UUID passengerId,
+
+        @NotNull(message = "driver ID is required")
+        UUID driverId,
 
         @NotNull(message = "Ride ID is required")
         UUID rideId,

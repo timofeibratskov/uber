@@ -12,5 +12,5 @@ public interface PaymentTransactionRepository {
 
     Optional<PaymentTransaction> findById(UUID id);
 
-    Optional<PaymentTransaction> findByRideId(UUID userId);
+    Optional<PaymentTransaction> findByRideId(UUID rideId);
 }

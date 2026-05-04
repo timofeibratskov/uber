@@ -3,8 +3,9 @@ package com.example.payment_service.it;
 import com.example.payment_service.application.dto.CreatePaymentMethodRequest;
 import com.example.payment_service.domain.model.PaymentMethod;
 import com.example.payment_service.domain.model.PaymentType;
-import com.example.payment_service.domain.repository.PaymentMethodRepository;
+import com.example.payment_service.infrastructure.persistence.PaymentMethodRepositoryImpl;
 import com.stripe.StripeClient;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,10 +25,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class PaymentMethodControllerIT extends BaseIT {
 
     @Autowired
-    private PaymentMethodRepository methodRepository;
+    private PaymentMethodRepositoryImpl methodRepository;
 
     @MockitoBean
     private StripeClient stripeClient;
+
+    @BeforeEach
+    public void setup() {
+        methodRepository.deleteAll();
+    }
 
     @Test
     @DisplayName("успешная привязка карты")

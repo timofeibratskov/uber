@@ -1,0 +1,19 @@
+databaseChangeLog:
+  - changeSet:
+      id: 04-add-driver_id-column
+      author: user
+      changes:
+        - addColumn:
+            tableName: payment_transactions_table
+            columns:
+              - column:
+                  name: driver_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+
+        - renameColumn:
+            tableName: payment_transactions_table
+            oldColumnName: user_id
+            newColumnName: passenger_id
+            columnDataType: UUID

@@ -11,7 +11,8 @@ public class PaymentTransactionMapper {
         return PaymentTransactionEntity.builder()
                 .id(domain.getId())
                 .rideId(domain.getRideId())
-                .userId(domain.getUserId())
+                .passengerId(domain.getPassengerId())
+                .driverId(domain.getDriverId())
                 .amount(domain.getAmount().amount())
                 .currency(domain.getAmount().currency().getCurrencyCode())
                 .status(domain.getStatus())
@@ -22,7 +23,8 @@ public class PaymentTransactionMapper {
         return PaymentTransaction.restore(
                 entity.getId(),
                 entity.getRideId(),
-                entity.getUserId(),
+                entity.getPassengerId(),
+                entity.getDriverId(),
                 Money.of(entity.getAmount(), entity.getCurrency()),
                 entity.getStatus()
         );

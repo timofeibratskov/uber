@@ -1,14 +1,19 @@
 package com.example.payment_service.it;
 
 import com.example.payment_service.application.dto.CreatePaymentRequest;
+import com.example.payment_service.domain.model.DriverAccount;
 import com.example.payment_service.domain.model.PaymentMethod;
 import com.example.payment_service.domain.model.TransactionStatus;
-import com.example.payment_service.domain.repository.PaymentMethodRepository;
-import com.example.payment_service.domain.repository.PaymentTransactionRepository;
+import com.example.payment_service.infrastructure.persistence.DriverAccountRepositoryImpl;
+import com.example.payment_service.infrastructure.persistence.PaymentMethodRepositoryImpl;
+import com.example.payment_service.infrastructure.persistence.PaymentTransactionRepositoryImpl;
 import com.stripe.StripeClient;
+import com.stripe.exception.CardException;
 import com.stripe.model.PaymentIntent;
+import com.stripe.param.PaymentIntentCreateParams;
 import com.stripe.service.PaymentIntentService;
 import com.stripe.service.V1Services;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,26 +34,38 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class PaymentControllerIT extends BaseIT {
 
     @Autowired
-    private PaymentMethodRepository methodRepository;
+    private PaymentMethodRepositoryImpl methodRepository;
 
     @Autowired
-    private PaymentTransactionRepository transactionRepository;
+    private PaymentTransactionRepositoryImpl transactionRepository;
+
+    @Autowired
+    private DriverAccountRepositoryImpl driverAccountRepository;
 
     @MockitoBean
     private StripeClient stripeClient;
+
+    @BeforeEach
+    public void setup() {
+        transactionRepository.deleteAll();
+        driverAccountRepository.deleteAll();
+        methodRepository.deleteAll();
+    }
 
     @Test
     @DisplayName("успешная оплата наличными")
     void shouldProcessCashPaymentSuccessfully() throws Exception {
         // arrange
-        UUID userId = UUID.randomUUID();
+        UUID passengerId = UUID.randomUUID();
+        UUID driverId = UUID.randomUUID();
         UUID rideId = UUID.randomUUID();
-        PaymentMethod cashMethod = PaymentMethod.createCashMethod(userId);
+        PaymentMethod cashMethod = PaymentMethod.createCashMethod(passengerId);
         methodRepository.insert(cashMethod);
 
         // act
         var request = CreatePaymentRequest.builder()
-                .userId(userId)
+                .passengerId(passengerId)
+                .driverId(driverId)
                 .rideId(rideId)
                 .amount(new BigDecimal("15.00"))
                 .currency("USD")
@@ -74,10 +91,18 @@ public class PaymentControllerIT extends BaseIT {
     @DisplayName("успешная оплата по карте")
     void shouldProcessCardPaymentSuccessfully() throws Exception {
         // arrange
-        UUID userId = UUID.randomUUID();
+        UUID passengerId = UUID.randomUUID();
+        UUID driverId = UUID.randomUUID();
         UUID rideId = UUID.randomUUID();
-        PaymentMethod cashMethod = PaymentMethod.createCardMethod(userId, "pm_card_visa");
+        PaymentMethod cashMethod = PaymentMethod.createCardMethod(passengerId, "pm_card_visa");
         methodRepository.insert(cashMethod);
+
+        var driverAccount = DriverAccount.builder()
+                .driverId(driverId)
+                .accountId("acct_test_12345")
+                .build();
+
+        driverAccountRepository.insert(driverAccount);
 
         V1Services mockV1 = mock(V1Services.class);
         PaymentIntentService mockIntents = mock(PaymentIntentService.class);
@@ -88,7 +113,8 @@ public class PaymentControllerIT extends BaseIT {
         when(mockIntent.getStatus()).thenReturn("succeeded");
 
         var request = CreatePaymentRequest.builder()
-                .userId(userId)
+                .passengerId(passengerId)
+                .driverId(driverId)
                 .rideId(rideId)
                 .amount(new BigDecimal("15.00"))
                 .currency("USD")
@@ -107,5 +133,67 @@ public class PaymentControllerIT extends BaseIT {
         assertThat(transaction).isPresent();
         assertEquals(TransactionStatus.SUCCESS, transaction.get().getStatus());
         assertEquals(0, new BigDecimal("15.00").compareTo(transaction.get().getAmount().amount()));
+    }
+
+    @Test
+    @DisplayName("ошибка оплаты: недостаточно средств на карте")
+    void shouldFailPaymentWhenInsufficientFunds() throws Exception {
+        // arrange
+        UUID passengerId = UUID.randomUUID();
+        UUID driverId = UUID.randomUUID();
+        UUID rideId = UUID.randomUUID();
+
+        PaymentMethod cardMethod = PaymentMethod.createCardMethod(passengerId, "pm_card_insufficientFunds");
+        methodRepository.insert(cardMethod);
+
+        var driverAccount = DriverAccount.builder()
+                .driverId(driverId)
+                .accountId("acct_test_failed")
+                .build();
+        driverAccountRepository.insert(driverAccount);
+
+        V1Services mockV1 = mock(V1Services.class);
+        PaymentIntentService mockIntents = mock(PaymentIntentService.class);
+        when(stripeClient.v1()).thenReturn(mockV1);
+        when(mockV1.paymentIntents()).thenReturn(mockIntents);
+
+        var cardException = new CardException(
+                "Your card has insufficient funds.",
+                "req_123",
+                "card_declined",
+                "amount",
+                "insufficient_funds",
+                "ch_123",
+                402,
+                null
+        );
+
+        when(mockIntents.create(any(PaymentIntentCreateParams.class)))
+                .thenThrow(cardException);
+
+        var request = CreatePaymentRequest.builder()
+                .passengerId(passengerId)
+                .driverId(driverId)
+                .rideId(rideId)
+                .amount(new BigDecimal("50.00"))
+                .currency("USD")
+                .paymentMethodId(cardMethod.getId())
+                .build();
+
+        // act
+        mockMvc.perform(post("/api/v1/payments/process")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+        // assert
+        var transaction = transactionRepository.findByRideId(rideId);
+
+        assertThat(transaction).isPresent();
+        var tr = transaction.get();
+
+        assertEquals(TransactionStatus.FAILED, tr.getStatus());
+
+        assertEquals(passengerId, tr.getPassengerId());
+        assertEquals(driverId, tr.getDriverId());
     }
 }

@@ -2,6 +2,7 @@ package com.example.payment_service.infrastructure.persistence;
 
 import com.example.payment_service.domain.model.DriverAccount;
 import com.example.payment_service.domain.repository.DriverAccountRepository;
+import com.example.payment_service.infrastructure.persistence.entity.DriverAccountEntity;
 import com.example.payment_service.infrastructure.persistence.jdbc.JdbcDriverAccountRepository;
 import com.example.payment_service.infrastructure.persistence.mapper.DriverAccountMapper;
 import lombok.RequiredArgsConstructor;
@@ -33,5 +34,9 @@ public class DriverAccountRepositoryImpl implements DriverAccountRepository {
     @Override
     public DriverAccount insert(DriverAccount account) {
         return mapper.toDomain(jdbcAggregateTemplate.insert(mapper.toEntity(account)));
+    }
+
+    public void deleteAll() {
+        jdbcAggregateTemplate.deleteAll(DriverAccountEntity.class);
     }
 }

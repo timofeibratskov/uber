@@ -22,16 +22,20 @@ public class ProcessPaymentUseCase {
     @Transactional
     public void execute(CreatePaymentRequest request) {
         PaymentMethod method = methodRepository.findById(request.paymentMethodId())
-                .orElseThrow(() -> new PaymentNotFoundException("payment not found with id: " + request.paymentMethodId()));
+                .orElseThrow(() ->
+                        new PaymentNotFoundException("payment not found with id: " + request.paymentMethodId()));
 
         PaymentTransaction transaction = new PaymentTransaction(
                 request.rideId(),
-                request.userId(),
+                request.passengerId(),
+                request.driverId(),
                 Money.of(request.amount(), request.currency())
         );
 
-        domainService.process(transaction, method);
-
-        transactionRepository.insert(transaction);
+        try {
+            domainService.process(transaction, method);
+        } finally {
+            transactionRepository.insert(transaction);
+        }
     }
 }

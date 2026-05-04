@@ -22,7 +22,8 @@ public class PaymentTransactionEntity {
     @Id
     private UUID id;
     private UUID rideId;
-    private UUID userId;
+    private UUID passengerId;
+    private UUID driverId;
     private BigDecimal amount;
     private String currency;
     private TransactionStatus status;

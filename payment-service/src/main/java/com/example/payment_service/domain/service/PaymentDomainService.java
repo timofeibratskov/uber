@@ -11,7 +11,7 @@ public class PaymentDomainService {
     private final List<PaymentStrategy> strategies;
 
     public void process(PaymentTransaction transaction, PaymentMethod method) {
-        if (!transaction.getUserId().equals(method.getUserId())) {
+        if (!transaction.getPassengerId().equals(method.getUserId())) {
             throw new IllegalStateException("Payment method does not belong to the user");
         }
 
@@ -19,6 +19,7 @@ public class PaymentDomainService {
 
         PaymentStrategy strategy = strategies.stream()
                 .filter(s -> s.getType() == method.getType())
+                .peek(System.out::println)
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("No strategy found for: " + method.getType()));
 

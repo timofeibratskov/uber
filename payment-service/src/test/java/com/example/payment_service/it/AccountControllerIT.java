@@ -2,11 +2,13 @@ package com.example.payment_service.it;
 
 import com.example.payment_service.application.dto.CreateDriverAccountRequest;
 import com.example.payment_service.domain.repository.DriverAccountRepository;
+import com.example.payment_service.infrastructure.persistence.DriverAccountRepositoryImpl;
 import com.stripe.StripeClient;
 import com.stripe.model.Account;
 import com.stripe.param.AccountCreateParams;
 import com.stripe.service.AccountService;
 import com.stripe.service.V1Services;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,10 +28,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class AccountControllerIT extends BaseIT {
 
     @Autowired
-    private DriverAccountRepository driverAccountRepository;
+    private DriverAccountRepositoryImpl driverAccountRepository;
 
     @MockitoBean
     private StripeClient stripeClient;
+
+    @BeforeEach
+    public void setup() {
+        driverAccountRepository.deleteAll();
+    }
 
     @Test
     @DisplayName("успешное создание аккаунта в страйп")

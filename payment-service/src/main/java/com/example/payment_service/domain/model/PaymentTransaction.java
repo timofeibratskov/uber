@@ -13,23 +13,26 @@ import java.util.UUID;
 public class PaymentTransaction {
     private final UUID id;
     private final UUID rideId;
-    private final UUID userId;
+    private final UUID passengerId;
+    private final UUID driverId;
     private final Money amount;
     private TransactionStatus status;
 
-    public PaymentTransaction(UUID rideId, UUID userId, Money amount) {
+    public PaymentTransaction(UUID rideId, UUID passengerId,UUID driverId, Money amount) {
         this.id = UUID.randomUUID();
         this.rideId = rideId;
-        this.userId = userId;
+        this.passengerId = passengerId;
+        this.driverId = driverId;
         this.amount = amount;
         this.status = TransactionStatus.CREATED;
     }
 
-    public static PaymentTransaction restore(UUID id, UUID rideId, UUID userId, Money amount, TransactionStatus status) {
+    public static PaymentTransaction restore(UUID id, UUID rideId, UUID passengerId,UUID driverId, Money amount, TransactionStatus status) {
         return PaymentTransaction.builder()
                 .id(id)
                 .rideId(rideId)
-                .userId(userId)
+                .passengerId(passengerId)
+                .driverId(driverId)
                 .amount(amount)
                 .status(status)
                 .build();
