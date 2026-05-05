@@ -16,7 +16,7 @@ public class PaymentMethod {
     private final UUID userId;
     private final PaymentType type;
     private final String externalToken;
-    private boolean isDefault;
+    private boolean isDeleted;
 
     public PaymentMethod(UUID id, UUID userId, PaymentType type, String externalToken) {
         if (id == null || userId == null || type == null) {
@@ -31,16 +31,16 @@ public class PaymentMethod {
         this.userId = userId;
         this.type = type;
         this.externalToken = externalToken;
-        this.isDefault = false;
+        this.isDeleted = false;
     }
 
-    public static PaymentMethod restore(UUID id, UUID userId, PaymentType type, String externalToken, boolean isDefault) {
+    public static PaymentMethod restore(UUID id, UUID userId, PaymentType type, String externalToken, boolean isDeleted) {
         return PaymentMethod.builder()
                 .id(id)
                 .userId(userId)
                 .type(type)
                 .externalToken(externalToken)
-                .isDefault(isDefault)
+                .isDeleted(isDeleted)
                 .build();
     }
 
@@ -52,16 +52,12 @@ public class PaymentMethod {
         return new PaymentMethod(UUID.randomUUID(), userId, PaymentType.CARD, token);
     }
 
-    public void markAsDefault() {
-        this.isDefault = true;
+    public void markAsDeleted() {
+        this.isDeleted = true;
     }
 
-    public void unmarkAsDefault() {
-        this.isDefault = false;
-    }
-
-    public boolean isAutomated() {
-        return type == PaymentType.CARD;
+    public void unmarkAsDeleted() {
+        this.isDeleted = false;
     }
 
     @Override

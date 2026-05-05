@@ -14,9 +14,13 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.util.UUID;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -37,7 +41,7 @@ public class PaymentMethodControllerIT extends BaseIT {
 
     @Test
     @DisplayName("успешная привязка карты")
-    void shouldCreateCardPaymentMethodSuccessfully() throws Exception {
+    void shouldCreateNewCardPaymentMethodSuccessfully() throws Exception {
         // arrange
         var request = CreatePaymentMethodRequest.builder()
                 .userId(UUID.randomUUID())
@@ -58,6 +62,77 @@ public class PaymentMethodControllerIT extends BaseIT {
         assertEquals(1, methods.size());
         var method = methods.getFirst();
         assertEquals(method.getExternalToken(), request.externalToken());
+        assertEquals(method.getUserId(), request.userId());
+        assertEquals(method.getType(), request.paymentType());
+        assertNotNull(method.getId());
+    }
+
+    @Test
+    @DisplayName("успешная привязка уже удаленной карты")
+    void shouldCreateIsDeletedCardPaymentMethodSuccessfully() throws Exception {
+        // arrange
+        var userId = UUID.randomUUID();
+        var token = "pm_card_visa";
+
+        var dMethod = PaymentMethod.createCardMethod(userId, token);
+        dMethod.markAsDeleted();
+
+        methodRepository.insert(dMethod);
+
+        var request = CreatePaymentMethodRequest.builder()
+                .userId(userId)
+                .paymentType(PaymentType.CARD)
+                .externalToken(token)
+                .build();
+
+        // act
+        mockMvc.perform(post("/api/v1/payment-methods")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated());
+
+        // assert
+        var methods = methodRepository.findAllByUserId(request.userId());
+        assertNotNull(methods);
+        assertEquals(1, methods.size());
+        var method = methods.getFirst();
+        assertFalse(method.isDeleted());
+        assertEquals(method.getExternalToken(), request.externalToken());
+        assertEquals(method.getUserId(), request.userId());
+        assertEquals(method.getType(), request.paymentType());
+        assertNotNull(method.getId());
+    }
+
+    @Test
+    @DisplayName("ошибка: такая карта уже существует")
+    void shouldCardPaymentMethodSuccessfully() throws Exception {
+        // arrange
+        var userId = UUID.randomUUID();
+        var token = "pm_card_visa";
+
+        var dMethod = PaymentMethod.createCardMethod(userId, token);
+
+        methodRepository.insert(dMethod);
+
+        var request = CreatePaymentMethodRequest.builder()
+                .userId(userId)
+                .paymentType(PaymentType.CARD)
+                .externalToken(token)
+                .build();
+
+        // act
+        mockMvc.perform(post("/api/v1/payment-methods")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isConflict());
+
+        // assert
+        var methods = methodRepository.findAllByUserId(request.userId());
+        assertNotNull(methods);
+        assertEquals(1, methods.size());
+        var method = methods.getFirst();
+        assertEquals(method.getExternalToken(), request.externalToken());
+        assertFalse(method.isDeleted());
         assertEquals(method.getUserId(), request.userId());
         assertEquals(method.getType(), request.paymentType());
         assertNotNull(method.getId());
@@ -113,5 +188,24 @@ public class PaymentMethodControllerIT extends BaseIT {
         assertEquals(method.getUserId(), userId);
         assertEquals(method.getType(), cardPaymentMethod.getType());
         assertNotNull(method.getId());
+    }
+
+    @Test
+    @DisplayName("успешное удаление оплаты картой")
+    void shouldDeleteCardPaymentMethodSuccessfully() throws Exception {
+        // arrange
+        var paymentMethod = PaymentMethod.createCardMethod(UUID.randomUUID(), "pm_card_visa");
+        methodRepository.insert(paymentMethod);
+
+
+        // act
+        mockMvc.perform(delete("/api/v1/payment-methods/{id}", paymentMethod.getId())
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNoContent());
+
+        // assert
+        var optMethod = methodRepository.findById(paymentMethod.getId());
+        assertThat(optMethod).isPresent();
+        assertTrue(optMethod.get().isDeleted());
     }
 }

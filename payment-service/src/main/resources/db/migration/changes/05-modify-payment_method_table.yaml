@@ -1,0 +1,18 @@
+databaseChangeLog:
+  - changeSet:
+      id: 05-modify-payment_method_table
+      author: user
+      changes:
+        - addColumn:
+            tableName: payment_methods_table
+            columns:
+              - column:
+                  name: is_deleted
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+
+        - dropColumn:
+            tableName: payment_methods_table
+            columnName: is_default

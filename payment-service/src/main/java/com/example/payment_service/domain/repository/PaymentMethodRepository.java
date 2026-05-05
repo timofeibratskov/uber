@@ -11,7 +11,7 @@ public interface PaymentMethodRepository {
 
     List<PaymentMethod> findAllByUserId(UUID userId);
 
-    Optional<PaymentMethod> findDefaultByUserId(UUID userId);
+    List<PaymentMethod> findAllByUserIdAndIsNotDeleted(UUID userId);
 
     void update(PaymentMethod paymentMethod);
 

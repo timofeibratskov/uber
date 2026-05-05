@@ -8,7 +8,6 @@ import java.util.UUID;
 @Builder
 public record UserPaymentMethodResponse(
         UUID id,
-        PaymentType type,
-        boolean isDefault
+        PaymentType type
 ) {
 }

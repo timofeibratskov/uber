@@ -18,7 +18,7 @@ public class GetPaymentMethodsUseCase {
 
     @Transactional(readOnly = true)
     public List<UserPaymentMethodResponse> findUsersPaymentMethods(UUID id) {
-        return repository.findAllByUserId(id)
+        return repository.findAllByUserIdAndIsNotDeleted(id)
                 .stream()
                 .map(mapper::toResponse)
                 .toList();

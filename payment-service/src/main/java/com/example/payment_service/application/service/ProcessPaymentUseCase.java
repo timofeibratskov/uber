@@ -1,7 +1,7 @@
 package com.example.payment_service.application.service;
 
 import com.example.payment_service.application.dto.CreatePaymentRequest;
-import com.example.payment_service.domain.exception.PaymentNotFoundException;
+import com.example.payment_service.domain.exception.PaymentMethodNotFoundException;
 import com.example.payment_service.domain.model.Money;
 import com.example.payment_service.domain.model.PaymentMethod;
 import com.example.payment_service.domain.model.PaymentTransaction;
@@ -23,7 +23,7 @@ public class ProcessPaymentUseCase {
     public void execute(CreatePaymentRequest request) {
         PaymentMethod method = methodRepository.findById(request.paymentMethodId())
                 .orElseThrow(() ->
-                        new PaymentNotFoundException("payment not found with id: " + request.paymentMethodId()));
+                        new PaymentMethodNotFoundException("payment not found with id: " + request.paymentMethodId()));
 
         PaymentTransaction transaction = new PaymentTransaction(
                 request.rideId(),

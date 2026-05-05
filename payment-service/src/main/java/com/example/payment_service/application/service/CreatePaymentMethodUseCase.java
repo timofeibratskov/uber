@@ -23,10 +23,25 @@ public class CreatePaymentMethodUseCase {
 
         validator.validate(existingMethods, request.paymentType(), request.externalToken());
 
-        PaymentMethod method = request.paymentType().equals(PaymentType.CARD) ?
-                PaymentMethod.createCardMethod(request.userId(), request.externalToken()) :
-                PaymentMethod.createCashMethod(request.userId());
+        var deletedMethod = existingMethods
+                .stream()
+                .filter(paymentMethod ->
+                        paymentMethod.getExternalToken().equals(request.externalToken()))
+                .findFirst();
 
-        paymentMethodRepository.insert(method);
+        if (deletedMethod.isPresent()) {
+            log.info("Payment method with flag=isDeleted already exists in db: {}", deletedMethod.get().getId());
+            var method = deletedMethod.get();
+            method.unmarkAsDeleted();
+            paymentMethodRepository.update(method);
+            log.info("Payment method with flag=isDeleted was updated: {}", method.getId());
+        } else {
+            PaymentMethod method = request.paymentType().equals(PaymentType.CARD) ?
+                    PaymentMethod.createCardMethod(request.userId(), request.externalToken()) :
+                    PaymentMethod.createCashMethod(request.userId());
+
+            paymentMethodRepository.insert(method);
+            log.info("new payment method is created: {}", method.getId());
+        }
     }
 }

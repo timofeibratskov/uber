@@ -35,9 +35,12 @@ public class PaymentMethodRepositoryImpl implements PaymentMethodRepository {
     }
 
     @Override
-    public Optional<PaymentMethod> findDefaultByUserId(UUID userId) {
-        return jdbcPaymentMethodRepository.findByUserIdAndIsDefaultTrue(userId)
-                .map(mapper::toDomain);
+    public List<PaymentMethod> findAllByUserIdAndIsNotDeleted(UUID userId) {
+        return jdbcPaymentMethodRepository.findAllByUserId(userId)
+                .stream()
+                .filter(method -> !method.isDeleted())
+                .map(mapper::toDomain)
+                .toList();
     }
 
     @Override
@@ -50,7 +53,7 @@ public class PaymentMethodRepositoryImpl implements PaymentMethodRepository {
         return mapper.toDomain(jdbcAggregateTemplate.insert(mapper.toEntity(paymentMethod)));
     }
 
-    public void deleteAll(){
+    public void deleteAll() {
         jdbcAggregateTemplate.deleteAll(PaymentMethodEntity.class);
     }
 }

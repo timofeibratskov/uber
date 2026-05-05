@@ -4,7 +4,6 @@ import com.example.payment_service.domain.exception.PaymentMethodAlreadyExistsEx
 import com.example.payment_service.domain.exception.PaymentMethodLimitExceededException;
 import com.example.payment_service.domain.model.PaymentMethod;
 import com.example.payment_service.domain.model.PaymentType;
-import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Objects;
@@ -34,7 +33,10 @@ public class PaymentMethodValidator {
     private void validateCardUniqueness(List<PaymentMethod> methods, String newToken) {
         boolean cardExists = methods.stream()
                 .filter(m -> m.getType() == PaymentType.CARD)
-                .anyMatch(m -> Objects.equals(m.getExternalToken(), newToken));
+                .anyMatch(m ->
+                        Objects.equals(m.getExternalToken(), newToken) &&
+                                !m.isDeleted()
+                );
 
         if (cardExists) {
             throw new PaymentMethodAlreadyExistsException("This card is already linked to your account");

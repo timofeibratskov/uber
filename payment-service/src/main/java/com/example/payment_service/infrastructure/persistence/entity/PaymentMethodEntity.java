@@ -23,5 +23,5 @@ public class PaymentMethodEntity {
     private UUID userId;
     private PaymentType type;
     private String externalToken;
-    boolean isDefault;
+    boolean isDeleted;
 }

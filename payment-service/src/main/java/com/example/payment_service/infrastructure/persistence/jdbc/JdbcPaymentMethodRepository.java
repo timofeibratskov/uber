@@ -11,6 +11,4 @@ public interface JdbcPaymentMethodRepository
         extends CrudRepository<PaymentMethodEntity, UUID> {
 
     List<PaymentMethodEntity> findAllByUserId(UUID userId);
-
-    Optional<PaymentMethodEntity> findByUserIdAndIsDefaultTrue(UUID userId);
 }

@@ -13,7 +13,7 @@ public class PaymentMethodMapper {
                 .type(domain.getType())
                 .externalToken(domain.getExternalToken())
                 .userId(domain.getUserId())
-                .isDefault(domain.isDefault())
+                .isDeleted(domain.isDeleted())
                 .build();
     }
 
@@ -23,7 +23,7 @@ public class PaymentMethodMapper {
                 entity.getUserId(),
                 entity.getType(),
                 entity.getExternalToken(),
-                entity.isDefault()
+                entity.isDeleted()
         );
     }
 
@@ -31,7 +31,6 @@ public class PaymentMethodMapper {
         return UserPaymentMethodResponse.builder()
                 .id(domain.getId())
                 .type(domain.getType())
-                .isDefault(domain.isDefault())
                 .build();
     }
 }
