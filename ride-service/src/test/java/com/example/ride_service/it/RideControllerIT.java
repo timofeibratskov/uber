@@ -41,10 +41,12 @@ import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -324,5 +326,35 @@ class RideControllerIT extends BaseIT {
         assertNotNull(responseDto.durationMinutes());
         assertNotNull(responseDto.finalAmount());
         assertEquals(RideStatus.COMPLETED, responseDto.status());
+    }
+
+    @Test
+    @DisplayName("проверка можно ли оплатить поездку")
+    void shouldCanPayRide_whenRideIsNoPaidAndRideStatusIsCompleted_shouldReturnTrue() throws Exception {
+        // arrange
+        RideEntity entity = RideEntity.builder()
+                .seats(4)
+                .polyline("randomPolyline")
+                .finalAmount(new BigDecimal("15.00"))
+                .startAddress("address1")
+                .startPoint(new Point(53.675434, 23.827427))
+                .stopAddress("address2")
+                .stopPoint(new Point(53.648446, 23.782834))
+                .passengerId(UUID.randomUUID())
+                .driverId(UUID.randomUUID())
+                .startAt(LocalDateTime.of(2020, 1, 1, 0, 0, 0))
+                .status(RideStatus.COMPLETED)
+                .isPaid(false)
+                .build();
+
+        rideRepo.save(entity);
+
+        // act
+        var response = mockMvc.perform(get("/api/v1/rides/{id}/canPay", entity.getId()))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        // assert
+        assertTrue(Boolean.parseBoolean(response.getResponse().getContentAsString()));
     }
 }

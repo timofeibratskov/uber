@@ -1,4 +1,7 @@
 spring:
+  application:
+    name: ride-service
+
   liquibase:
     change-log: classpath:db/migration/changelog-master.yaml
 
@@ -45,3 +48,8 @@ ors:
 app:
   Kafka:
     ride-topic: "ride_events_topic"
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/

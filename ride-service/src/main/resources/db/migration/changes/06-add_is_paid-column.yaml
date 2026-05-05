@@ -1,0 +1,12 @@
+databaseChangeLog:
+  - changeSet:
+      id: 06-add_is_paid-column
+      author: user
+      changes:
+        - addColumn:
+            tableName: ride_table
+            columns:
+              - column:
+                  name: is_paid
+                  type: bool
+                  defaultValueComputed: false
