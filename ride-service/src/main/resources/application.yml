@@ -45,10 +45,6 @@ ors:
     key: ${ORS_API_KEY}
   url: "https://api.openrouteservice.org/v2/directions/driving-car"
 
-app:
-  Kafka:
-    ride-topic: "ride_events_topic"
-
 eureka:
   client:
     service-url:

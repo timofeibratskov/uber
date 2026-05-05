@@ -2,14 +2,20 @@ package com.example.payment_service.it;
 
 import com.example.payment_service.application.dto.CreatePaymentRequest;
 import com.example.payment_service.domain.model.DriverAccount;
+import com.example.payment_service.domain.model.EventType;
 import com.example.payment_service.domain.model.PaymentMethod;
+import com.example.payment_service.domain.model.TopicType;
 import com.example.payment_service.domain.model.TransactionStatus;
+import com.example.payment_service.domain.repository.OutboxRepository;
 import com.example.payment_service.infrastructure.client.RideServiceClient;
+import com.example.payment_service.infrastructure.outbox.OutboxService;
 import com.example.payment_service.infrastructure.persistence.DriverAccountRepositoryImpl;
+import com.example.payment_service.infrastructure.persistence.OutboxRepositoryImpl;
 import com.example.payment_service.infrastructure.persistence.PaymentMethodRepositoryImpl;
 import com.example.payment_service.infrastructure.persistence.PaymentTransactionRepositoryImpl;
 import com.stripe.StripeClient;
 import com.stripe.exception.CardException;
+import com.stripe.model.Event;
 import com.stripe.model.PaymentIntent;
 import com.stripe.param.PaymentIntentCreateParams;
 import com.stripe.service.PaymentIntentService;
@@ -44,6 +50,9 @@ public class PaymentControllerIT extends BaseIT {
     @Autowired
     private DriverAccountRepositoryImpl driverAccountRepository;
 
+    @Autowired
+    private OutboxRepositoryImpl outboxRepository;
+
     @MockitoBean
     private StripeClient stripeClient;
 
@@ -55,6 +64,7 @@ public class PaymentControllerIT extends BaseIT {
         transactionRepository.deleteAll();
         driverAccountRepository.deleteAll();
         methodRepository.deleteAll();
+        outboxRepository.deleteAll();
     }
 
     @Test
@@ -93,6 +103,15 @@ public class PaymentControllerIT extends BaseIT {
         assertThat(transaction).isPresent();
         assertEquals(TransactionStatus.SUCCESS, transaction.get().getStatus());
         assertEquals(0, new BigDecimal("15.00").compareTo(transaction.get().getAmount().amount()));
+
+        var outboxes = outboxRepository.findAllByOrderByCreatedAt();
+        assertEquals(1, outboxes.size());
+
+        var outbox = outboxes.getFirst();
+
+        assertEquals(rideId, objectMapper.readValue(outbox.getPayload(), UUID.class));
+        assertEquals(TopicType.PAYMENT, outbox.getTopic());
+        assertEquals(EventType.PAYMENT_COMPLETED, outbox.getEventType());
     }
 
     @Test
@@ -145,6 +164,15 @@ public class PaymentControllerIT extends BaseIT {
         assertThat(transaction).isPresent();
         assertEquals(TransactionStatus.SUCCESS, transaction.get().getStatus());
         assertEquals(0, new BigDecimal("15.00").compareTo(transaction.get().getAmount().amount()));
+
+        var outboxes = outboxRepository.findAllByOrderByCreatedAt();
+        assertEquals(1, outboxes.size());
+
+        var outbox = outboxes.getFirst();
+
+        assertEquals(rideId, objectMapper.readValue(outbox.getPayload(), UUID.class));
+        assertEquals(TopicType.PAYMENT, outbox.getTopic());
+        assertEquals(EventType.PAYMENT_COMPLETED, outbox.getEventType());
     }
 
     @Test
@@ -200,6 +228,7 @@ public class PaymentControllerIT extends BaseIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
+
         // assert
         var transaction = transactionRepository.findByRideId(rideId);
 
@@ -210,6 +239,8 @@ public class PaymentControllerIT extends BaseIT {
 
         assertEquals(passengerId, tr.getPassengerId());
         assertEquals(driverId, tr.getDriverId());
+
+        assertEquals(0, outboxRepository.findAllByOrderByCreatedAt().size());
     }
 
     @Test
@@ -241,5 +272,6 @@ public class PaymentControllerIT extends BaseIT {
 
         // assert
         assertThat(transactionRepository.findByRideId(rideId)).isEmpty();
+        assertEquals(0, outboxRepository.findAllByOrderByCreatedAt().size());
     }
 }
