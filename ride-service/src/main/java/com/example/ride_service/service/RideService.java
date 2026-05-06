@@ -163,4 +163,13 @@ public class RideService {
 
         return !ride.isPaid() && ride.getStatus() == RideStatus.COMPLETED;
     }
+
+    @Transactional
+    public void payRide(UUID rideId) {
+        var ride = rideRepo.findById(rideId)
+                .orElseThrow(() -> new RideNotFoundException("ride not found"));
+
+        ride.setPaid(true);
+        log.info("ride with id {} paid successfully", ride.getId());
+    }
 }

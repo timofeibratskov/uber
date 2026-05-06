@@ -4,7 +4,6 @@ import com.example.payment_service.domain.repository.OutboxRepository;
 import com.example.payment_service.infrastructure.persistence.entity.OutboxEntity;
 import com.example.payment_service.infrastructure.persistence.jdbc.JdbcOutboxRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -19,14 +18,15 @@ public class OutboxRepositoryImpl implements OutboxRepository {
         outboxRepository.save(entity);
     }
 
+    @Override
+    public void deleteById(Long id) {
+        outboxRepository.deleteById(id);
+    }
+
     public void deleteAll() {
         outboxRepository.deleteAll();
     }
 
-    @Override
-    public void delete(OutboxEntity entity) {
-        outboxRepository.delete(entity);
-    }
 
     @Override
     public List<OutboxEntity> findAllByOrderByCreatedAt() {

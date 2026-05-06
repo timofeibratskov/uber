@@ -7,7 +7,7 @@ import java.util.List;
 public interface OutboxRepository {
     void save(OutboxEntity entity);
 
-    void delete(OutboxEntity entity);
+    void deleteById(Long id);
 
     List<OutboxEntity> findAllByOrderByCreatedAt();
 }

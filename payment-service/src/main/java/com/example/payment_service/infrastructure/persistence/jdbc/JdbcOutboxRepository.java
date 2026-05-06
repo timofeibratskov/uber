@@ -6,6 +6,6 @@ import org.springframework.data.repository.CrudRepository;
 import java.util.List;
 
 public interface JdbcOutboxRepository
-        extends CrudRepository<OutboxEntity, Integer> {
+        extends CrudRepository<OutboxEntity, Long> {
     List<OutboxEntity> findAllByOrderByCreatedAt();
 }
