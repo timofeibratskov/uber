@@ -12,5 +12,5 @@ data class UserRatingEntity(
     var userId: UUID,
     var count: Long,
     var totalScore: BigDecimal,
-    var rating: BigDecimal
+    var currentRating: BigDecimal
 )

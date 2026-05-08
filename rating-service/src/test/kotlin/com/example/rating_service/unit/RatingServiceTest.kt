@@ -3,6 +3,7 @@ package com.example.rating_service.unit
 import com.example.rating_service.dto.RatingRequestDto
 import com.example.rating_service.entity.RatingEntity
 import com.example.rating_service.entity.UserRatingEntity
+import com.example.rating_service.enums.UserType
 import com.example.rating_service.exception.UserAlreadyRatedException
 import com.example.rating_service.repo.RatingRepo
 import com.example.rating_service.repo.UserRatingRepo
@@ -39,7 +40,8 @@ class RatingServiceTest {
         val request = RatingRequestDto(
             rideId = rideId,
             targetUserId = targetUserId,
-            rating = BigDecimal.valueOf(4.5)
+            rating = 4,
+            targetUserType = UserType.DRIVER
         )
 
         every { ratingRepo.existsByRideId(rideId) } returns false
@@ -58,14 +60,15 @@ class RatingServiceTest {
     }
 
     @Test
-    fun `addRating - negative - ride already rated throws exception`() {
+    fun `addRating - negative - user already rated throws exception`() {
         // Arrange
         val rideId = UUID.randomUUID()
         val targetUserId = UUID.randomUUID()
         val request = RatingRequestDto(
             rideId = rideId,
             targetUserId = targetUserId,
-            rating = BigDecimal.valueOf(4.5)
+            rating = 4,
+            targetUserType = UserType.DRIVER
         )
 
         every { ratingRepo.existsByRideId(rideId) } returns true
@@ -88,7 +91,8 @@ class RatingServiceTest {
         val request = RatingRequestDto(
             rideId = rideId,
             targetUserId = targetUserId,
-            rating = BigDecimal.valueOf(4.0)
+            rating = 4,
+            targetUserType = UserType.DRIVER
         )
 
         val existingUser = UserRatingEntity(
@@ -96,7 +100,7 @@ class RatingServiceTest {
             userId = targetUserId,
             count = 3,
             totalScore = BigDecimal.valueOf(12.5),
-            rating = BigDecimal.valueOf(4.17),
+            currentRating = BigDecimal.valueOf(4.17),
         )
 
         every { ratingRepo.existsByRideId(rideId) } returns false

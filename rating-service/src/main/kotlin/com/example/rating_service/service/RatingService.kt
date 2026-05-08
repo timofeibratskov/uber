@@ -33,7 +33,7 @@ class RatingService(
                 BigDecimal.ZERO
             )
 
-        val newTotal = userRating.totalScore.add(request.rating)
+        val newTotal = userRating.totalScore.add(BigDecimal(request.rating))
         val newCount = userRating.count + 1
         val newRating = newTotal.divide(
             newCount.toBigDecimal(),
@@ -43,21 +43,22 @@ class RatingService(
 
         ratingRepo.save(
             RatingEntity(
-                id = UUID.randomUUID(),
-                rideId = request.rideId,
-                targetUserId = request.targetUserId,
-                rating = request.rating
+                UUID.randomUUID(),
+                request.rideId,
+                request.targetUserId,
+                request.rating
             )
         )
 
         userRating.totalScore = newTotal
         userRating.count = newCount
-        userRating.rating = newRating
+        userRating.currentRating = newRating
+
         userRatingRepo.save(userRating)
 
         return RatingResponseDto(
-            message = "Rating received and will be processed",
-            targetUserId = userRating.userId
+            "Rating received and will be processed",
+            userRating.userId
         )
     }
 }

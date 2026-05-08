@@ -1,6 +1,5 @@
 package com.example.rating_service.entity
 
-import java.math.BigDecimal
 import java.util.UUID
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
@@ -11,5 +10,5 @@ data class RatingEntity(
     var id: UUID,
     var rideId: UUID,
     var targetUserId: UUID,
-    var rating: BigDecimal
+    var rating: Int
 )
