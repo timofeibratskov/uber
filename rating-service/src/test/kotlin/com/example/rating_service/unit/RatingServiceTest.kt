@@ -3,6 +3,7 @@ package com.example.rating_service.unit
 import com.example.rating_service.dto.RatingRequestDto
 import com.example.rating_service.entity.RatingEntity
 import com.example.rating_service.entity.UserRatingEntity
+import com.example.rating_service.exception.UserAlreadyRatedException
 import com.example.rating_service.repo.RatingRepo
 import com.example.rating_service.repo.UserRatingRepo
 import com.example.rating_service.service.RatingService
@@ -70,7 +71,7 @@ class RatingServiceTest {
         every { ratingRepo.existsByRideId(rideId) } returns true
 
         // Act
-        val exception = assertThrows<RuntimeException> {
+        val exception = assertThrows<UserAlreadyRatedException> {
             ratingService.addRating(request)
         }
         // Assert

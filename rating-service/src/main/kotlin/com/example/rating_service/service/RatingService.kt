@@ -4,6 +4,7 @@ import com.example.rating_service.dto.RatingRequestDto
 import com.example.rating_service.dto.RatingResponseDto
 import com.example.rating_service.entity.RatingEntity
 import com.example.rating_service.entity.UserRatingEntity
+import com.example.rating_service.exception.UserAlreadyRatedException
 import com.example.rating_service.repo.RatingRepo
 import com.example.rating_service.repo.UserRatingRepo
 import java.math.BigDecimal
@@ -19,9 +20,9 @@ class RatingService(
 ) {
     @Transactional
     fun addRating(request: RatingRequestDto): RatingResponseDto {
-        if (ratingRepo.existsByRideId(request.rideId)) {
-            throw RuntimeException("Ride with id ${request.rideId} already rated")
-        }
+        if (ratingRepo.existsByRideId(request.rideId))
+            throw UserAlreadyRatedException("Ride with id ${request.rideId} already rated")
+
 
         val userRating = userRatingRepo.findByUserId(request.targetUserId)
             ?: UserRatingEntity(

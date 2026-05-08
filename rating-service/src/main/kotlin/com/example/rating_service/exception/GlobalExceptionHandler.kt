@@ -1,26 +1,54 @@
 package com.example.rating_service.exception
 
+
+import com.example.rating_service.exception.models.ErrorResponse
+import com.example.rating_service.exception.models.ValidationError
+import com.example.rating_service.exception.models.ValidationErrorResponse
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.ControllerAdvice
+import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
+import org.springframework.web.bind.annotation.RestControllerAdvice
 
-
-@ControllerAdvice
+@RestControllerAdvice
 class GlobalExceptionHandler {
 
-    @ExceptionHandler(MissingRequiredFieldException::class)
-    fun handleMissingFieldException(ex: MissingRequiredFieldException): ResponseEntity<ErrorResponse> {
-        return ResponseEntity(ErrorResponse(ex.message ?: "Missing required field"), HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(UserAlreadyRatedException::class)
+    fun handleUserAlreadyRatedException(ex: UserAlreadyRatedException):
+            ResponseEntity<ErrorResponse> {
+        return ResponseEntity(
+            ErrorResponse("CONFLICT", ex.message!!),
+            HttpStatus.CONFLICT
+        )
     }
 
-    @ExceptionHandler(NotFoundException::class)
-    fun handleNotFoundException(ex: NotFoundException): ResponseEntity<ErrorResponse> {
-        return ResponseEntity(ErrorResponse(ex.message ?: "Resource not found"), HttpStatus.NOT_FOUND)
+    @ExceptionHandler(MethodArgumentNotValidException::class)
+    fun handleMethodArgumentNotValidException(ex: MethodArgumentNotValidException):
+            ResponseEntity<ValidationErrorResponse> {
+        return ResponseEntity(
+            ValidationErrorResponse(
+                "VALIDATION_FAILED",
+                "One or more fields are invalid",
+                ex.bindingResult
+                    .fieldErrors
+                    .stream()
+                    .map { error
+                        ->
+                        ValidationError(error.field, error.defaultMessage!!)
+                    }
+                    .toList()
+            ),
+            HttpStatus.BAD_REQUEST
+        )
     }
+
 
     @ExceptionHandler(Exception::class)
-    fun handleGenericException(ex: Exception): ResponseEntity<ErrorResponse> {
-        return ResponseEntity(ErrorResponse(ex.message ?: "Internal Server Error"), HttpStatus.INTERNAL_SERVER_ERROR)
+    fun handleAllExceptions(ex: Exception): ResponseEntity<ErrorResponse> {
+        print("SERVER ERROR: ${ex.message}")
+        return ResponseEntity(
+            ErrorResponse("SERVER_ERROR", "Unknown error"),
+            HttpStatus.INTERNAL_SERVER_ERROR
+        )
     }
 }
