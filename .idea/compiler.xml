@@ -42,6 +42,9 @@
       <module name="driver-service.test" options="-parameters -proc:none" />
       <module name="passenger-service" options="-parameters" />
       <module name="payment-service" options="-parameters" />
+      <module name="rating-service" options="-parameters" />
+      <module name="rating-service.main" options="-parameters" />
+      <module name="rating-service.test" options="-parameters" />
       <module name="ride-service" options="-parameters -Amapstruct.defaultComponentModel=spring" />
     </option>
   </component>

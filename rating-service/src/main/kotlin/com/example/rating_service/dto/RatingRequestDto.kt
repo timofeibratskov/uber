@@ -1,13 +1,11 @@
 package com.example.rating_service.dto
 
-import com.example.rating_service.enums.SenderType
+import java.math.BigDecimal
+import java.util.UUID
 
 
 data class RatingRequestDto(
-    val rideId: String,
-    val rating: Float,
-    val description: String?,
-    val senderId: Long,
-    val recipientId: Long,
-    val senderType: SenderType
+    val rideId: UUID,
+    val rating: BigDecimal,
+    val targetUserId: UUID,
 )

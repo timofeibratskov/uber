@@ -1,7 +1,7 @@
 spring:
   data:
     mongodb:
-      uri: mongodb://mongo:1111@localhost:27017/rating?authSource=admin
+      uri: mongodb://mongo:1111@localhost:27017/rating_db?authSource=admin
 
 server:
-  port: 8082
+  port: 8884

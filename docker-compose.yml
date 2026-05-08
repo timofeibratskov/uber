@@ -47,6 +47,18 @@ services:
     volumes:
       - payment_data:/var/lib/postgresql/data
 
+  rating-db:
+    image: mongo:6.0
+    container_name: rating-db
+    environment:
+      MONGO_INITDB_DATABASE: rating_db
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: 1111
+    ports:
+      - "27017:27017"
+    volumes:
+      - rating_data:/var/lib/mongo/data
+
   redis:
     image: redis:7-alpine
     container_name: redis-cache
