@@ -1,0 +1,8 @@
+spring:
+  mongodb:
+    uri: mongodb://mongo:1111@localhost:27017/rating_db?authSource=admin
+    representation:
+      uuid: standard
+
+server:
+  port: 8884
