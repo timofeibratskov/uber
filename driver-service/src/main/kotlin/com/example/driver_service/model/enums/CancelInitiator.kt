@@ -1,6 +1,6 @@
 package com.example.driver_service.model.enums;
 
-public enum CancelInitiator {
+enum class CancelInitiator {
     DRIVER,
     SYSTEM
 }

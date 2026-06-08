@@ -29,5 +29,5 @@ public class UserRatingEntity {
 
     private Long ratingCount;
 
-    private BigDecimal ratingSum;
+    private Long ratingSum;
 }

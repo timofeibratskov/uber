@@ -1,5 +1,6 @@
 package com.example.driver_service.service
 
+import com.example.driver_service.client.RatingServiceClient
 import com.example.driver_service.exception.DriverIncompleteProfileException
 import com.example.driver_service.exception.DriverNotFoundException
 import com.example.driver_service.exception.EmailAlreadyExistsException
@@ -17,6 +18,7 @@ import com.example.driver_service.model.dto.UpdateDriverDto
 import com.example.driver_service.model.enums.WorkStatus
 import com.example.driver_service.model.view.DriverView
 import com.example.driver_service.repository.DriverRepository
+import java.math.BigDecimal
 import java.util.UUID
 import mu.KotlinLogging
 import org.springframework.security.crypto.password.PasswordEncoder
@@ -31,13 +33,14 @@ class DriverService(
     private val passwordEncoder: PasswordEncoder,
     private val carService: CarService,
     private val locationService: LocationService,
+    private val ratingServiceClient: RatingServiceClient
 ) {
     companion object {
         private val log = KotlinLogging.logger {}
     }
 
     @Transactional
-    fun register(dto: RegisterDriverDto): DriverResponseDto {
+    fun register(dto: RegisterDriverDto): String {
         log.info { "Registering new driver with email: ${dto.email}" }
 
         if (driverRepository.existsByEmail(dto.email) == 1) {
@@ -54,21 +57,27 @@ class DriverService(
 
         driverRepository.save(driver)
         log.info { "Driver registered successfully with ID: ${driver.id}" }
-        return driverMapper.toDto(driver)
+
+        return "Hi, ${driver.name}, you are registered successfully!"
     }
 
     @Transactional(readOnly = true)
     fun findById(id: UUID): DriverResponseDto {
         log.info { "Fetching driver profile for ID: $id" }
-        val driver = driverRepository.findById(id)
+        val driverEntity = driverRepository.findById(id)
             ?: throw DriverNotFoundException("Driver not found with ID: $id").also {
                 log.error { "Fetch failed: ${it.message}" }
             }
-        return driverMapper.toDto(driver)
+        val driverRating = runCatching { ratingServiceClient.getUserRating(driverEntity.id) }
+            .map { response -> response.body?.rating ?: BigDecimal.ZERO }
+            .getOrElse { BigDecimal.ZERO }
+
+        return driverMapper.toDto(driverEntity, driverRating)
+
     }
 
     @Transactional(readOnly = true)
-    fun login(dto: LoginDriverDto): DriverResponseDto {
+    fun login(dto: LoginDriverDto): String {
         log.info { "Login attempt for email: ${dto.email}" }
         val driver = driverRepository.findByEmail(dto.email)
             ?: throw InvalidCredentialsException("Invalid email or password").also {
@@ -77,7 +86,7 @@ class DriverService(
 
         if (passwordEncoder.matches(dto.password, driver.password)) {
             log.info { "Login successful for driver: ${driver.email}" }
-            return driverMapper.toDto(driver)
+            return "Hi, ${driver.name}, you are with us again!"
         } else {
             log.warn { "Login failed: incorrect password for email ${dto.email}" }
             throw InvalidCredentialsException("Invalid email or password")
@@ -85,7 +94,7 @@ class DriverService(
     }
 
     @Transactional
-    fun update(id: UUID, dto: UpdateDriverDto): DriverResponseDto {
+    fun update(id: UUID, dto: UpdateDriverDto) {
         log.info { "Updating driver profile for ID: $id" }
         val driver = driverRepository.findById(id)
             ?: throw DriverNotFoundException("Driver not found with ID: $id").also {
@@ -105,7 +114,6 @@ class DriverService(
 
         driverRepository.update(driver)
         log.info { "Successfully updated driver: $id" }
-        return driverMapper.toDto(driver)
     }
 
     @Transactional

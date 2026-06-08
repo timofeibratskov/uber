@@ -44,7 +44,6 @@ class SimpleDriverMatchingServiceTest {
             "driver",
             "driver@gmail.com",
             "+375295865864",
-            BigDecimal.valueOf(5.0),
             Gender.MALE,
             CarView(
                 UUID.randomUUID(),

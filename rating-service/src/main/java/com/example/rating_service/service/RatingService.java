@@ -1,6 +1,8 @@
 package com.example.rating_service.service;
 
+import com.example.rating_service.exception.EntityNotFoundException;
 import com.example.rating_service.model.dto.RatingRequestDto;
+import com.example.rating_service.model.dto.UserRatingResponseDto;
 import com.example.rating_service.model.entity.RatingEntity;
 import com.example.rating_service.model.entity.UserRatingEntity;
 import com.example.rating_service.repo.RatingRepo;
@@ -9,7 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -17,13 +19,14 @@ public class RatingService {
     private final RatingRepo ratingRepo;
     private final UserRatingRepo userRatingRepo;
 
+    //todo исправить (проверка наличия такого пользователя перед созданием )
     public String rateUser(RatingRequestDto request) {
         var userRatingEntity = userRatingRepo.findByTargetUserId(request.targetUserId())
                 .orElse(
                         UserRatingEntity
                                 .builder()
                                 .averageRating(BigDecimal.ZERO)
-                                .ratingSum(BigDecimal.ZERO)
+                                .ratingSum(0L)
                                 .ratingCount(0L)
                                 .targetUserId(request.targetUserId())
                                 .build()
@@ -36,19 +39,27 @@ public class RatingService {
                 .rating(request.rating())
                 .build());
 
-        BigDecimal updatedSum = userRatingEntity.getRatingSum().add(BigDecimal.valueOf(request.rating()));
+        var updatedSum = userRatingEntity.getRatingSum() + request.rating();
 
         long updatedCount = userRatingEntity.getRatingCount() + 1;
 
-        BigDecimal newAvgRating = updatedSum.divide(BigDecimal.valueOf(updatedCount), 2, RoundingMode.HALF_UP);
-
-        userRatingEntity.setAverageRating(newAvgRating);
+        userRatingEntity.setAverageRating(BigDecimal.valueOf(updatedSum / updatedCount));
         userRatingEntity.setRatingSum(updatedSum);
         userRatingEntity.setRatingCount(updatedCount);
 
         userRatingRepo.save(userRatingEntity);
 
-        return "рейтинг доблавлен!";
+        return "рейтинг добавлен!";
     }
 
+    public UserRatingResponseDto getUserRating(UUID userId) {
+        return UserRatingResponseDto.builder()
+                .rating(userRatingRepo.findByTargetUserId(userId)
+                        .orElseThrow(() ->
+                                new EntityNotFoundException("user not found!")
+                        )
+                        .getAverageRating()
+                )
+                .build();
+    }
 }

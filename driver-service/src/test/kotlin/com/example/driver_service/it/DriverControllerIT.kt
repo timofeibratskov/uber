@@ -1,10 +1,12 @@
 package com.example.driver_service.it
 
+import com.example.driver_service.client.RatingServiceClient
 import com.example.driver_service.constant.RedisSchema
 import com.example.driver_service.exception.models.ErrorResponse
 import com.example.driver_service.exception.models.ValidationErrorResponse
 import com.example.driver_service.model.dto.CarResponseDto
 import com.example.driver_service.model.dto.CreateCarDto
+import com.example.driver_service.model.dto.DriverRatingResponse
 import com.example.driver_service.model.dto.DriverResponseDto
 import com.example.driver_service.model.dto.LoginDriverDto
 import com.example.driver_service.model.dto.RegisterDriverDto
@@ -27,6 +29,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
+import org.mockito.BDDMockito.given
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.web.client.TestRestTemplate
 import org.springframework.boot.test.web.client.exchange
@@ -39,7 +42,9 @@ import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
 import org.springframework.security.crypto.password.PasswordEncoder
+import org.springframework.test.context.bean.override.mockito.MockitoBean
 
 class DriverControllerIT @Autowired constructor(
     private val restTemplate: TestRestTemplate,
@@ -49,6 +54,9 @@ class DriverControllerIT @Autowired constructor(
     private val redisTemplate: RedisTemplate<String, Any>,
     private val locationService: LocationService,
 ) : BaseIT() {
+
+    @MockitoBean
+    private lateinit var ratingServiceClient: RatingServiceClient
 
     @BeforeEach
     fun cleanTable() {
@@ -70,7 +78,7 @@ class DriverControllerIT @Autowired constructor(
         )
 
         // Act
-        val response = restTemplate.postForEntity<DriverResponseDto>(
+        val response = restTemplate.postForEntity<String>(
             "/api/v1/drivers/register",
             registerDto
         )
@@ -78,8 +86,6 @@ class DriverControllerIT @Autowired constructor(
         // Assert
         assertThat(response.statusCode).isEqualTo(HttpStatus.CREATED)
         assertThat(response.body).isNotNull
-        assertThat(response.body?.email).isEqualTo(registerDto.email)
-        assertThat(response.body?.name).isEqualTo(registerDto.name)
 
         val savedDriver = driverRepository.findByEmail(registerDto.email)
         assertThat(savedDriver).isNotNull
@@ -99,7 +105,6 @@ class DriverControllerIT @Autowired constructor(
             password = "password",
             phoneNumber = "+375290000000",
             gender = Gender.MALE,
-            rating = BigDecimal.valueOf(5.0),
             carId = null
         )
         driverRepository.save(existingDriver)
@@ -138,7 +143,6 @@ class DriverControllerIT @Autowired constructor(
             password = "password",
             phoneNumber = phoneNumber,
             gender = Gender.MALE,
-            rating = BigDecimal.valueOf(5.0),
             carId = null
         )
         driverRepository.save(existingDriver)
@@ -177,7 +181,6 @@ class DriverControllerIT @Autowired constructor(
             password = passwordEncoder.encode(password),
             phoneNumber = "+375291111111",
             gender = Gender.MALE,
-            rating = BigDecimal.valueOf(5.0),
             carId = null
         )
         driverRepository.save(driver)
@@ -188,7 +191,7 @@ class DriverControllerIT @Autowired constructor(
         )
 
         // Act
-        val response = restTemplate.postForEntity<DriverResponseDto>(
+        val response = restTemplate.postForEntity<String>(
             "/api/v1/drivers/login",
             loginDto
         )
@@ -196,7 +199,6 @@ class DriverControllerIT @Autowired constructor(
         // Assert
         assertThat(response.statusCode).isEqualTo(HttpStatus.OK)
         assertThat(response.body).isNotNull
-        assertThat(response.body!!.email).isEqualTo(email)
     }
 
     @Test
@@ -215,7 +217,6 @@ class DriverControllerIT @Autowired constructor(
             password = passwordEncoder.encode("password"),
             phoneNumber = "+375291111111",
             gender = Gender.MALE,
-            rating = BigDecimal.valueOf(5.0),
             carId = null
         )
         driverRepository.save(driver)
@@ -248,7 +249,6 @@ class DriverControllerIT @Autowired constructor(
             password = "password",
             phoneNumber = "+375291111111",
             gender = Gender.MALE,
-            rating = BigDecimal.valueOf(5.0),
             carId = null
         )
         driverRepository.save(driver)
@@ -278,11 +278,13 @@ class DriverControllerIT @Autowired constructor(
             password = "password",
             phoneNumber = "+375291234567",
             gender = Gender.MALE,
-            rating = BigDecimal.valueOf(4.8),
             carId = null,
         )
         driverRepository.save(driverEntity)
 
+
+        given(ratingServiceClient.getUserRating(driverId))
+            .willReturn(ResponseEntity.ok(DriverRatingResponse(rating = BigDecimal("4.85"))))
         // Act
         val response = restTemplate.getForEntity<DriverResponseDto>(
             "/api/v1/drivers/$driverId"
@@ -324,7 +326,6 @@ class DriverControllerIT @Autowired constructor(
             password = "password123",
             phoneNumber = "+375291111111",
             gender = Gender.MALE,
-            rating = BigDecimal.valueOf(5.0),
             carId = null,
         )
         driverRepository.save(john)
@@ -336,21 +337,18 @@ class DriverControllerIT @Autowired constructor(
         )
 
         // Act
-        val response = restTemplate.exchange<DriverResponseDto>(
+        val response = restTemplate.exchange<Void>(
             "/api/v1/drivers/$driverId",
             HttpMethod.PATCH,
             HttpEntity(updateDto)
         )
 
         // Assert
-        assertThat(response.statusCode).isEqualTo(HttpStatus.OK)
-        assertThat(response.body).isNotNull
-        assertThat(response.body?.name).isEqualTo("John Updated")
-        assertThat(response.body?.phoneNumber).isEqualTo("+375292222222")
+        assertThat(response.statusCode).isEqualTo(HttpStatus.NO_CONTENT)
 
         val updatedInDb = driverRepository.findById(driverId)
-        assertThat(updatedInDb?.name).isEqualTo("John Updated")
-        assertThat(updatedInDb?.phoneNumber).isEqualTo("+375292222222")
+        assertThat(updatedInDb?.name).isEqualTo(updateDto.name)
+        assertThat(updatedInDb?.phoneNumber).isEqualTo(updateDto.phoneNumber)
     }
 
     @Test
@@ -367,7 +365,6 @@ class DriverControllerIT @Autowired constructor(
             password = "password",
             phoneNumber = "+375291111111",
             gender = Gender.MALE,
-            rating = BigDecimal.valueOf(5.0),
             carId = null,
         )
         val otherDriver = DriverEntity(
@@ -377,7 +374,6 @@ class DriverControllerIT @Autowired constructor(
             password = "password",
             phoneNumber = "+375299999999",
             gender = Gender.MALE,
-            rating = BigDecimal.valueOf(4.0),
             carId = null,
         )
         driverRepository.save(john)
@@ -438,7 +434,6 @@ class DriverControllerIT @Autowired constructor(
             password = "hashed_password",
             phoneNumber = "+375291111111",
             gender = Gender.MALE,
-            rating = BigDecimal.valueOf(5.0),
             carId = null
         )
         driverRepository.save(driver)
@@ -475,9 +470,13 @@ class DriverControllerIT @Autowired constructor(
 
         driverRepository.save(
             DriverEntity(
-                id = driverId, name = "John", email = "john2@example.com",
-                password = "pass", phoneNumber = "+375292222222",
-                gender = Gender.MALE, rating = BigDecimal.valueOf(5.0), carId = null
+                id = driverId,
+                name = "John",
+                email = "john2@example.com",
+                password = "pass",
+                phoneNumber = "+375292222222",
+                gender = Gender.MALE,
+                carId = null
             )
         )
 
@@ -528,7 +527,6 @@ class DriverControllerIT @Autowired constructor(
             password = "password",
             phoneNumber = "+375291111111",
             gender = Gender.MALE,
-            rating = BigDecimal.valueOf(5.0),
             carId = null
         )
         driverRepository.save(driver)
@@ -588,7 +586,6 @@ class DriverControllerIT @Autowired constructor(
             password = "pass",
             phoneNumber = "+375291111111",
             gender = Gender.MALE,
-            rating = BigDecimal.valueOf(5.0),
             carId = null
         )
         val car = CarEntity(
@@ -628,9 +625,12 @@ class DriverControllerIT @Autowired constructor(
 
         driverRepository.save(
             DriverEntity(
-                id = johnId, name = "John", email = "john.fake@example.com",
-                password = "pass", phoneNumber = "+375292222222",
-                gender = Gender.MALE, rating = BigDecimal.valueOf(5.0), carId = null
+                id = johnId, name = "John",
+                email = "john.fake@example.com",
+                password = "pass",
+                phoneNumber = "+375292222222",
+                gender = Gender.MALE,
+                carId = null
             )
         )
 
@@ -677,7 +677,6 @@ class DriverControllerIT @Autowired constructor(
             password = "pass",
             phoneNumber = "+375291111111",
             gender = Gender.MALE,
-            rating = BigDecimal.valueOf(5.0),
             carId = null
         )
         val car = CarEntity(
@@ -734,7 +733,6 @@ class DriverControllerIT @Autowired constructor(
             password = "password",
             phoneNumber = "+375291111111",
             gender = Gender.MALE,
-            rating = BigDecimal.valueOf(5.0),
             carId = null
         )
 
@@ -745,7 +743,6 @@ class DriverControllerIT @Autowired constructor(
             password = "password",
             phoneNumber = "+375292222222",
             gender = Gender.MALE,
-            rating = BigDecimal.valueOf(5.0),
             carId = null
         )
 
@@ -795,9 +792,12 @@ class DriverControllerIT @Autowired constructor(
         val carId = UUID.randomUUID()
 
         val driver = DriverEntity(
-            id = driverId, name = "John", email = "john.valid@example.com",
-            password = "pass", phoneNumber = "+375293333333",
-            gender = Gender.MALE, rating = BigDecimal.valueOf(5.0),
+            id = driverId,
+            name = "John",
+            email = "john.valid@example.com",
+            password = "pass",
+            phoneNumber = "+375293333333",
+            gender = Gender.MALE,
             carId = null
         )
         driverRepository.save(driver)
@@ -842,7 +842,6 @@ class DriverControllerIT @Autowired constructor(
             password = "pass",
             phoneNumber = "+375291111111",
             gender = Gender.MALE,
-            rating = BigDecimal.valueOf(5.0),
             carId = null
         )
         driverRepository.save(driver)
@@ -937,7 +936,6 @@ class DriverControllerIT @Autowired constructor(
             password = "password",
             phoneNumber = "+375291111111",
             gender = Gender.MALE,
-            rating = BigDecimal.valueOf(5.0),
             carId = null
         )
 
@@ -982,7 +980,6 @@ class DriverControllerIT @Autowired constructor(
             password = "password",
             phoneNumber = "+375290000000",
             gender = Gender.MALE,
-            rating = BigDecimal.valueOf(5.0),
             carId = null,
             workStatus = WorkStatus.OFF_DUTY,
         )
@@ -1026,7 +1023,6 @@ class DriverControllerIT @Autowired constructor(
             password = "password",
             phoneNumber = "+375290000000",
             gender = Gender.MALE,
-            rating = BigDecimal.valueOf(5.0),
             carId = null,
             workStatus = WorkStatus.AVAILABLE,
         )
@@ -1069,7 +1065,6 @@ class DriverControllerIT @Autowired constructor(
             password = "password",
             phoneNumber = "+375291112233",
             gender = Gender.OTHER,
-            rating = BigDecimal.valueOf(4.0),
             carId = null,
             workStatus = WorkStatus.OFF_DUTY,
         )
