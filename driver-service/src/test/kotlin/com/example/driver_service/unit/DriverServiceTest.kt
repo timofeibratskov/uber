@@ -1,5 +1,7 @@
 package com.example.driver_service.unit
 
+import com.example.driver_service.client.RatingServiceClient
+import com.example.driver_service.constant.RedisSchema
 import com.example.driver_service.exception.DriverIncompleteProfileException
 import com.example.driver_service.exception.DriverNotFoundException
 import com.example.driver_service.exception.EmailAlreadyExistsException
@@ -10,6 +12,7 @@ import com.example.driver_service.mapper.CarMapper
 import com.example.driver_service.mapper.DriverMapper
 import com.example.driver_service.model.dto.CarResponseDto
 import com.example.driver_service.model.dto.CreateCarDto
+import com.example.driver_service.model.dto.DriverRatingResponse
 import com.example.driver_service.model.dto.DriverResponseDto
 import com.example.driver_service.model.dto.LoginDriverDto
 import com.example.driver_service.model.dto.RegisterDriverDto
@@ -24,20 +27,29 @@ import com.example.driver_service.repository.DriverRepository
 import com.example.driver_service.service.CarService
 import com.example.driver_service.service.DriverService
 import com.example.driver_service.service.LocationService
+import com.fasterxml.jackson.databind.ObjectMapper
 import io.mockk.every
 import io.mockk.impl.annotations.InjectMockKs
 import io.mockk.impl.annotations.MockK
 import io.mockk.junit5.MockKExtension
+import io.mockk.just
+import io.mockk.mockk
+import io.mockk.runs
 import io.mockk.verify
 import java.math.BigDecimal
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 import kotlin.test.assertNotNull
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
+import org.springframework.data.redis.core.StringRedisTemplate
+import org.springframework.data.redis.core.ValueOperations
+import org.springframework.http.ResponseEntity
 import org.springframework.security.crypto.password.PasswordEncoder
 
 @ExtendWith(MockKExtension::class)
@@ -60,6 +72,18 @@ class DriverServiceTest {
 
     @MockK
     lateinit var carService: CarService
+
+    @MockK
+    lateinit var ratingServiceClient: RatingServiceClient
+
+    @MockK
+    lateinit var driverCache: StringRedisTemplate
+
+    @MockK
+    lateinit var objectMapper: ObjectMapper
+
+    @MockK
+    lateinit var valueOperations: ValueOperations<String, String>
 
     @InjectMockKs
     lateinit var driverService: DriverService
@@ -86,17 +110,6 @@ class DriverServiceTest {
             password = "raw_password",
             phoneNumber = "+375291234567",
             gender = Gender.MALE,
-            rating = null,
-            carId = null
-        )
-
-        val responseDto = DriverResponseDto(
-            id = driverId,
-            name = "Тимофей",
-            email = "tim@example.com",
-            phoneNumber = "+375291234567",
-            rating = null,
-            gender = Gender.MALE,
             carId = null
         )
 
@@ -105,14 +118,13 @@ class DriverServiceTest {
         every { driverMapper.toEntity(dto) } returns driverEntity
         every { passwordEncoder.encode(dto.password) } returns encodedPassword
         every { driverRepository.save(any()) } returns 1
-        every { driverMapper.toDto(any()) } returns responseDto
 
         // Act
         val result = driverService.register(dto)
 
         // Assert
-        assertEquals(driverId, result.id)
-        assertEquals(dto.email, result.email)
+        assertEquals("Hi, ${driverEntity.name}, you are registered successfully!", result)
+
         assertEquals(encodedPassword, driverEntity.password)
         verify(exactly = 1) { driverRepository.save(driverEntity) }
         verify(exactly = 1) { passwordEncoder.encode("raw_password") }
@@ -170,10 +182,77 @@ class DriverServiceTest {
     }
 
     @Test
-    @DisplayName("Поиск водителя по ID: успешный сценарий")
-    fun findById_Success() {
+    @DisplayName("Успешное получение данных из кэша Redis (без похода в БД и Feign)")
+    fun findById_ReturnsDriverFromCache_Successfully() {
         // Arrange
         val driverId = UUID.randomUUID()
+
+        val carId = UUID.randomUUID()
+
+        val cacheKey = RedisSchema.driverCacheKey(driverId)
+
+        val jsonString = """{"id":"$driverId",
+            |"name":"Timofei",
+            |"email":"tim@example.com",
+            |"phoneNumber":"+375291112233",
+            |"rating":4.8,"gender":"MALE",
+            |"carId":"$carId"}"""
+            .trimMargin()
+
+        val expectedDto = DriverResponseDto(
+            id = driverId,
+            name = "Timofei",
+            email = "tim@example.com",
+            phoneNumber = "+375291112233",
+            rating = BigDecimal.valueOf(4.8),
+            gender = Gender.MALE,
+            carId = carId
+        )
+
+        every { driverCache.opsForValue() } returns valueOperations
+
+        every { valueOperations.get(cacheKey) } returns jsonString
+        every { objectMapper.readValue(jsonString, DriverResponseDto::class.java) } returns expectedDto
+
+        // Act
+        val result = driverService.findById(driverId)
+
+        // Assert
+        assertNotNull(result)
+        assertEquals(expectedDto.id, result.id)
+        assertEquals(expectedDto.name, result.name)
+        assertEquals(expectedDto.email, result.email)
+        assertEquals(expectedDto.phoneNumber, result.phoneNumber)
+        assertEquals(expectedDto.rating, result.rating)
+        assertEquals(expectedDto.gender, result.gender)
+        assertEquals(expectedDto.carId, result.carId)
+
+        verify(exactly = 1) { driverCache.opsForValue() }
+        verify(exactly = 1) { valueOperations.get(cacheKey) }
+        verify(exactly = 1) { objectMapper.readValue(jsonString, DriverResponseDto::class.java) }
+
+        verify(exactly = 0) { driverRepository.findById(any()) }
+        verify(exactly = 0) { ratingServiceClient.getUserRating(any()) }
+        verify(exactly = 0) { driverMapper.toDto(any(), any()) }
+        verify(exactly = 0) { valueOperations.set(any(), any(), any(), any()) }
+
+    }
+
+
+    @Test
+    @DisplayName("В кэше пусто, успешное получение из БД и Feign с последующей записью в Redis")
+    fun findById_FetchesFromDbAndFeign_ThenCachesAndReturns() {
+        // Arrange
+        val driverId = UUID.randomUUID()
+
+        val carId = UUID.randomUUID()
+
+        val cacheKey = RedisSchema.driverCacheKey(driverId)
+
+        val jsonString = "{\"id\":\"$driverId\"}"
+
+        val rating = BigDecimal.valueOf(4.8)
+
         val driverEntity = DriverEntity(
             id = driverId,
             name = "Timofei",
@@ -181,8 +260,8 @@ class DriverServiceTest {
             password = "encoded_password",
             phoneNumber = "+375291112233",
             gender = Gender.MALE,
-            rating = BigDecimal.valueOf(4.8),
-            carId = null
+            carId = carId,
+            workStatus = WorkStatus.OFF_DUTY
         )
 
         val responseDto = DriverResponseDto(
@@ -190,22 +269,45 @@ class DriverServiceTest {
             name = "Timofei",
             email = "tim@example.com",
             phoneNumber = "+375291112233",
-            rating = BigDecimal.valueOf(4.8),
+            rating = rating,
             gender = Gender.MALE,
-            carId = null
+            carId = carId
         )
 
+        every { driverCache.opsForValue() } returns valueOperations
+
+        every { valueOperations.get(cacheKey) } returns null
+
         every { driverRepository.findById(driverId) } returns driverEntity
-        every { driverMapper.toDto(driverEntity) } returns responseDto
+
+        val feignResponse = mockk<ResponseEntity<DriverRatingResponse>>()
+
+        every { feignResponse.body } returns DriverRatingResponse(rating = rating)
+        every { ratingServiceClient.getUserRating(driverId) } returns feignResponse
+
+        every { driverMapper.toDto(driverEntity, rating) } returns responseDto
+        every { objectMapper.writeValueAsString(responseDto) } returns jsonString
+        every { valueOperations.set(cacheKey, jsonString, 40, TimeUnit.MINUTES) } just runs
 
         // Act
         val result = driverService.findById(driverId)
 
         // Assert
+        assertNotNull(result)
         assertEquals(driverId, result.id)
         assertEquals("Timofei", result.name)
+        assertEquals(rating, result.rating)
+        assertEquals(Gender.MALE, result.gender)
+        assertEquals(carId, result.carId)
+
+        verify(exactly = 1) { valueOperations.get(cacheKey) }
         verify(exactly = 1) { driverRepository.findById(driverId) }
-        verify(exactly = 1) { driverMapper.toDto(any()) }
+        verify(exactly = 1) { ratingServiceClient.getUserRating(driverId) }
+        verify(exactly = 1) { driverMapper.toDto(driverEntity, rating) }
+        verify(exactly = 1) { objectMapper.writeValueAsString(responseDto) }
+        verify(exactly = 1) { valueOperations.set(cacheKey, jsonString, 40, TimeUnit.MINUTES) }
+
+        verify(exactly = 0) { objectMapper.readValue(any<String>(), DriverResponseDto::class.java) }
     }
 
     @Test
@@ -213,6 +315,11 @@ class DriverServiceTest {
     fun findById_ThrowsNotFound() {
         // Arrange
         val driverId = UUID.randomUUID()
+        val cacheKey = RedisSchema.driverCacheKey(driverId)
+
+        every { driverCache.opsForValue() } returns valueOperations
+
+        every { valueOperations.get(cacheKey) } returns null
         every { driverRepository.findById(driverId) } returns null
 
         // Act
@@ -222,8 +329,14 @@ class DriverServiceTest {
 
         // Assert
         assertEquals("Driver not found with ID: $driverId", exception.message)
+
+        verify(exactly = 1) { valueOperations.get(cacheKey) }
         verify(exactly = 1) { driverRepository.findById(driverId) }
-        verify(exactly = 0) { driverMapper.toDto(any()) }
+
+        verify(exactly = 0) { ratingServiceClient.getUserRating(any()) }
+        verify(exactly = 0) { driverMapper.toDto(any(), any()) }
+        verify(exactly = 0) { valueOperations.set(any(), any(), any(), any()) }
+        verify(exactly = 0) { objectMapper.writeValueAsString(any()) }
     }
 
     @Test
@@ -246,36 +359,20 @@ class DriverServiceTest {
             password = encodedPassword,
             phoneNumber = "+375291112233",
             gender = Gender.MALE,
-            rating = BigDecimal.valueOf(5.0),
             carId = carId
         )
 
-        val responseDto = DriverResponseDto(
-            id = driverId,
-            name = "Timofei",
-            email = "tim@example.com",
-            phoneNumber = "+375291112233",
-            rating = BigDecimal.valueOf(5.0),
-            gender = Gender.MALE,
-            carId = carId
-        )
 
         every { driverRepository.findByEmail(loginDto.email) } returns driverEntity
         every { passwordEncoder.matches(loginDto.password, encodedPassword) } returns true
-        every { driverMapper.toDto(driverEntity) } returns responseDto
 
         // Act
         val result = driverService.login(loginDto)
 
         // Assert
-        assertEquals(driverId, result.id)
-        assertEquals("Timofei", result.name)
-        assertEquals("tim@example.com", result.email)
-        assertEquals(BigDecimal.valueOf(5.0), result.rating)
-        assertEquals(carId, result.carId)
+        assertEquals("Hi, ${driverEntity.name}, you are with us again!", result)
         verify(exactly = 1) { driverRepository.findByEmail(loginDto.email) }
         verify(exactly = 1) { passwordEncoder.matches("raw_password", encodedPassword) }
-        verify(exactly = 1) { driverMapper.toDto(any()) }
     }
 
     @Test
@@ -297,7 +394,6 @@ class DriverServiceTest {
             password = encodedPassword,
             phoneNumber = "+375291112233",
             gender = Gender.MALE,
-            rating = BigDecimal.valueOf(4.8),
             carId = null
         )
 
@@ -313,7 +409,6 @@ class DriverServiceTest {
         assertEquals("Invalid email or password", exception.message)
         verify(exactly = 1) { driverRepository.findByEmail(loginDto.email) }
         verify(exactly = 1) { passwordEncoder.matches("wrong_password", encodedPassword) }
-        verify(exactly = 0) { driverMapper.toDto(any()) }
     }
 
     @Test
@@ -336,7 +431,6 @@ class DriverServiceTest {
         assertEquals("Invalid email or password", exception.message)
         verify(exactly = 1) { driverRepository.findByEmail(loginDto.email) }
         verify(exactly = 0) { passwordEncoder.matches(any(), any()) }
-        verify(exactly = 0) { driverMapper.toDto(any()) }
     }
 
     @Test
@@ -359,35 +453,29 @@ class DriverServiceTest {
             password = "encoded_password",
             phoneNumber = "+375291112233",
             gender = Gender.OTHER,
-            rating = BigDecimal.valueOf(4.5),
-            carId = carId
-        )
-
-        val responseDto = DriverResponseDto(
-            id = id,
-            name = "Timofei New",
-            email = "tim@example.com",
-            phoneNumber = "+375299998877",
-            rating = BigDecimal.valueOf(4.5),
-            gender = Gender.MALE,
             carId = carId
         )
 
         every { driverRepository.findById(id) } returns existingDriver
         every { driverRepository.existsByPhoneNumber(updateDto.phoneNumber!!) } returns 0
         every { driverRepository.update(any()) } returns Unit
-        every { driverMapper.toDto(any()) } returns responseDto
 
         // Act
-        val result = driverService.update(id, updateDto)
+        driverService.update(id, updateDto)
 
         // Assert
-        assertEquals("Timofei New", result.name)
-        assertEquals("+375299998877", result.phoneNumber)
-        assertEquals(Gender.MALE, result.gender)
+        assertThat(existingDriver.name).isEqualTo("Timofei New")
+        assertThat(existingDriver.phoneNumber).isEqualTo("+375299998877")
+        assertThat(existingDriver.gender).isEqualTo(Gender.MALE)
+
         verify(exactly = 1) { driverRepository.findById(id) }
         verify(exactly = 1) { driverRepository.existsByPhoneNumber("+375299998877") }
-        verify(exactly = 1) { driverRepository.update(existingDriver) }
+
+        verify(exactly = 1) {
+            driverRepository.update(match {
+                it.id == id && it.name == "Timofei New" && it.phoneNumber == "+375299998877"
+            })
+        }
     }
 
     @Test
@@ -408,7 +496,6 @@ class DriverServiceTest {
             password = "encoded_password",
             phoneNumber = "+375291112233",
             gender = Gender.MALE,
-            rating = BigDecimal.valueOf(5.0),
             carId = null
         )
 
@@ -472,7 +559,6 @@ class DriverServiceTest {
             password = "encoded_password",
             phoneNumber = "+375291112233",
             gender = Gender.MALE,
-            rating = BigDecimal.valueOf(5.0),
             carId = null
         )
 
@@ -554,7 +640,6 @@ class DriverServiceTest {
             password = "encoded_password",
             phoneNumber = "+375291112233",
             gender = Gender.MALE,
-            rating = BigDecimal.valueOf(4.9),
             carId = carId
         )
 
@@ -587,7 +672,6 @@ class DriverServiceTest {
             password = "encoded_password",
             phoneNumber = "+375291112233",
             gender = Gender.MALE,
-            rating = BigDecimal.valueOf(4.7),
             carId = activeCarId
         )
 
@@ -639,7 +723,6 @@ class DriverServiceTest {
             password = "encoded_password",
             phoneNumber = "+375291112233",
             gender = Gender.MALE,
-            rating = BigDecimal.valueOf(4.8),
             carId = oldCarId
         )
 
@@ -682,7 +765,6 @@ class DriverServiceTest {
             password = "encoded_password",
             phoneNumber = "+375291112233",
             gender = Gender.MALE,
-            rating = BigDecimal.valueOf(5.0),
             carId = carId
         )
 
@@ -740,7 +822,6 @@ class DriverServiceTest {
             email = "johhn@grsu.by",
             password = "secure_password_hash",
             phoneNumber = "+375291112233",
-            rating = BigDecimal.valueOf(4.8),
             gender = Gender.OTHER,
             carId = carId,
             workStatus = WorkStatus.OFF_DUTY,
@@ -771,7 +852,6 @@ class DriverServiceTest {
             email = "ivan@example.com",
             password = "password123",
             phoneNumber = "+375336667788",
-            rating = BigDecimal.valueOf(5.0),
             gender = Gender.OTHER,
             carId = null,
             workStatus = WorkStatus.OFF_DUTY,
@@ -799,7 +879,6 @@ class DriverServiceTest {
             email = "dima@test.com",
             password = "hidden_pass",
             phoneNumber = "+375259990011",
-            rating = BigDecimal.valueOf(4.5),
             gender = Gender.OTHER,
             carId = UUID.randomUUID(),
             workStatus = WorkStatus.OFF_DUTY
@@ -828,7 +907,6 @@ class DriverServiceTest {
             email = "alex@mail.com",
             password = "hash",
             phoneNumber = "+375441234567",
-            rating = BigDecimal.valueOf(4.9),
             gender = Gender.OTHER,
             carId = UUID.randomUUID(),
             workStatus = currentStatus,
@@ -874,7 +952,6 @@ class DriverServiceTest {
             "john",
             "john@gmail.com",
             "+375295555555",
-            BigDecimal.valueOf(5.0),
             Gender.MALE,
             CarView(
                 carId,

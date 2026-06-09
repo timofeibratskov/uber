@@ -1,5 +1,6 @@
 package com.example.passenger_service.service;
 
+import com.example.passenger_service.client.RatingServiceClient;
 import com.example.passenger_service.exception.AlreadyExistsException;
 import com.example.passenger_service.exception.InvalidCredentialsException;
 import com.example.passenger_service.exception.PassengerNotFoundException;
@@ -15,6 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -24,9 +26,10 @@ public class PassengerService {
     private final PassengerRepo passengerRepo;
     private final PassengerMapper passengerMapper;
     private final PasswordEncoder passwordEncoder;
+    private final RatingServiceClient ratingServiceClient;
 
     @Transactional
-    public PassengerResponseDto registerPassenger(RegisterPassengerDto request) {
+    public String registerPassenger(RegisterPassengerDto request) {
         if (passengerRepo.existsByEmail(request.email())) {
             throw new AlreadyExistsException("Email already exists!");
         }
@@ -38,38 +41,43 @@ public class PassengerService {
 
         var savedPassenger = passengerRepo.save(passenger);
         log.info("Passenger registered successfully with email: {}", request.email());
-        return passengerMapper.toResponseDto(savedPassenger);
+
+        return "Hi," + savedPassenger.getName() + ", you are registered successfully!";
     }
 
     @Transactional(readOnly = true)
-    public PassengerResponseDto loginPassenger(LoginPassengerDto request) {
+    public String loginPassenger(LoginPassengerDto request) {
         var passenger = passengerRepo.findByEmail(request.email())
                 .orElseThrow(() -> {
                     log.info("Incorrect email: {}", request.email());
                     return new InvalidCredentialsException("Incorrect email or password!");
                 });
         if (passwordEncoder.matches(request.password(), passenger.getPassword())) {
-            return passengerMapper.toResponseDto(passenger);
+            return "Hi," + passenger.getName() + ", you are with us again!";
         } else {
             log.info("Incorrect password, email: {}", request.email());
             throw new InvalidCredentialsException("Incorrect email or password!");
         }
     }
 
-    @Transactional(readOnly = true)
     public PassengerResponseDto findPassengerById(UUID id) {
         var passenger = passengerRepo.findById(id)
                 .orElseThrow(() -> {
-                            log.info("Incorrect id: {}", id);
-                            return new PassengerNotFoundException("Passenger not found!");
-                        }
-                );
-        return passengerMapper.toResponseDto(passenger);
+                    log.info("Incorrect id: {}", id);
+                    return new PassengerNotFoundException("Passenger not found!");
+                });
+        try {
+            var ratingResponse = ratingServiceClient.getUserRating(id).getBody();
+            var rating = (ratingResponse != null) ? ratingResponse.rating() : BigDecimal.ZERO;
+            return passengerMapper.toResponseDto(passenger, rating);
+        } catch (Exception e) {
+            log.error("Error fetching rating for passenger {}: {}", id, e.getMessage());
+            return passengerMapper.toResponseDto(passenger, BigDecimal.ZERO);
+        }
     }
 
     @Transactional
-    public PassengerResponseDto updatePassenger(UUID id,
-                                                UpdatePassengerDto updatePassenger) {
+    public void updatePassenger(UUID id, UpdatePassengerDto updatePassenger) {
         var passenger = passengerRepo.findById(id)
                 .orElseThrow(() -> {
                             log.info("Update failed: Passenger with id {} not found", id);
@@ -90,6 +98,5 @@ public class PassengerService {
             passenger.setGender(updatePassenger.gender());
         }
         log.info("Updating passenger with id {}", id);
-        return passengerMapper.toResponseDto(passenger);
     }
 }

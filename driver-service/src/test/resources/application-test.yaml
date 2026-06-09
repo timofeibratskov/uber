@@ -16,3 +16,10 @@ mybatis:
 app:
   Kafka:
     ride-topic: "ride_events_topic"
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    fetch-registry: false
+    register-with-eureka: false

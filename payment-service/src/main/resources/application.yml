@@ -2,6 +2,9 @@ server:
   port: 8883
 
 spring:
+  application:
+    name: payment-service
+
   datasource:
     url: jdbc:postgresql://localhost:5553/postgres
     username: postgres
@@ -16,3 +19,8 @@ spring:
 stripe:
   api:
     key: ${STRIPE_API_KEY}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/

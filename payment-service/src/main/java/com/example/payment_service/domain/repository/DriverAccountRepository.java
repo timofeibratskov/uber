@@ -7,7 +7,8 @@ import java.util.UUID;
 
 public interface DriverAccountRepository {
     Optional<DriverAccount> findByDriverId(UUID driverId);
-    Optional<DriverAccount> findByAccountId(UUID accountId);
+
+    Optional<DriverAccount> findByAccountId(String accountId);
 
     DriverAccount insert(DriverAccount account);
 }

@@ -34,14 +34,14 @@ class DriverController(
 ) {
     @PostMapping("/register")
     fun register(@Valid @RequestBody dto: RegisterDriverDto):
-            ResponseEntity<DriverResponseDto> {
+            ResponseEntity<String> {
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(driverService.register(dto))
     }
 
     @PostMapping("/login")
     fun login(@Valid @RequestBody dto: LoginDriverDto):
-            ResponseEntity<DriverResponseDto> {
+            ResponseEntity<String> {
         return ResponseEntity.ok(driverService.login(dto))
     }
 
@@ -55,8 +55,9 @@ class DriverController(
     fun update(
         @PathVariable id: UUID,
         @Valid @RequestBody dto: UpdateDriverDto
-    ): ResponseEntity<DriverResponseDto> {
-        return ResponseEntity.ok(driverService.update(id, dto))
+    ): ResponseEntity<Void> {
+        driverService.update(id, dto)
+        return ResponseEntity.noContent().build()
     }
 
     @PostMapping("/{id}/cars")

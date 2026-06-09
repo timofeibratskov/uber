@@ -10,5 +10,5 @@ public interface JdbcDriverAccountRepository
         extends CrudRepository<DriverAccountEntity, UUID> {
     Optional<DriverAccountEntity> findByDriverId(UUID driverId);
 
-    Optional<DriverAccountEntity> findByAccountId(UUID accountId);
+    Optional<DriverAccountEntity> findByAccountId(String accountId);
 }

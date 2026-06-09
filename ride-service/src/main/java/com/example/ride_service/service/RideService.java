@@ -155,4 +155,21 @@ public class RideService {
 
         return mapper.toRideEndResponseDto(ride);
     }
+
+    @Transactional(readOnly = true)
+    public boolean canPayRide(UUID rideId) {
+        var ride = rideRepo.findById(rideId)
+                .orElseThrow(() -> new RideNotFoundException("ride not found"));
+
+        return !ride.isPaid() && ride.getStatus() == RideStatus.COMPLETED;
+    }
+
+    @Transactional
+    public void payRide(UUID rideId) {
+        var ride = rideRepo.findById(rideId)
+                .orElseThrow(() -> new RideNotFoundException("ride not found"));
+
+        ride.setPaid(true);
+        log.info("ride with id {} paid successfully", ride.getId());
+    }
 }

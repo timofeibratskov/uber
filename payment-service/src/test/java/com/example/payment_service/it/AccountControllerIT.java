@@ -1,7 +1,6 @@
 package com.example.payment_service.it;
 
 import com.example.payment_service.application.dto.CreateDriverAccountRequest;
-import com.example.payment_service.domain.repository.DriverAccountRepository;
 import com.example.payment_service.infrastructure.persistence.DriverAccountRepositoryImpl;
 import com.stripe.StripeClient;
 import com.stripe.model.Account;

@@ -26,7 +26,7 @@ public class DriverAccountRepositoryImpl implements DriverAccountRepository {
     }
 
     @Override
-    public Optional<DriverAccount> findByAccountId(UUID accountId) {
+    public Optional<DriverAccount> findByAccountId(String accountId) {
         return jdbcDriverAccountRepository.findByAccountId(accountId)
                 .map(mapper::toDomain);
     }

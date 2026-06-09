@@ -1,10 +1,12 @@
 package com.example.passenger_service.it;
 
+import com.example.passenger_service.client.RatingServiceClient;
 import com.example.passenger_service.exception.models.ErrorResponse;
 import com.example.passenger_service.exception.models.ValidationErrorResponse;
 import com.example.passenger_service.model.dto.FavoriteAddressRequestDto;
 import com.example.passenger_service.model.dto.FavoriteAddressResponseDto;
 import com.example.passenger_service.model.dto.LoginPassengerDto;
+import com.example.passenger_service.model.dto.PassengerRatingResponse;
 import com.example.passenger_service.model.dto.PassengerResponseDto;
 import com.example.passenger_service.model.dto.RegisterPassengerDto;
 import com.example.passenger_service.model.dto.UpdatePassengerDto;
@@ -16,6 +18,7 @@ import com.example.passenger_service.repo.PassengerRepo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.core.ParameterizedTypeReference;
@@ -32,6 +35,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.when;
 
 public class PassengerControllerIT extends BaseIT {
 
@@ -46,6 +50,9 @@ public class PassengerControllerIT extends BaseIT {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private RatingServiceClient ratingServiceClient;
 
     @BeforeEach
     void setUp() {
@@ -69,13 +76,12 @@ public class PassengerControllerIT extends BaseIT {
         var response = restTemplate.postForEntity(
                 "/api/v1/passengers/register",
                 request,
-                PassengerResponseDto.class
+                String.class
         );
 
         // assert
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().email()).isEqualTo("john@gmail.com");
 
         assertThat(passengerRepo.existsByEmail("john@gmail.com")).isTrue();
     }
@@ -150,7 +156,8 @@ public class PassengerControllerIT extends BaseIT {
     void loginPassenger_Success() {
         // arrange
         String rawPassword = "securePass123";
-        passengerRepo.save(PassengerEntity.builder()
+
+        var passenger = passengerRepo.save(PassengerEntity.builder()
                 .name("John")
                 .email("login@gmail.com")
                 .password(passwordEncoder.encode(rawPassword))
@@ -163,12 +170,12 @@ public class PassengerControllerIT extends BaseIT {
         // act
         var response = restTemplate.postForEntity("/api/v1/passengers/login",
                 loginRequest,
-                PassengerResponseDto.class);
+                String.class);
 
         // assert
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().email()).isEqualTo("login@gmail.com");
+        assertThat(response.getBody().compareTo("Hi," + passenger.getName() + ", you are with us again!")).isZero();
     }
 
     @Test
@@ -226,6 +233,10 @@ public class PassengerControllerIT extends BaseIT {
                         .build())
                 .getId();
 
+        var mockRatingResponse = new PassengerRatingResponse(new BigDecimal("4.85"));
+
+        when(ratingServiceClient.getUserRating(id))
+                .thenReturn(ResponseEntity.ok(mockRatingResponse));
         // act
         var response = restTemplate.getForEntity(
                 "/api/v1/passengers/{id}",
@@ -280,16 +291,16 @@ public class PassengerControllerIT extends BaseIT {
                 "/api/v1/passengers/{id}",
                 HttpMethod.PATCH,
                 new HttpEntity<>(request),
-                PassengerResponseDto.class,
+                Void.class,
                 id
         );
 
         // assert
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().name()).isEqualTo("New Name");
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
 
         var updatedInDb = passengerRepo.findById(id).orElseThrow();
+        assertThat(updatedInDb.getName()).isEqualTo("New Name");
+        assertThat(updatedInDb.getUpdatedAt()).isNotNull();
         assertThat(updatedInDb.getPhoneNumber()).isEqualTo("+375292222222");
     }
 
@@ -365,7 +376,6 @@ public class PassengerControllerIT extends BaseIT {
                 .email("tim@example.com")
                 .password("encoded_pass")
                 .phoneNumber("+375291234567")
-                .rating(BigDecimal.ZERO)
                 .gender(Gender.MALE)
                 .build();
         var savedPassenger = passengerRepo.save(passenger);
@@ -404,7 +414,6 @@ public class PassengerControllerIT extends BaseIT {
                 .email("tim@example.com")
                 .password("encoded_pass")
                 .phoneNumber("+375291234567")
-                .rating(BigDecimal.ZERO)
                 .gender(Gender.MALE)
                 .build();
         var savedPassenger = passengerRepo.save(passenger);
@@ -445,7 +454,6 @@ public class PassengerControllerIT extends BaseIT {
                 .email("tim@example.com")
                 .password("encoded_pass")
                 .phoneNumber("+375291234567")
-                .rating(BigDecimal.ZERO)
                 .gender(Gender.MALE)
                 .build();
         var savedPassenger = passengerRepo.save(passenger);
@@ -483,7 +491,6 @@ public class PassengerControllerIT extends BaseIT {
                 .email("tim@example.com")
                 .password("encoded_pass")
                 .phoneNumber("+375291234567")
-                .rating(BigDecimal.ZERO)
                 .gender(Gender.MALE)
                 .build();
         var savedPassenger = passengerRepo.save(passenger);

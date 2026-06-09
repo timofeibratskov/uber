@@ -94,6 +94,8 @@ public class RideEntity {
 
     private String cancelReasonComment;
 
+    private boolean isPaid;
+
     private LocalDateTime startAt;
 
     private LocalDateTime endAt;
