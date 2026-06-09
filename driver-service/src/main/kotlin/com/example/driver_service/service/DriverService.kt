@@ -1,6 +1,7 @@
 package com.example.driver_service.service
 
 import com.example.driver_service.client.RatingServiceClient
+import com.example.driver_service.constant.RedisSchema
 import com.example.driver_service.exception.DriverIncompleteProfileException
 import com.example.driver_service.exception.DriverNotFoundException
 import com.example.driver_service.exception.EmailAlreadyExistsException
@@ -18,9 +19,12 @@ import com.example.driver_service.model.dto.UpdateDriverDto
 import com.example.driver_service.model.enums.WorkStatus
 import com.example.driver_service.model.view.DriverView
 import com.example.driver_service.repository.DriverRepository
+import com.fasterxml.jackson.databind.ObjectMapper
 import java.math.BigDecimal
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 import mu.KotlinLogging
+import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -33,7 +37,9 @@ class DriverService(
     private val passwordEncoder: PasswordEncoder,
     private val carService: CarService,
     private val locationService: LocationService,
-    private val ratingServiceClient: RatingServiceClient
+    private val ratingServiceClient: RatingServiceClient,
+    private val driverCache: StringRedisTemplate,
+    private val objectMapper: ObjectMapper
 ) {
     companion object {
         private val log = KotlinLogging.logger {}
@@ -61,19 +67,37 @@ class DriverService(
         return "Hi, ${driver.name}, you are registered successfully!"
     }
 
-    @Transactional(readOnly = true)
     fun findById(id: UUID): DriverResponseDto {
         log.info { "Fetching driver profile for ID: $id" }
+
+        val jsonString = driverCache.opsForValue().get(RedisSchema.driverCacheKey(id))
+        if (!jsonString.isNullOrBlank()) {
+            val cache = objectMapper.readValue(jsonString, DriverResponseDto::class.java)
+            return cache
+        }
+
         val driverEntity = driverRepository.findById(id)
             ?: throw DriverNotFoundException("Driver not found with ID: $id").also {
                 log.error { "Fetch failed: ${it.message}" }
             }
+
         val driverRating = runCatching { ratingServiceClient.getUserRating(driverEntity.id) }
             .map { response -> response.body?.rating ?: BigDecimal.ZERO }
-            .getOrElse { BigDecimal.ZERO }
+            .getOrElse {
+                log.warn { "Failed to fetch rating for driver $id, using default ZERO" }
+                BigDecimal.ZERO
+            }
 
-        return driverMapper.toDto(driverEntity, driverRating)
+        val result = driverMapper.toDto(driverEntity, driverRating)
 
+        runCatching {
+            val driverString = objectMapper.writeValueAsString(result)
+            driverCache.opsForValue().set(RedisSchema.driverCacheKey(id), driverString, 40, TimeUnit.MINUTES)
+        }.onFailure { e ->
+            log.error(e) { "Failed to write driver cache for ID: $id" }
+        }
+
+        return result
     }
 
     @Transactional(readOnly = true)

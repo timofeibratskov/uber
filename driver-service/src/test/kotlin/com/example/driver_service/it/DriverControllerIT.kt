@@ -19,6 +19,7 @@ import com.example.driver_service.model.enums.WorkStatus
 import com.example.driver_service.repository.CarRepository
 import com.example.driver_service.repository.DriverRepository
 import com.example.driver_service.service.LocationService
+import com.fasterxml.jackson.databind.ObjectMapper
 import java.math.BigDecimal
 import java.util.UUID
 import kotlin.test.assertEquals
@@ -30,6 +31,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given
+import org.mockito.Mockito.verifyNoInteractions
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.web.client.TestRestTemplate
 import org.springframework.boot.test.web.client.exchange
@@ -39,6 +41,7 @@ import org.springframework.boot.test.web.client.postForEntity
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.data.geo.Point
 import org.springframework.data.redis.core.RedisTemplate
+import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
@@ -53,6 +56,8 @@ class DriverControllerIT @Autowired constructor(
     private val carRepository: CarRepository,
     private val redisTemplate: RedisTemplate<String, Any>,
     private val locationService: LocationService,
+    private val stringRedisTemplate: StringRedisTemplate,
+    private val objectMapper: ObjectMapper
 ) : BaseIT() {
 
     @MockitoBean
@@ -267,24 +272,25 @@ class DriverControllerIT @Autowired constructor(
     }
 
     @Test
-    @DisplayName("Получение водителя по существующему ID")
-    fun findByIdWhenExistsReturnsOk() {
+    @DisplayName("Успешный поиск водителя по id— данные есть в кэше Redis -> Возврат без обращения к БД и Feign")
+    fun findById_WhenExistsInCache_ReturnsDriverFromCache() {
         // Arrange
         val driverId = UUID.randomUUID()
-        val driverEntity = DriverEntity(
+        val cacheKey = RedisSchema.driverCacheKey(driverId)
+
+        val cachedDto = DriverResponseDto(
             id = driverId,
-            name = "user",
-            email = "user@example.com",
-            password = "password",
-            phoneNumber = "+375291234567",
+            name = "Cached Driver",
+            email = "cache@example.com",
+            phoneNumber = "+375291112233",
+            rating = BigDecimal("4.99"),
             gender = Gender.MALE,
-            carId = null,
+            carId = null
         )
-        driverRepository.save(driverEntity)
 
+        val jsonString = objectMapper.writeValueAsString(cachedDto)
+        stringRedisTemplate.opsForValue().set(cacheKey, jsonString)
 
-        given(ratingServiceClient.getUserRating(driverId))
-            .willReturn(ResponseEntity.ok(DriverRatingResponse(rating = BigDecimal("4.85"))))
         // Act
         val response = restTemplate.getForEntity<DriverResponseDto>(
             "/api/v1/drivers/$driverId"
@@ -294,7 +300,11 @@ class DriverControllerIT @Autowired constructor(
         assertThat(response.statusCode).isEqualTo(HttpStatus.OK)
         assertThat(response.body).isNotNull
         assertThat(response.body?.id).isEqualTo(driverId)
-        assertThat(response.body?.name).isEqualTo("user")
+        assertThat(response.body?.name).isEqualTo("Cached Driver")
+        assertThat(response.body?.rating).isEqualTo(BigDecimal("4.99"))
+
+        assertThat(driverRepository.findById(driverId)).isNull()
+        verifyNoInteractions(ratingServiceClient)
     }
 
     @Test
@@ -312,6 +322,50 @@ class DriverControllerIT @Autowired constructor(
         assertThat(response.statusCode).isEqualTo(HttpStatus.NOT_FOUND)
         assertThat(response.body).isNotNull
         assertThat(response.body?.code).isEqualTo("NOT_FOUND")
+
+        verifyNoInteractions(ratingServiceClient)
+    }
+
+    @Test
+    @DisplayName("успешный поиск водителя по id из БД, сборка рейтинга через Feign и сохранение в кэш")
+    fun findById_WhenExistsInDb_FetchesFromDbAndFeign_ThenCaches() {
+        // Arrange
+        val driverId = UUID.randomUUID()
+        val cacheKey = RedisSchema.driverCacheKey(driverId)
+
+        val driverEntity = DriverEntity(
+            id = driverId,
+            name = "Postgres User",
+            email = "postgres@example.com",
+            password = passwordEncoder.encode("password"),
+            phoneNumber = "+375291234567",
+            gender = Gender.MALE,
+            carId = null
+        )
+        driverRepository.save(driverEntity)
+
+        given(ratingServiceClient.getUserRating(driverId))
+            .willReturn(ResponseEntity.ok(DriverRatingResponse(rating = BigDecimal("4.85"))))
+
+        // Act
+        val response = restTemplate.getForEntity<DriverResponseDto>(
+            "/api/v1/drivers/$driverId"
+        )
+
+        // Assert
+        assertThat(response.statusCode).isEqualTo(HttpStatus.OK)
+        assertThat(response.body).isNotNull
+        assertThat(response.body?.id).isEqualTo(driverId)
+        assertThat(response.body?.name).isEqualTo("Postgres User")
+        assertThat(response.body?.rating).isEqualTo(BigDecimal("4.85"))
+
+        val redisValue = stringRedisTemplate.opsForValue().get(cacheKey)
+        assertThat(redisValue).isNotNull()
+
+        val savedInCache = objectMapper.readValue(redisValue, DriverResponseDto::class.java)
+        assertThat(savedInCache.id).isEqualTo(driverId)
+        assertThat(savedInCache.name).isEqualTo("Postgres User")
+        assertThat(savedInCache.rating).isEqualTo(BigDecimal("4.85"))
     }
 
     @Test
