@@ -32,13 +32,13 @@ public class PassengerController {
     private final FavoriteAddressService favoriteAddressService;
 
     @PostMapping("/register")
-    public ResponseEntity<PassengerResponseDto> registerPassenger(
+    public ResponseEntity<String> registerPassenger(
             @RequestBody @Valid RegisterPassengerDto request) {
         return ResponseEntity.status(201).body(passengerService.registerPassenger(request));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<PassengerResponseDto> loginPassenger(
+    public ResponseEntity<String> loginPassenger(
             @RequestBody @Valid LoginPassengerDto request) {
         return ResponseEntity.ok().body(passengerService.loginPassenger(request));
     }
@@ -49,9 +49,10 @@ public class PassengerController {
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<PassengerResponseDto> updatePassenger(@PathVariable UUID id,
-                                                                @RequestBody @Valid UpdatePassengerDto request) {
-        return ResponseEntity.ok().body(passengerService.updatePassenger(id, request));
+    public ResponseEntity<String> updatePassenger(@PathVariable UUID id,
+                                                  @RequestBody @Valid UpdatePassengerDto request) {
+        passengerService.updatePassenger(id, request);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/addresses")

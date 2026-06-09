@@ -7,6 +7,8 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 
+import java.math.BigDecimal;
+
 @Mapper(
         componentModel = "spring",
         unmappedTargetPolicy = ReportingPolicy.IGNORE
@@ -15,8 +17,7 @@ public interface PassengerMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "password", ignore = true)
-    @Mapping(target = "rating", ignore = true)
     PassengerEntity toEntity(RegisterPassengerDto registerPassengerDto);
 
-    PassengerResponseDto toResponseDto(PassengerEntity passengerEntity);
+    PassengerResponseDto toResponseDto(PassengerEntity passengerEntity, BigDecimal rating);
 }

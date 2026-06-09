@@ -1,10 +1,12 @@
 package com.example.passenger_service.unit;
 
+import com.example.passenger_service.client.RatingServiceClient;
 import com.example.passenger_service.exception.AlreadyExistsException;
 import com.example.passenger_service.exception.InvalidCredentialsException;
 import com.example.passenger_service.exception.PassengerNotFoundException;
 import com.example.passenger_service.mapper.PassengerMapper;
 import com.example.passenger_service.model.dto.LoginPassengerDto;
+import com.example.passenger_service.model.dto.PassengerRatingResponse;
 import com.example.passenger_service.model.dto.PassengerResponseDto;
 import com.example.passenger_service.model.dto.RegisterPassengerDto;
 import com.example.passenger_service.model.dto.UpdatePassengerDto;
@@ -12,11 +14,13 @@ import com.example.passenger_service.model.entity.PassengerEntity;
 import com.example.passenger_service.model.enums.Gender;
 import com.example.passenger_service.repo.PassengerRepo;
 import com.example.passenger_service.service.PassengerService;
+import com.sun.net.httpserver.Authenticator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
@@ -46,6 +50,9 @@ public class PassengerServiceTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private RatingServiceClient ratingServiceClient;
 
     @InjectMocks
     private PassengerService passengerService;
@@ -86,15 +93,14 @@ public class PassengerServiceTest {
         when(passwordEncoder.encode(request.password())).thenReturn("encoded_password");
 
         when(passengerRepo.save(any(PassengerEntity.class))).thenReturn(passengerEntity);
-        when(passengerMapper.toResponseDto(any(PassengerEntity.class))).thenReturn(responseDto);
+        when(passengerMapper.toResponseDto(any(PassengerEntity.class), any())).thenReturn(responseDto);
 
         // act
         var result = passengerService.registerPassenger(request);
 
         // assert
         assertNotNull(result);
-        assertEquals(request.email(), result.email());
-        assertEquals(java.math.BigDecimal.ZERO, result.rating());
+        assertEquals(String.class, result.getClass());
 
         verify(passengerRepo, times(1)).save(any());
     }
@@ -174,7 +180,6 @@ public class PassengerServiceTest {
                 .email(email)
                 .password(passwordEncoder.encode(password))
                 .phoneNumber(phoneNumber)
-                .rating(rating)
                 .gender(gender)
                 .build();
 
@@ -188,16 +193,14 @@ public class PassengerServiceTest {
 
         when(passengerRepo.findByEmail(request.email())).thenReturn(Optional.of(entity));
         when(passwordEncoder.matches(request.password(), entity.getPassword())).thenReturn(true);
-        when(passengerMapper.toResponseDto(entity)).thenReturn(response);
+        when(passengerMapper.toResponseDto(entity, rating)).thenReturn(response);
 
         // act
         var result = passengerService.loginPassenger(request);
 
         // assert
         assertNotNull(result);
-        assertEquals(id, result.id());
-        assertEquals(email, result.email());
-        assertEquals(name, result.name());
+        assertEquals(result.getClass(), String.class);
 
         verify(passengerRepo).findByEmail(email);
         verify(passwordEncoder).matches(request.password(), entity.getPassword());
@@ -214,7 +217,6 @@ public class PassengerServiceTest {
         String wrongPassword = "wrong pass";
         Gender gender = Gender.MALE;
         String name = "john";
-        BigDecimal rating = BigDecimal.ZERO;
 
         var request = LoginPassengerDto.builder()
                 .email(email)
@@ -227,7 +229,6 @@ public class PassengerServiceTest {
                 .email(email)
                 .password(passwordEncoder.encode(correctPassword))
                 .phoneNumber(phoneNumber)
-                .rating(rating)
                 .gender(gender)
                 .build();
 
@@ -276,6 +277,7 @@ public class PassengerServiceTest {
     public void findPassengerById_Success() {
         // arrange
         UUID id = UUID.randomUUID();
+        BigDecimal rating = BigDecimal.valueOf(5);
 
         var entity = PassengerEntity.builder()
                 .id(id)
@@ -284,7 +286,6 @@ public class PassengerServiceTest {
                 .password("encoded_password")
                 .phoneNumber("+375295875657")
                 .gender(Gender.MALE)
-                .rating(BigDecimal.ZERO)
                 .build();
 
         var response = PassengerResponseDto.builder()
@@ -292,11 +293,16 @@ public class PassengerServiceTest {
                 .name(entity.getName())
                 .email(entity.getEmail())
                 .phoneNumber(entity.getPhoneNumber())
-                .rating(entity.getRating())
+                .rating(rating)
                 .build();
 
         when(passengerRepo.findById(id)).thenReturn(Optional.of(entity));
-        when(passengerMapper.toResponseDto(entity)).thenReturn(response);
+        when(ratingServiceClient.getUserRating(id)).thenReturn(ResponseEntity.ok(PassengerRatingResponse.builder()
+                        .rating(BigDecimal.valueOf(5))
+                        .build()
+                )
+        );
+        when(passengerMapper.toResponseDto(entity, rating)).thenReturn(response);
 
         // act
         var result = passengerService.findPassengerById(id);
@@ -305,7 +311,7 @@ public class PassengerServiceTest {
         assertNotNull(result);
         assertEquals(id, result.id());
         verify(passengerRepo, times(1)).findById(id);
-        verify(passengerMapper, times(1)).toResponseDto(entity);
+        verify(passengerMapper, times(1)).toResponseDto(entity, rating);
     }
 
     @Test
@@ -326,10 +332,11 @@ public class PassengerServiceTest {
     }
 
     @Test
-    @DisplayName("Успешное обновление пассажира")
+    @DisplayName("Успешное обновление всех полей пассажира")
     void updatePassenger_Success() {
         // arrange
         UUID id = UUID.randomUUID();
+
         var request = UpdatePassengerDto.builder()
                 .name("New Name")
                 .phoneNumber("+375291112233")
@@ -343,28 +350,19 @@ public class PassengerServiceTest {
                 .gender(Gender.FEMALE)
                 .build();
 
-        var responseDto = PassengerResponseDto.builder()
-                .id(id)
-                .name("New Name")
-                .phoneNumber("+375291112233")
-                .gender(Gender.MALE)
-                .email("name@gmail.com")
-                .rating(BigDecimal.ZERO)
-                .build();
-
         when(passengerRepo.findById(id)).thenReturn(Optional.of(entity));
         when(passengerRepo.existsByPhoneNumber(request.phoneNumber())).thenReturn(false);
-        when(passengerMapper.toResponseDto(entity)).thenReturn(responseDto);
 
         // act
-        var result = passengerService.updatePassenger(id, request);
+        passengerService.updatePassenger(id, request);
 
         // assert
-        assertEquals("New Name", result.name());
-        assertEquals(Gender.MALE, result.gender());
-        assertEquals(request.phoneNumber(), result.phoneNumber());
-        verify(passengerRepo).findById(id);
+        verify(passengerRepo, times(1)).findById(id);
         verify(passengerRepo, times(1)).existsByPhoneNumber(request.phoneNumber());
+
+        assertEquals("New Name", entity.getName());
+        assertEquals("+375291112233", entity.getPhoneNumber());
+        assertEquals(Gender.MALE, entity.getGender());
     }
 
     @Test
@@ -393,7 +391,6 @@ public class PassengerServiceTest {
         // assert
         assertTrue(exception.getMessage().contains(request.phoneNumber()));
         verify(passengerRepo).existsByPhoneNumber(anyString());
-        verifyNoInteractions(passengerMapper);
     }
 
     @Test
@@ -416,6 +413,5 @@ public class PassengerServiceTest {
         // assert
         assertTrue(exception.getMessage().contains("Passenger not found!"));
         verify(passengerRepo).findById(id);
-        verifyNoInteractions(passengerMapper);
     }
 }
