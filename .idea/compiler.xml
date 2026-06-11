@@ -32,15 +32,6 @@
         <module name="discovery" />
         <module name="payment-service" />
       </profile>
-      <profile name="Annotation profile for rating-service" enabled="true">
-        <sourceOutputDir name="target/generated-sources/annotations" />
-        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
-        <outputRelativeToContentRoot value="true" />
-        <processorPath useClasspath="false">
-          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.46/lombok-1.18.46.jar" />
-        </processorPath>
-        <module name="rating-service" />
-      </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
       <module name="rating-service.main" target="21" />

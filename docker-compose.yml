@@ -98,3 +98,4 @@ volumes:
   redis_data:
   ride_data:
   payment_data:
+  rating_data:
