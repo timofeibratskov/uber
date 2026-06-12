@@ -7,9 +7,6 @@ databaseChangeLog:
             tableName: ride_table
             columns:
               - column:
-                  name: cancel_initiator
-                  type: varchar(50)
-              - column:
                   name: cancel_reason_comment
                   type: varchar(255)
               - column:

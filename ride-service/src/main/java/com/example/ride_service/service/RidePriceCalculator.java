@@ -38,7 +38,6 @@ public class RidePriceCalculator {
         try {
             var response = openRouteServiceClient.getGeoPath(apiKey, coordinates);
 
-
             log.info("Получен ответ от ORS для маршрута");
 
             double distanceMeters = response.firstRoute().summary().distance();

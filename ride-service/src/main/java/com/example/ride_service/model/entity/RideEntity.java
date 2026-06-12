@@ -1,8 +1,6 @@
 package com.example.ride_service.model.entity;
 
-import com.example.ride_service.model.enums.CancelInitiator;
 import com.example.ride_service.model.enums.RideStatus;
-import com.example.ride_service.model.enums.converter.CancelInitiatorConverter;
 import com.example.ride_service.model.enums.converter.RideStatusConverter;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
@@ -86,9 +84,6 @@ public class RideEntity {
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
-
-    @Convert(converter = CancelInitiatorConverter.class)
-    private CancelInitiator cancelInitiator;
 
     private LocalDateTime cancelAt;
 

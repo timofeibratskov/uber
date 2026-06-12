@@ -10,7 +10,6 @@ import com.example.ride_service.model.dto.RideCreateResponseDto;
 import com.example.ride_service.model.dto.RideEndResponseDto;
 import com.example.ride_service.model.dto.RideEstimateRequestDto;
 import com.example.ride_service.model.entity.RideEntity;
-import com.example.ride_service.model.enums.CancelInitiator;
 import com.example.ride_service.model.enums.EventType;
 import com.example.ride_service.model.enums.RideStatus;
 import com.example.ride_service.model.enums.TopicType;
@@ -227,7 +226,6 @@ class RideControllerIT extends BaseIT {
         rideRepo.save(entity);
 
         var request = RideCancelRequestDto.builder()
-                .cancelInitiator(CancelInitiator.PASSENGER)
                 .comment("123")
                 .build();
 
@@ -250,7 +248,6 @@ class RideControllerIT extends BaseIT {
         var savedEntity = rideRepo.findById(entity.getId());
         assertThat(savedEntity).isPresent();
         assertEquals(RideStatus.CANCELLED, savedEntity.get().getStatus());
-        assertEquals(CancelInitiator.PASSENGER, savedEntity.get().getCancelInitiator());
         assertNotNull(savedEntity.get().getCancelAt());
         assertNotNull(savedEntity.get().getCancelReasonComment());
     }

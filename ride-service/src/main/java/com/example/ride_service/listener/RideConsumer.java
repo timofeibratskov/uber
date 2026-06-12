@@ -27,6 +27,7 @@ public class RideConsumer {
         try {
             EventType eventType = EventType.fromEventName(eventTypeString);
             log.info("Received {} event", eventType.getEventName());
+
             switch (eventType) {
                 case ASSIGNED_DRIVER -> {
                     var assignDriverEvent = objectMapper.readValue(payload, DriverAssignedEvent.class);

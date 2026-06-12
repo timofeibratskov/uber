@@ -2,7 +2,6 @@ package com.example.ride_service.it;
 
 import com.example.ride_service.it.support.KafkaTestSupport;
 import com.example.ride_service.model.entity.RideEntity;
-import com.example.ride_service.model.enums.CancelInitiator;
 import com.example.ride_service.model.enums.EventType;
 import com.example.ride_service.model.enums.RideStatus;
 import com.example.ride_service.model.enums.TopicType;
@@ -21,7 +20,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -134,7 +132,6 @@ class RideConsumerIT extends BaseIT {
                 NoDriversEvent.builder()
                         .rideId(savedRide.getId())
                         .reason("available drivers not found")
-                        .initiator(CancelInitiator.SYSTEM)
                         .build()
         );
 
@@ -157,7 +154,6 @@ class RideConsumerIT extends BaseIT {
                     assertThat(updatedRide.getStatus()).isEqualTo(RideStatus.CANCELLED);
                     assertNull(updatedRide.getDriverId());
                     assertNotNull(updatedRide.getCancelReasonComment());
-                    assertEquals(CancelInitiator.SYSTEM, updatedRide.getCancelInitiator());
                     assertThat(updatedRide.getPassengerId()).isEqualTo(passengerId);
                     assertThat(updatedRide.getFinalAmount()).isEqualByComparingTo("25.50");
                     assertThat(updatedRide.getSeats()).isEqualTo(2);

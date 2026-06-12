@@ -9,7 +9,6 @@ import com.example.ride_service.model.dto.RideEstimateResponseDto;
 import com.example.ride_service.model.entity.RideEntity;
 import com.example.ride_service.model.event.DriverAssignedEvent;
 import com.example.ride_service.model.event.NoDriversEvent;
-import com.example.ride_service.model.event.RideCancelledEvent;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
@@ -23,7 +22,7 @@ public interface RideMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "finalAmount", source = "price")
-    @Mapping(target = "status", constant = "CREATED")
+    @Mapping(target = "status", ignore = true)
     RideEntity toEntity(RideEstimateCache cache);
 
     @Mapping(target = "price", source = "finalAmount")
@@ -37,21 +36,13 @@ public interface RideMapper {
 
     @Mapping(target = "cancelAt", expression = "java(java.time.LocalDateTime.now())")
     @Mapping(target = "cancelReasonComment", source = "comment")
-    @Mapping(target = "status", constant = "CANCELLED")
     void cancelRideFromDto(RideCancelRequestDto dto, @MappingTarget RideEntity entity);
 
     @Mapping(target = "durationMinutes", source = "rideEntity")
     RideEndResponseDto toRideEndResponseDto(RideEntity rideEntity);
 
-    @Mapping(target = "cancelInitiator", source = "initiator")
-    @Mapping(target = "comment", source = "reason")
+    @Mapping(target = "comment", constant = "available drivers not found")
     RideCancelRequestDto toRideCancelRequestDto(NoDriversEvent noDriversEvent);
-
-    @Mapping(target = "rideId", source = "rideEntity.id")
-    @Mapping(target = "driverId", source = "rideEntity.driverId")
-    @Mapping(target = "cancelAt", source = "rideEntity.cancelAt")
-    @Mapping(target = "initiator", source = "rideEntity.cancelInitiator")
-    RideCancelledEvent toRideCancelledEvent(RideEntity rideEntity);
 
     default Long mapDuration(RideEntity entity) {
         return (entity.getStartAt() == null || entity.getEndAt() == null) ?
