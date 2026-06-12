@@ -23,9 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class PaymentConsumerIT extends BaseIT {
 
     @Autowired
-    private ObjectMapper objectMapper;
-
-    @Autowired
     private RideRepo rideRepo;
 
     private KafkaTestSupport kafkaTestSupport;

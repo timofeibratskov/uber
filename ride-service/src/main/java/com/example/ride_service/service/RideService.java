@@ -35,36 +35,7 @@ public class RideService {
     private final RideRepo rideRepo;
     private final RideEstimateCacheRepo rideEstimateCacheRepo;
     private final RideMapper mapper;
-    private final OpenRouteServiceClient openRouteServiceClient;
     private final OutboxService outboxService;
-
-    public RideEstimateResponseDto calculateRide(RideEstimateRequestDto request) {
-        var jsonResponse = openRouteServiceClient.fetchRoute(request.startPoint(), request.stopPoint());
-        log.info("Получен ответ от ORS для маршрута");
-
-        double distanceMeters = jsonResponse.at("/routes/0/summary/distance").asDouble();
-        double durationSeconds = jsonResponse.at("/routes/0/summary/duration").asDouble();
-        String geometry = jsonResponse.at("/routes/0/geometry").asText();
-        double distanceKm = distanceMeters / 1000.0;
-        long durationMin = Math.round(durationSeconds / 60.0);
-
-        BigDecimal price = BigDecimal.valueOf(3.0)
-                .add(BigDecimal.valueOf(distanceKm)
-                        .multiply(BigDecimal.valueOf(0.8)))
-                .setScale(2, RoundingMode.HALF_UP);
-
-        var estimateDto = RideEstimateResponseDto.builder()
-                .distanceKm(Math.round(distanceKm * 100.0) / 100.0)
-                .durationMin(durationMin)
-                .price(price)
-                .polyline(geometry)
-                .build();
-
-        var estimateCache = mapper.toCache(estimateDto, request);
-        rideEstimateCacheRepo.save(estimateCache);
-        log.info("passenger with id {} saved cache successfully", request.passengerId());
-        return estimateDto;
-    }
 
     @Transactional
     public RideCreateResponseDto createRide(RideCreateRequestDto request) {

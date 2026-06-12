@@ -6,6 +6,7 @@ import com.example.ride_service.model.dto.RideCreateResponseDto;
 import com.example.ride_service.model.dto.RideEndResponseDto;
 import com.example.ride_service.model.dto.RideEstimateRequestDto;
 import com.example.ride_service.model.dto.RideEstimateResponseDto;
+import com.example.ride_service.service.RidePriceCalculator;
 import com.example.ride_service.service.RideService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class RideController {
     private final RideService rideService;
+    private final RidePriceCalculator ridePriceCalculator;
 
     @GetMapping("/{rideId}/canPay")
     public ResponseEntity<Boolean> canPay(@PathVariable UUID rideId) {
@@ -34,7 +36,7 @@ public class RideController {
 
     @PostMapping("/calculate")
     public ResponseEntity<RideEstimateResponseDto> calculate(@Valid @RequestBody RideEstimateRequestDto request) {
-        return ResponseEntity.ok(rideService.calculateRide(request));
+        return ResponseEntity.ok(ridePriceCalculator.calculatePrice(request));
     }
 
     @PostMapping

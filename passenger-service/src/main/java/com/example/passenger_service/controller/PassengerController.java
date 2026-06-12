@@ -56,8 +56,8 @@ public class PassengerController {
     }
 
     @PostMapping("/{id}/addresses")
-    public ResponseEntity<FavoriteAddressResponseDto> addFavoriteAddress(@PathVariable UUID id,
-                                                                         @RequestBody @Valid FavoriteAddressRequestDto request) {
+    public ResponseEntity<FavoriteAddressResponseDto> deleteFavoriteAddress(@PathVariable UUID id,
+                                                                            @RequestBody @Valid FavoriteAddressRequestDto request) {
         return ResponseEntity.status(201).body(favoriteAddressService.addFavoriteAddress(id, request));
     }
 
@@ -68,8 +68,8 @@ public class PassengerController {
     }
 
     @DeleteMapping("/{id}/addresses/{addressId}")
-    public ResponseEntity<Void> addFavoriteAddress(@PathVariable UUID id,
-                                                   @PathVariable UUID addressId) {
+    public ResponseEntity<Void> deleteFavoriteAddress(@PathVariable UUID id,
+                                                      @PathVariable UUID addressId) {
         favoriteAddressService.removeFavoriteAddress(id, addressId);
         return ResponseEntity.noContent().build();
     }

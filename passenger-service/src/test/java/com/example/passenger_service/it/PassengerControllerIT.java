@@ -369,7 +369,7 @@ public class PassengerControllerIT extends BaseIT {
 
     @Test
     @DisplayName("Успешное добавление адреса")
-    void addFavoriteAddress_ShouldReturn201AndSavedAddress() {
+    void deleteFavoriteAddress_ShouldReturn201AndSavedAddress() {
         // Arrange
         PassengerEntity passenger = PassengerEntity.builder()
                 .name("john")
@@ -484,7 +484,7 @@ public class PassengerControllerIT extends BaseIT {
 
     @Test
     @DisplayName("Ошибка добавления: попытка добавить 6-й адрес")
-    void addFavoriteAddress_ShouldReturn400_WhenLimitExceeded() {
+    void deleteFavoriteAddress_ShouldReturn400_WhenLimitExceeded() {
         // Arrange
         PassengerEntity passenger = PassengerEntity.builder()
                 .name("john")

@@ -3,6 +3,7 @@ package com.example.ride_service.it;
 import com.example.ride_service.client.OpenRouteServiceClient;
 import com.example.ride_service.it.support.KafkaTestSupport;
 import com.example.ride_service.model.cache.RideEstimateCache;
+import com.example.ride_service.model.dto.OpenRouteResponseDto;
 import com.example.ride_service.model.dto.RideCancelRequestDto;
 import com.example.ride_service.model.dto.RideCreateRequestDto;
 import com.example.ride_service.model.dto.RideCreateResponseDto;
@@ -96,21 +97,21 @@ class RideControllerIT extends BaseIT {
                 "Мостовая улица, 35",
                 "улица Суворова, 302"
         );
-        String jsonResponse = """
-                {
-                    "routes": [{
-                        "summary": {
-                            "distance": 5200.0,
-                            "duration": 900.0
-                        },
-                        "geometry": "mock_encoded_polyline"
-                    }]
-                }
-                """;
-        var mockResponse = objectMapper.readTree(jsonResponse);
 
-        when(openRouteServiceClient.fetchRoute(any(Point.class), any(Point.class)))
-                .thenReturn(mockResponse);
+        var openRouteResponseDto = OpenRouteResponseDto.builder()
+                .routes(List.of(OpenRouteResponseDto.RouteDto.builder()
+                        .geometry("mock polyline")
+                        .summary(OpenRouteResponseDto.SummaryDto.builder()
+                                .distance(5200.0)
+                                .duration(900.0)
+                                .build()
+                        )
+                        .build())
+                )
+                .build();
+
+        when(openRouteServiceClient.getGeoPath(any(), any()))
+                .thenReturn(openRouteResponseDto);
 
         // act
         mockMvc.perform(post("/api/v1/rides/calculate")

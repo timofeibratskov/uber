@@ -23,9 +23,11 @@ class LocationService(
     }
 
     fun pingLocation(id: UUID, point: Point) {
-        if (!redisTemplate.hasKey(RedisSchema.driverStatusKey(id))) {
-            throw DriverNotFoundException("driver not found").also {
-                log.error { "driver not found with id: $id" }
+        redisTemplate.hasKey(RedisSchema.driverStatusKey(id))?.let {
+            if (!it) {
+                throw DriverNotFoundException("driver not found").also {
+                    log.error { "driver not found with id: $id" }
+                }
             }
         }
         redisTemplate.opsForGeo().add(RedisSchema.DRIVER_LOCATIONS_KEY, point, id.toString())
@@ -46,7 +48,6 @@ class LocationService(
         redisTemplate.delete(RedisSchema.driverStatusKey(id))
         redisTemplate.opsForGeo().remove(RedisSchema.DRIVER_LOCATIONS_KEY, id)
         log.info { "driver: $id is deleted session" }
-
     }
 
     fun getAvailableIds(point: Point): List<UUID> {

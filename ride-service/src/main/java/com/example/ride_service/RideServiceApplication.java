@@ -3,12 +3,14 @@ package com.example.ride_service;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.data.redis.repository.configuration.EnableRedisRepositories;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @EnableScheduling
 @EnableDiscoveryClient
+@EnableFeignClients
 @EnableJpaRepositories(basePackages = "com.example.ride_service.repo.db")
 @EnableRedisRepositories(basePackages = "com.example.ride_service.repo.redis")
 @SpringBootApplication
