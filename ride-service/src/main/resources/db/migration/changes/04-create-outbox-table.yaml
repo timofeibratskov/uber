@@ -1,6 +1,6 @@
 databaseChangeLog:
   - changeSet:
-      id: 05-create-outbox-table
+      id: 04-create-outbox-table
       author: user
       changes:
         - createTable:

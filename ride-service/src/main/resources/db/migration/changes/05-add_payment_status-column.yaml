@@ -1,12 +1,11 @@
 databaseChangeLog:
   - changeSet:
-      id: 06-add_is_paid-column
+      id: 05-add_payment_status-column
       author: user
       changes:
         - addColumn:
             tableName: ride_table
             columns:
               - column:
-                  name: is_paid
-                  type: bool
-                  defaultValueComputed: false
+                  name: payment_status
+                  type: VARCHAR(50)

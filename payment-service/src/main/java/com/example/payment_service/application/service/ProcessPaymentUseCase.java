@@ -1,7 +1,6 @@
 package com.example.payment_service.application.service;
 
 import com.example.payment_service.application.dto.CreatePaymentRequest;
-import com.example.payment_service.domain.exception.PaymentDeclinedException;
 import com.example.payment_service.domain.exception.PaymentMethodNotFoundException;
 import com.example.payment_service.domain.model.EventType;
 import com.example.payment_service.domain.model.Money;
@@ -11,7 +10,6 @@ import com.example.payment_service.domain.model.TopicType;
 import com.example.payment_service.domain.repository.PaymentMethodRepository;
 import com.example.payment_service.domain.repository.PaymentTransactionRepository;
 import com.example.payment_service.domain.service.PaymentDomainService;
-import com.example.payment_service.infrastructure.client.RideServiceClient;
 import com.example.payment_service.infrastructure.outbox.OutboxService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +23,6 @@ public class ProcessPaymentUseCase {
     private final PaymentMethodRepository methodRepository;
     private final PaymentTransactionRepository transactionRepository;
     private final PaymentDomainService domainService;
-    private final RideServiceClient rideServiceClient;
     private final OutboxService outboxService;
 
     @Transactional
@@ -33,13 +30,6 @@ public class ProcessPaymentUseCase {
         PaymentMethod method = methodRepository.findById(request.paymentMethodId())
                 .orElseThrow(() ->
                         new PaymentMethodNotFoundException("payment not found with id: " + request.paymentMethodId()));
-
-        if (Boolean.FALSE.equals(rideServiceClient.canPayRide(request.rideId()).getBody())) {
-            log.error("ride is not valid for paying");
-            throw new PaymentDeclinedException("payment declined: you can not paid ride");
-        }
-
-        log.info("ride is valid for paying");
 
         PaymentTransaction transaction = new PaymentTransaction(
                 request.rideId(),

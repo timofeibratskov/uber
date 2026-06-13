@@ -1,11 +1,13 @@
 package com.example.ride_service.mapper;
 
 import com.example.ride_service.model.cache.RideEstimateCache;
+import com.example.ride_service.model.dto.DriverResponseDto;
 import com.example.ride_service.model.dto.RideCancelRequestDto;
 import com.example.ride_service.model.dto.RideCreateResponseDto;
 import com.example.ride_service.model.dto.RideEndResponseDto;
 import com.example.ride_service.model.dto.RideEstimateRequestDto;
 import com.example.ride_service.model.dto.RideEstimateResponseDto;
+import com.example.ride_service.model.dto.RideFullResponseDto;
 import com.example.ride_service.model.entity.RideEntity;
 import com.example.ride_service.model.event.DriverAssignedEvent;
 import com.example.ride_service.model.event.NoDriversEvent;
@@ -49,4 +51,9 @@ public interface RideMapper {
                 null :
                 Duration.between(entity.getStartAt(), entity.getEndAt()).toMinutes();
     }
+
+    @Mapping(target = "driver", source = "driverResponseDto")
+    @Mapping(target = "reason", source = "rideEntity.cancelReasonComment")
+    RideFullResponseDto toRideFullResponseDto(RideEntity rideEntity,
+                                              DriverResponseDto driverResponseDto);
 }

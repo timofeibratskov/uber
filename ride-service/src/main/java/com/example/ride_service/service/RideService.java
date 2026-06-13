@@ -1,5 +1,6 @@
 package com.example.ride_service.service;
 
+import com.example.ride_service.client.DriverServiceClient;
 import com.example.ride_service.exception.EstimateExpiredException;
 import com.example.ride_service.exception.RideNotFoundException;
 import com.example.ride_service.mapper.EventMapper;
@@ -8,6 +9,7 @@ import com.example.ride_service.model.dto.RideCancelRequestDto;
 import com.example.ride_service.model.dto.RideCreateRequestDto;
 import com.example.ride_service.model.dto.RideCreateResponseDto;
 import com.example.ride_service.model.dto.RideEndResponseDto;
+import com.example.ride_service.model.dto.RideFullResponseDto;
 import com.example.ride_service.model.enums.EventType;
 import com.example.ride_service.model.enums.RideStatus;
 import com.example.ride_service.model.enums.TopicType;
@@ -32,6 +34,7 @@ public class RideService {
     private final OutboxService outboxService;
     private final RideStateMachine rideStateMachine;
     private final EventMapper eventMapper;
+    private final DriverServiceClient driverServiceClient;
 
     @Transactional
     public RideCreateResponseDto createRide(RideCreateRequestDto request) {
@@ -107,19 +110,15 @@ public class RideService {
     }
 
     @Transactional(readOnly = true)
-    public boolean canPayRide(UUID rideId) {
+    public RideFullResponseDto findById(UUID rideId) {
         var ride = rideRepo.findById(rideId)
                 .orElseThrow(() -> new RideNotFoundException("ride not found"));
 
-        return !ride.isPaid() && ride.getStatus() == RideStatus.COMPLETED;
-    }
+        if (ride.getDriverId() != null) {
+            var driverInfo = driverServiceClient.getDriverById(ride.getDriverId());
+            return rideMapper.toRideFullResponseDto(ride, driverInfo);
+        }
 
-    @Transactional
-    public void payRide(UUID rideId) {
-        var ride = rideRepo.findById(rideId)
-                .orElseThrow(() -> new RideNotFoundException("ride not found"));
-
-        ride.setPaid(true);
-        log.info("ride with id {} paid successfully", ride.getId());
+        return rideMapper.toRideFullResponseDto(ride, null);
     }
 }

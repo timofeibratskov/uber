@@ -95,10 +95,6 @@ class RideConsumerIT extends BaseIT {
 
                     assertThat(updatedRide.getStatus()).isEqualTo(RideStatus.ACCEPTED);
                     assertThat(updatedRide.getDriverId()).isEqualTo(driverId);
-                    assertThat(updatedRide.getDriverName()).isEqualTo(event.driverName());
-                    assertThat(updatedRide.getCarLicensePlate()).isEqualTo(event.carLicensePlate());
-                    assertThat(updatedRide.getCarColor()).isEqualTo(event.carColor());
-                    assertThat(updatedRide.getCarBrand()).isEqualTo(event.carBrand());
                     assertThat(updatedRide.getPassengerId()).isEqualTo(passengerId);
                     assertThat(updatedRide.getFinalAmount()).isEqualByComparingTo("25.50");
                     assertThat(updatedRide.getSeats()).isEqualTo(2);

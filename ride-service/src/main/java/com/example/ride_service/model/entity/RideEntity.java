@@ -1,10 +1,11 @@
 package com.example.ride_service.model.entity;
 
+import com.example.ride_service.model.enums.PaymentStatus;
 import com.example.ride_service.model.enums.RideStatus;
-import com.example.ride_service.model.enums.converter.RideStatusConverter;
 import jakarta.persistence.Column;
-import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -41,8 +42,6 @@ public class RideEntity {
 
     private UUID driverId;
 
-    private String driverName;
-
     @Column(nullable = false)
     private String startAddress;
 
@@ -61,21 +60,11 @@ public class RideEntity {
     @Column(nullable = false)
     private Integer seats;
 
-    private UUID carId;
-
-    private String carLicensePlate;
-
-    private String carModel;
-
-    private String carBrand;
-
-    private String carColor;
-
     @Column(nullable = false)
     private String polyline;
 
     @Column(nullable = false)
-    @Convert(converter = RideStatusConverter.class)
+    @Enumerated(EnumType.STRING)
     private RideStatus status;
 
     @CreationTimestamp
@@ -89,7 +78,9 @@ public class RideEntity {
 
     private String cancelReasonComment;
 
-    private boolean isPaid;
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private PaymentStatus paymentStatus;
 
     private LocalDateTime startAt;
 

@@ -2,11 +2,10 @@ package com.example.ride_service.model.entity;
 
 import com.example.ride_service.model.enums.EventType;
 import com.example.ride_service.model.enums.TopicType;
-import com.example.ride_service.model.enums.converter.EventTypeConverter;
-import com.example.ride_service.model.enums.converter.OutboxTopicConverter;
 import jakarta.persistence.Column;
-import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -32,11 +31,11 @@ public class OutboxEventEntity {
     private Long id;
 
     @Column(name = "topic", nullable = false)
-    @Convert(converter = OutboxTopicConverter.class)
+    @Enumerated(EnumType.STRING)
     private TopicType topic;
 
     @Column(name = "event_type", nullable = false)
-    @Convert(converter = EventTypeConverter.class)
+    @Enumerated(EnumType.STRING)
     private EventType eventType;
 
     @Column(name = "payload", nullable = false)

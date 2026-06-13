@@ -3,6 +3,7 @@ package com.example.ride_service.controller;
 import com.example.ride_service.model.dto.RideCancelRequestDto;
 import com.example.ride_service.model.dto.RideCreateRequestDto;
 import com.example.ride_service.model.dto.RideCreateResponseDto;
+import com.example.ride_service.model.dto.RideFullResponseDto;
 import com.example.ride_service.model.dto.RideEndResponseDto;
 import com.example.ride_service.model.dto.RideEstimateRequestDto;
 import com.example.ride_service.model.dto.RideEstimateResponseDto;
@@ -29,9 +30,9 @@ public class RideController {
     private final RideService rideService;
     private final RidePriceCalculator ridePriceCalculator;
 
-    @GetMapping("/{rideId}/canPay")
-    public ResponseEntity<Boolean> canPay(@PathVariable UUID rideId) {
-        return ResponseEntity.ok(rideService.canPayRide(rideId));
+    @GetMapping("/{rideId}")
+    public ResponseEntity<RideFullResponseDto> getRide(@PathVariable UUID rideId) {
+        return ResponseEntity.ok(rideService.findById(rideId));
     }
 
     @PostMapping("/calculate")

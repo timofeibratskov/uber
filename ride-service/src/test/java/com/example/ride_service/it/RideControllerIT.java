@@ -1,14 +1,17 @@
 package com.example.ride_service.it;
 
+import com.example.ride_service.client.DriverServiceClient;
 import com.example.ride_service.client.OpenRouteServiceClient;
 import com.example.ride_service.it.support.KafkaTestSupport;
 import com.example.ride_service.model.cache.RideEstimateCache;
+import com.example.ride_service.model.dto.DriverResponseDto;
 import com.example.ride_service.model.dto.OpenRouteResponseDto;
 import com.example.ride_service.model.dto.RideCancelRequestDto;
 import com.example.ride_service.model.dto.RideCreateRequestDto;
 import com.example.ride_service.model.dto.RideCreateResponseDto;
 import com.example.ride_service.model.dto.RideEndResponseDto;
 import com.example.ride_service.model.dto.RideEstimateRequestDto;
+import com.example.ride_service.model.dto.RideFullResponseDto;
 import com.example.ride_service.model.entity.RideEntity;
 import com.example.ride_service.model.enums.EventType;
 import com.example.ride_service.model.enums.RideStatus;
@@ -69,6 +72,9 @@ class RideControllerIT extends BaseIT {
 
     @MockitoBean
     private OpenRouteServiceClient openRouteServiceClient;
+
+    @MockitoBean
+    private DriverServiceClient driveServiceClient;
 
     private KafkaTestSupport kafkaTestSupport;
 
@@ -216,10 +222,6 @@ class RideControllerIT extends BaseIT {
                 .stopPoint(new Point(53.648446, 23.782834))
                 .passengerId(UUID.randomUUID())
                 .status(RideStatus.ACCEPTED)
-                .carBrand("brand")
-                .carColor("red")
-                .carLicensePlate("1111AA-4")
-                .driverName("driver")
                 .driverId(UUID.randomUUID())
                 .build();
 
@@ -342,17 +344,36 @@ class RideControllerIT extends BaseIT {
                 .driverId(UUID.randomUUID())
                 .startAt(LocalDateTime.of(2020, 1, 1, 0, 0, 0))
                 .status(RideStatus.COMPLETED)
-                .isPaid(false)
                 .build();
 
         rideRepo.save(entity);
 
+        var driverInfo = DriverResponseDto.builder()
+                .driverId(UUID.randomUUID())
+                .name("anatoly")
+                .carBrand("MERSEDES")
+                .carModel("S")
+                .carLicensePlate("1234AH-4")
+                .carColor("RED")
+                .build();
+
+        when(driveServiceClient.getDriverById(any()))
+                .thenReturn(driverInfo);
         // act
-        var response = mockMvc.perform(get("/api/v1/rides/{id}/canPay", entity.getId()))
+        var response = mockMvc.perform(get("/api/v1/rides/{id}", entity.getId()))
                 .andExpect(status().isOk())
                 .andReturn();
 
         // assert
-        assertTrue(Boolean.parseBoolean(response.getResponse().getContentAsString()));
+
+        assertNotNull(response);
+        String content = response.getResponse().getContentAsString(StandardCharsets.UTF_8);
+        var responseDto = objectMapper.readValue(content, RideFullResponseDto.class);
+        assertEquals(driverInfo, responseDto.driver());
+        assertNotNull(responseDto.status());
+        assertNotNull(responseDto.finalAmount());
+        assertNotNull(responseDto.polyline());
+        assertNotNull(responseDto.passengerId());
+
     }
 }

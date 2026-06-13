@@ -1,14 +1,14 @@
 databaseChangeLog:
   - changeSet:
-      id: 03-add-cancel-info-columns.yaml
+      id: 03-add-start-stop-timestamp-columns.yaml
       author: user
       changes:
         - addColumn:
             tableName: ride_table
             columns:
               - column:
-                  name: cancel_reason_comment
-                  type: varchar(255)
+                  name: start_at
+                  type: TIMESTAMP
               - column:
-                  name: cancel_at
+                  name: end_at
                   type: TIMESTAMP
