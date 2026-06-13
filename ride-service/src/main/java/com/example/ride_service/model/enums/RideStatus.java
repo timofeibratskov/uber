@@ -7,7 +7,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum RideStatus {
 
-    CREATED("Finding driver"),
+    CREATED("Ride created"),
+    SEARCHING("Searching drivers"),
     ACCEPTED("Driver coming"),
     STARTED("On the way"),
     COMPLETED("Arrived"),

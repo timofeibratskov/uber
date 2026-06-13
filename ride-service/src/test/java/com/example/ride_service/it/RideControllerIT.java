@@ -44,12 +44,10 @@ import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -119,7 +117,7 @@ class RideControllerIT extends BaseIT {
                 .thenReturn(openRouteResponseDto);
 
         // act
-        mockMvc.perform(post("/api/v1/rides/calculate")
+        mockMvc.perform(post("/api/v1/rides/estimates")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
@@ -157,7 +155,7 @@ class RideControllerIT extends BaseIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.statusDescription").value("Finding driver"))
+                .andExpect(jsonPath("$.statusDescription").value("Ride created"))
                 .andReturn().getResponse().getContentAsString();
 
         // assert
@@ -232,7 +230,7 @@ class RideControllerIT extends BaseIT {
                 .build();
 
         // act
-        mockMvc.perform(patch("/api/v1/rides/" + entity.getId() + "/cancel")
+        mockMvc.perform(post("/api/v1/rides/" + entity.getId() + "/cancellation")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andReturn();
@@ -274,7 +272,7 @@ class RideControllerIT extends BaseIT {
         rideRepo.save(entity);
 
         // act
-        mockMvc.perform(patch("/api/v1/rides/" + entity.getId() + "/start")
+        mockMvc.perform(post("/api/v1/rides/" + entity.getId() + "/start")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNoContent())
                 .andReturn();
@@ -289,7 +287,7 @@ class RideControllerIT extends BaseIT {
 
     @Test
     @DisplayName("успешное завершение поездки")
-    void shouldEndRide_whenRideExistsAndStatusIsValid_shouldUpdateRideSuccessfully() throws Exception {
+    void shouldCompleteRide_whenRideExistsAndStatusIsValid_shouldUpdateRideSuccessfully() throws Exception {
         // arrange
         RideEntity entity = RideEntity.builder()
                 .seats(4)
@@ -308,7 +306,7 @@ class RideControllerIT extends BaseIT {
         rideRepo.save(entity);
 
         // act
-        var response = mockMvc.perform(patch("/api/v1/rides/" + entity.getId() + "/end")
+        var response = mockMvc.perform(post("/api/v1/rides/" + entity.getId() + "/completion")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andReturn();

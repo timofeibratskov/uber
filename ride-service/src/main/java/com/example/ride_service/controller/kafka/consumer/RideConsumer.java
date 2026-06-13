@@ -1,4 +1,4 @@
-package com.example.ride_service.listener;
+package com.example.ride_service.controller.kafka.consumer;
 
 import com.example.ride_service.mapper.RideMapper;
 import com.example.ride_service.model.enums.EventType;
@@ -31,11 +31,11 @@ public class RideConsumer {
             switch (eventType) {
                 case ASSIGNED_DRIVER -> {
                     var assignDriverEvent = objectMapper.readValue(payload, DriverAssignedEvent.class);
-                    rideService.acceptRide(assignDriverEvent);
+                    rideService.accept(assignDriverEvent);
                 }
                 case NO_AVAILABLE_DRIVERS -> {
                     var noAvailableDriversEvent = objectMapper.readValue(payload, NoDriversEvent.class);
-                    rideService.cancelRide(noAvailableDriversEvent.rideId(),
+                    rideService.cancel(noAvailableDriversEvent.rideId(),
                             rideMapper.toRideCancelRequestDto(noAvailableDriversEvent));
                 }
             }

@@ -2,6 +2,7 @@ package com.example.ride_service.service;
 
 import com.example.ride_service.client.DriverServiceClient;
 import com.example.ride_service.exception.EstimateExpiredException;
+import com.example.ride_service.exception.InvalidStatusTransitionException;
 import com.example.ride_service.exception.RideNotFoundException;
 import com.example.ride_service.mapper.EventMapper;
 import com.example.ride_service.mapper.RideMapper;
@@ -11,6 +12,7 @@ import com.example.ride_service.model.dto.RideCreateResponseDto;
 import com.example.ride_service.model.dto.RideEndResponseDto;
 import com.example.ride_service.model.dto.RideFullResponseDto;
 import com.example.ride_service.model.enums.EventType;
+import com.example.ride_service.model.enums.PaymentStatus;
 import com.example.ride_service.model.enums.RideStatus;
 import com.example.ride_service.model.enums.TopicType;
 import com.example.ride_service.model.event.DriverAssignedEvent;
@@ -37,12 +39,13 @@ public class RideService {
     private final DriverServiceClient driverServiceClient;
 
     @Transactional
-    public RideCreateResponseDto createRide(RideCreateRequestDto request) {
+    public RideCreateResponseDto create(RideCreateRequestDto request) {
         var cache = rideEstimateCacheRepo.findById(request.passengerId())
                 .orElseThrow(() -> new EstimateExpiredException("The preliminary estimate has expired. Please recalculate your ride"));
         log.info("ride with id {} found in cache", cache.getPassengerId());
 
         var ride = rideMapper.toEntity(cache);
+        ride.setPaymentStatus(PaymentStatus.NOT_PAID);
         ride.setSeats(request.seats());
         rideStateMachine.changeRideStatus(ride, RideStatus.CREATED);
 
@@ -57,7 +60,7 @@ public class RideService {
     }
 
     @Transactional
-    public void acceptRide(DriverAssignedEvent request) {
+    public void accept(DriverAssignedEvent request) {
         var ride = rideRepo.findById(request.rideId())
                 .orElseThrow(() -> new RideNotFoundException("ride not found"));
 
@@ -68,8 +71,8 @@ public class RideService {
     }
 
     @Transactional
-    public void cancelRide(UUID rideId,
-                           RideCancelRequestDto request) {
+    public void cancel(UUID rideId,
+                       RideCancelRequestDto request) {
         var ride = rideRepo.findById(rideId)
                 .orElseThrow(() -> new RideNotFoundException("ride not found"));
 
@@ -86,7 +89,7 @@ public class RideService {
     }
 
     @Transactional
-    public void startRide(UUID rideId) {
+    public void start(UUID rideId) {
         var ride = rideRepo.findById(rideId)
                 .orElseThrow(() -> new RideNotFoundException("ride not found"));
 
@@ -97,11 +100,18 @@ public class RideService {
     }
 
     @Transactional
-    public RideEndResponseDto endRide(UUID rideId) {
+    public RideEndResponseDto complete(UUID rideId) {
         var ride = rideRepo.findById(rideId)
                 .orElseThrow(() -> new RideNotFoundException("ride not found"));
 
         rideStateMachine.changeRideStatus(ride, RideStatus.COMPLETED);
+
+        var event = eventMapper.toCompletedEvent(ride);
+
+
+        outboxService.saveEvent(event, EventType.RIDE_COMPLETED, TopicType.RIDE_LIFECYCLE);
+
+        ride.setPaymentStatus(PaymentStatus.PROCESSING);
 
         ride.setEndAt(LocalDateTime.now());
         log.info("ride with id {} completed successfully", ride.getId());
