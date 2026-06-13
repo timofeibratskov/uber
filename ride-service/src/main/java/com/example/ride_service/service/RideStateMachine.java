@@ -18,7 +18,8 @@ public class RideStateMachine {
     private void validateTransition(RideStatus currentStatus, RideStatus newStatus) {
         boolean isValid = switch (currentStatus) {
             case null -> newStatus == RideStatus.CREATED;
-            case CREATED -> newStatus == RideStatus.ACCEPTED || newStatus == RideStatus.CANCELLED;
+            case CREATED -> newStatus == RideStatus.SEARCHING || newStatus == RideStatus.CANCELLED;
+            case SEARCHING -> newStatus == RideStatus.ACCEPTED || newStatus == RideStatus.CANCELLED;
             case ACCEPTED -> newStatus == RideStatus.STARTED || newStatus == RideStatus.CANCELLED;
             case STARTED -> newStatus == RideStatus.COMPLETED;
             case CANCELLED, COMPLETED -> false;
