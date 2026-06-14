@@ -1,4 +1,4 @@
-package com.example.ride_service.controller.kafka.consumer;
+package com.example.ride_service.controller.kafka;
 
 import com.example.ride_service.mapper.RideMapper;
 import com.example.ride_service.model.enums.EventType;
@@ -6,8 +6,7 @@ import com.example.ride_service.model.enums.TopicType;
 import com.example.ride_service.model.event.DriverAssignedEvent;
 import com.example.ride_service.model.event.NoDriversEvent;
 import com.example.ride_service.service.RideService;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.example.ride_service.util.JsonConverter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -18,23 +17,25 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class RideConsumer {
-    private final ObjectMapper objectMapper;
     private final RideMapper rideMapper;
     private final RideService rideService;
+    private final JsonConverter jsonConverter;
 
     @KafkaListener(topics = TopicType.RIDE_LIFECYCLE_TOPIC)
-    public void listen(String payload, @Header("eventType") String eventTypeString) {
+    public void listen(String payload,
+                       @Header("eventType") String eventTypeString) {
         try {
             EventType eventType = EventType.fromEventName(eventTypeString);
             log.info("Received {} event", eventType.getEventName());
 
             switch (eventType) {
                 case ASSIGNED_DRIVER -> {
-                    var assignDriverEvent = objectMapper.readValue(payload, DriverAssignedEvent.class);
+                    var assignDriverEvent = jsonConverter.fromJson(payload, DriverAssignedEvent.class);
                     rideService.accept(assignDriverEvent);
                 }
+
                 case NO_AVAILABLE_DRIVERS -> {
-                    var noAvailableDriversEvent = objectMapper.readValue(payload, NoDriversEvent.class);
+                    var noAvailableDriversEvent = jsonConverter.fromJson(payload, NoDriversEvent.class);
                     rideService.cancel(noAvailableDriversEvent.rideId(),
                             rideMapper.toRideCancelRequestDto(noAvailableDriversEvent));
                 }
@@ -42,10 +43,6 @@ public class RideConsumer {
         } catch (
                 IllegalArgumentException e) {
             throw new IllegalArgumentException("Unknown event type: " + eventTypeString);
-
-        } catch (
-                JsonProcessingException e) {
-            throw new RuntimeException(e);
         }
     }
 }

@@ -2,6 +2,7 @@ package com.example.ride_service.mapper;
 
 import com.example.ride_service.model.entity.RideEntity;
 import com.example.ride_service.model.event.RideCancelledEvent;
+import com.example.ride_service.model.event.RideCompletedEvent;
 import com.example.ride_service.model.event.RideCreateEvent;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -12,7 +13,8 @@ public interface EventMapper {
     RideCreateEvent toCreatedEvent(RideEntity rideEntity);
 
     @Mapping(target = "rideId", source = "rideEntity.id")
-    @Mapping(target = "driverId", source = "rideEntity.driverId")
-    @Mapping(target = "cancelAt", source = "rideEntity.cancelAt")
     RideCancelledEvent toCancelledEvent(RideEntity rideEntity);
+
+    @Mapping(target = "amount", source = "finalAmount")
+    RideCompletedEvent toCompletedEvent(RideEntity rideEntity);
 }

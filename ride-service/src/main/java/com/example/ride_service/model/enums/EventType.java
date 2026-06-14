@@ -10,7 +10,9 @@ public enum EventType {
     ASSIGNED_DRIVER("driver_assigned"),
     NO_AVAILABLE_DRIVERS("no_available_drivers"),
     RIDE_CANCELLED("ride_cancelled"),
-    PAYMENT_COMPLETED("payment_completed");
+    PAYMENT_COMPLETED("payment_completed"),
+    PAYMENT_FAILED("payment_failed"),
+    RIDE_COMPLETED("ride_completed");
 
 
     private final String eventName;

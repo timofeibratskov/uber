@@ -11,6 +11,7 @@ import com.example.ride_service.model.dto.RideCreateRequestDto;
 import com.example.ride_service.model.dto.RideCreateResponseDto;
 import com.example.ride_service.model.dto.RideEndResponseDto;
 import com.example.ride_service.model.dto.RideFullResponseDto;
+import com.example.ride_service.model.entity.RideEntity;
 import com.example.ride_service.model.enums.EventType;
 import com.example.ride_service.model.enums.PaymentStatus;
 import com.example.ride_service.model.enums.RideStatus;
@@ -130,5 +131,34 @@ public class RideService {
         }
 
         return rideMapper.toRideFullResponseDto(ride, null);
+    }
+
+    @Transactional
+    public void markAsPaid(UUID rideId) {
+        var ride = getRideReadyForPayment(rideId);
+
+        ride.setPaymentStatus(PaymentStatus.PAID);
+    }
+
+    @Transactional
+    public void markPaymentFailed(UUID rideId) {
+        var ride = getRideReadyForPayment(rideId);
+
+        ride.setPaymentStatus(PaymentStatus.FAILED);
+    }
+
+    private RideEntity getRideReadyForPayment(UUID rideId) {
+        var ride = rideRepo.findById(rideId)
+                .orElseThrow(() -> new RideNotFoundException("ride not found"));
+
+        if (ride.getStatus() != RideStatus.COMPLETED) {
+            throw new InvalidStatusTransitionException("ride is not completed");
+        }
+
+        if (ride.getPaymentStatus() != PaymentStatus.PROCESSING) {
+            throw new InvalidStatusTransitionException("ride is not in PROCESSING state");
+        }
+
+        return ride;
     }
 }

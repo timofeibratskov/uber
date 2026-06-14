@@ -49,7 +49,7 @@ class RideConsumerIT extends BaseIT {
 
         RideEntity ride = RideEntity.builder()
                 .passengerId(passengerId)
-                .status(RideStatus.CREATED)
+                .status(RideStatus.SEARCHING)
                 .seats(2)
                 .finalAmount(new BigDecimal("25.50"))
                 .polyline("encoded_polyline_string")
