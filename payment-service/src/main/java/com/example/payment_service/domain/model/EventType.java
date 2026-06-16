@@ -6,7 +6,9 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @Getter
 public enum EventType {
-    PAYMENT_COMPLETED("payment_completed");
+    PAYMENT_COMPLETED("payment_completed"),
+    PAYMENT_FAILED("payment_failed"),
+    RIDE_COMPLETED("ride_completed");
 
     private final String eventName;
 

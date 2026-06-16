@@ -1,4 +1,4 @@
-package com.example.ride_service.model.event;
+package com.example.payment_service.application.event;
 
 import lombok.Builder;
 
@@ -8,10 +8,10 @@ import java.util.UUID;
 @Builder
 public record RideCompletedEvent(
         UUID rideId,
-        UUID driverId,
         UUID passengerId,
-        BigDecimal amount,
         UUID paymentMethodId,
+        UUID driverId,
+        BigDecimal amount,
         String currency
 ) {
 }

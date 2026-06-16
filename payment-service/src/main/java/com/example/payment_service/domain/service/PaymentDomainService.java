@@ -19,14 +19,17 @@ public class PaymentDomainService {
 
         PaymentStrategy strategy = strategies.stream()
                 .filter(s -> s.getType() == method.getType())
-                .peek(System.out::println)
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("No strategy found for: " + method.getType()));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("No strategy found for: " + method.getType()
+                        )
+                );
 
         try {
             strategy.execute(transaction, method);
 
             transaction.complete();
+
         } catch (Exception e) {
             transaction.fail();
             throw e;

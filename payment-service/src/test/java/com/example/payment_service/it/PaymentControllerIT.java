@@ -6,7 +6,6 @@ import com.example.payment_service.domain.model.EventType;
 import com.example.payment_service.domain.model.PaymentMethod;
 import com.example.payment_service.domain.model.TopicType;
 import com.example.payment_service.domain.model.TransactionStatus;
-import com.example.payment_service.infrastructure.client.RideServiceClient;
 import com.example.payment_service.infrastructure.persistence.DriverAccountRepositoryImpl;
 import com.example.payment_service.infrastructure.persistence.OutboxRepositoryImpl;
 import com.example.payment_service.infrastructure.persistence.PaymentMethodRepositoryImpl;
@@ -22,7 +21,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.math.BigDecimal;
@@ -53,8 +51,6 @@ public class PaymentControllerIT extends BaseIT {
     @MockitoBean
     private StripeClient stripeClient;
 
-    @MockitoBean
-    private RideServiceClient rideServiceClient;
 
     @BeforeEach
     public void setup() {
@@ -73,9 +69,6 @@ public class PaymentControllerIT extends BaseIT {
         UUID rideId = UUID.randomUUID();
         PaymentMethod cashMethod = PaymentMethod.createCashMethod(passengerId);
         methodRepository.insert(cashMethod);
-
-        when(rideServiceClient.canPayRide(any()))
-                .thenReturn(ResponseEntity.ok(true));
 
         // act
         var request = CreatePaymentRequest.builder()
@@ -120,10 +113,6 @@ public class PaymentControllerIT extends BaseIT {
         UUID rideId = UUID.randomUUID();
         PaymentMethod cashMethod = PaymentMethod.createCardMethod(passengerId, "pm_card_visa");
         methodRepository.insert(cashMethod);
-
-
-        when(rideServiceClient.canPayRide(any()))
-                .thenReturn(ResponseEntity.ok(true));
 
         var driverAccount = DriverAccount.builder()
                 .driverId(driverId)
@@ -183,9 +172,6 @@ public class PaymentControllerIT extends BaseIT {
         PaymentMethod cardMethod = PaymentMethod.createCardMethod(passengerId, "pm_card_insufficientFunds");
         methodRepository.insert(cardMethod);
 
-        when(rideServiceClient.canPayRide(any()))
-                .thenReturn(ResponseEntity.ok(true));
-
         var driverAccount = DriverAccount.builder()
                 .driverId(driverId)
                 .accountId("acct_test_failed")
@@ -237,38 +223,6 @@ public class PaymentControllerIT extends BaseIT {
         assertEquals(passengerId, tr.getPassengerId());
         assertEquals(driverId, tr.getDriverId());
 
-        assertEquals(0, outboxRepository.findAllByOrderByCreatedAt().size());
-    }
-
-    @Test
-    @DisplayName("ошибка оплаты: поездка не завершена")
-    void shouldFailPaymentWhenRideNotCompleted() throws Exception {
-        // arrange
-        UUID passengerId = UUID.randomUUID();
-        UUID rideId = UUID.randomUUID();
-        PaymentMethod cashMethod = PaymentMethod.createCashMethod(passengerId);
-        methodRepository.insert(cashMethod);
-
-        when(rideServiceClient.canPayRide(rideId))
-                .thenReturn(ResponseEntity.ok(false));
-
-        var request = CreatePaymentRequest.builder()
-                .passengerId(passengerId)
-                .driverId(UUID.randomUUID())
-                .rideId(rideId)
-                .amount(new BigDecimal("15.00"))
-                .currency("USD")
-                .paymentMethodId(cashMethod.getId())
-                .build();
-
-        // act
-        mockMvc.perform(post("/api/v1/payments/process")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest());
-
-        // assert
-        assertThat(transactionRepository.findByRideId(rideId)).isEmpty();
-        assertEquals(0, outboxRepository.findAllByOrderByCreatedAt().size());
+        assertEquals(1, outboxRepository.findAllByOrderByCreatedAt().size());
     }
 }

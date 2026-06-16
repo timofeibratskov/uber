@@ -6,7 +6,7 @@ import org.springframework.data.geo.Point;
 import java.util.UUID;
 
 @Builder
-public record RideCreateEvent(
+public record RideCreatedEvent(
         UUID rideId,
         Integer seats,
         Point startPoint

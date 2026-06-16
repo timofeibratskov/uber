@@ -6,3 +6,8 @@ spring:
     change-log: classpath:db/migration/changelog-master.yaml
     enabled: true
     default-schema: public
+
+  Kafka:
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer

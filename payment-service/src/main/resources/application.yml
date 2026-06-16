@@ -5,6 +5,14 @@ spring:
   application:
     name: payment-service
 
+  Kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: ride-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
   datasource:
     url: jdbc:postgresql://localhost:5553/postgres
     username: postgres
