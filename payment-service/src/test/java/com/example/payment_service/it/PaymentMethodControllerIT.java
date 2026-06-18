@@ -1,9 +1,9 @@
 package com.example.payment_service.it;
 
-import com.example.payment_service.application.dto.CreatePaymentMethodRequest;
-import com.example.payment_service.domain.model.PaymentMethod;
-import com.example.payment_service.domain.model.PaymentType;
-import com.example.payment_service.infrastructure.persistence.PaymentMethodRepositoryImpl;
+import com.example.payment_service.model.dto.CreatePaymentMethodRequest;
+import com.example.payment_service.model.entity.PaymentMethodEntity;
+import com.example.payment_service.model.enums.PaymentType;
+import com.example.payment_service.repository.PaymentMethodRepository;
 import com.stripe.StripeClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -29,7 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class PaymentMethodControllerIT extends BaseIT {
 
     @Autowired
-    private PaymentMethodRepositoryImpl methodRepository;
+    private PaymentMethodRepository methodRepository;
 
     @MockitoBean
     private StripeClient stripeClient;
@@ -61,8 +61,8 @@ public class PaymentMethodControllerIT extends BaseIT {
         assertNotNull(methods);
         assertEquals(1, methods.size());
         var method = methods.getFirst();
-        assertEquals(method.getExternalToken(), request.externalToken());
         assertEquals(method.getUserId(), request.userId());
+        assertEquals(method.getExternalToken(), request.externalToken());
         assertEquals(method.getType(), request.paymentType());
         assertNotNull(method.getId());
     }
@@ -74,10 +74,10 @@ public class PaymentMethodControllerIT extends BaseIT {
         var userId = UUID.randomUUID();
         var token = "pm_card_visa";
 
-        var dMethod = PaymentMethod.createCardMethod(userId, token);
-        dMethod.markAsDeleted();
+        var dMethod = PaymentMethodEntity.toNewCardEntity(userId, token);
+        dMethod.setDeleted(true);
 
-        methodRepository.insert(dMethod);
+        methodRepository.save(dMethod);
 
         var request = CreatePaymentMethodRequest.builder()
                 .userId(userId)
@@ -110,9 +110,9 @@ public class PaymentMethodControllerIT extends BaseIT {
         var userId = UUID.randomUUID();
         var token = "pm_card_visa";
 
-        var dMethod = PaymentMethod.createCardMethod(userId, token);
+        var dMethod = PaymentMethodEntity.toNewCardEntity(userId, token);
 
-        methodRepository.insert(dMethod);
+        methodRepository.save(dMethod);
 
         var request = CreatePaymentMethodRequest.builder()
                 .userId(userId)
@@ -166,12 +166,12 @@ public class PaymentMethodControllerIT extends BaseIT {
     }
 
     @Test
-    @DisplayName("чтение списка вариатнов оплаты пользователя")
+    @DisplayName("чтение списка вариантов оплаты пользователя")
     void shouldGetUserPaymentMethods() throws Exception {
         // arrange
         UUID userId = UUID.randomUUID();
-        var cardPaymentMethod = PaymentMethod.createCardMethod(userId, "pm_card_visa");
-        methodRepository.insert(cardPaymentMethod);
+        var cardPaymentMethod = PaymentMethodEntity.toNewCardEntity(userId, "pm_card_visa");
+        methodRepository.save(cardPaymentMethod);
 
         // act
         mockMvc.perform(get("/api/v1/payment-methods/users/{userId}", userId)
@@ -194,8 +194,8 @@ public class PaymentMethodControllerIT extends BaseIT {
     @DisplayName("успешное удаление оплаты картой")
     void shouldDeleteCardPaymentMethodSuccessfully() throws Exception {
         // arrange
-        var paymentMethod = PaymentMethod.createCardMethod(UUID.randomUUID(), "pm_card_visa");
-        methodRepository.insert(paymentMethod);
+        var paymentMethod = PaymentMethodEntity.toNewCardEntity(UUID.randomUUID(), "pm_card_visa");
+        methodRepository.save(paymentMethod);
 
 
         // act

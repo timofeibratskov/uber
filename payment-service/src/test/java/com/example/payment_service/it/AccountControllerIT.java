@@ -1,7 +1,7 @@
 package com.example.payment_service.it;
 
-import com.example.payment_service.application.dto.CreateDriverAccountRequest;
-import com.example.payment_service.infrastructure.persistence.DriverAccountRepositoryImpl;
+import com.example.payment_service.model.dto.CreateDriverAccountRequest;
+import com.example.payment_service.repository.DriverAccountRepository;
 import com.stripe.StripeClient;
 import com.stripe.model.Account;
 import com.stripe.param.AccountCreateParams;
@@ -16,7 +16,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -27,7 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class AccountControllerIT extends BaseIT {
 
     @Autowired
-    private DriverAccountRepositoryImpl driverAccountRepository;
+    private DriverAccountRepository driverAccountRepository;
 
     @MockitoBean
     private StripeClient stripeClient;
@@ -64,11 +64,11 @@ public class AccountControllerIT extends BaseIT {
         mockMvc.perform(post("/api/v1/accounts")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk());
+                .andExpect(status().isCreated());
 
         // assert
         var account = driverAccountRepository.findByDriverId(request.driverId());
         assertThat(account).isPresent();
-        assertEquals(expectedStripeId, account.get().accountId());
+        assertEquals(expectedStripeId, account.get().getAccountId());
     }
 }

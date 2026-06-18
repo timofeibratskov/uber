@@ -1,4 +1,4 @@
-package com.example.ride_service.model.event;
+package com.example.payment_service.model.event;
 
 import lombok.Builder;
 import org.springframework.data.geo.Point;
