@@ -1,7 +1,6 @@
 package com.example.driver_service.service
 
 import com.example.driver_service.model.entity.OutboxEventEntity
-import com.example.driver_service.model.enums.EventType
 import com.example.driver_service.repository.OutboxEventRepository
 import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -22,7 +21,7 @@ class OutboxEventService(
         private val log = KotlinLogging.logger {}
     }
 
-    @Scheduled(fixedRateString = "5000")
+    @Scheduled(fixedRateString = "\${app.outbox.rate}")
     fun processOutboxEvents() {
         val events = outboxRepo.findAllByOrderByCreatedAt()
 
@@ -34,7 +33,7 @@ class OutboxEventService(
                     event.id.toString(),
                     event.payload
                 )
-                record.headers().add("eventType", event.eventType!!.eventName.toByteArray())
+                record.headers().add("eventType", event.eventType!!.toByteArray())
 
                 kafkaTemplate.send(record).get()
 
@@ -48,7 +47,7 @@ class OutboxEventService(
     }
 
     @Transactional
-    fun saveEvent(payload: Any, type: EventType, topic: String) {
+    fun saveEvent(payload: Any, type: String, topic: String) {
         try {
             val jsonPayload = objectMapper.writeValueAsString(payload)
 

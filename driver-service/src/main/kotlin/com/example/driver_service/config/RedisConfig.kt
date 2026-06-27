@@ -1,6 +1,6 @@
 package com.example.driver_service.config
 
-import com.example.driver_service.listener.RedisKeyExpirationListener
+import com.example.driver_service.controller.listener.RedisKeyExpirationListener
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.data.redis.connection.RedisConnectionFactory

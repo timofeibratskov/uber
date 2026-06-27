@@ -14,8 +14,8 @@ mybatis:
     map-underscore-to-camel-case: true
 
 app:
-  Kafka:
-    ride-topic: "ride_events_topic"
+  outbox:
+    rate: 99999
 
 eureka:
   client:

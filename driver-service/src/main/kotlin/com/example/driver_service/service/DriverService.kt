@@ -225,6 +225,7 @@ class DriverService(
         }
         driver.workStatus = status
         driverRepository.update(driver)
+        log.info { "driver with id: $id set workStatus to $status" }
     }
 
     @Transactional(readOnly = true)

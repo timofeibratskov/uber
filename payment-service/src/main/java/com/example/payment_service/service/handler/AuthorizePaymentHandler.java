@@ -3,8 +3,14 @@ package com.example.payment_service.service.handler;
 import com.example.payment_service.exception.PaymentMethodNotFoundException;
 import com.example.payment_service.model.entity.PaymentEntity;
 import com.example.payment_service.model.entity.PaymentTransactionEntity;
+import com.example.payment_service.model.enums.EventType;
 import com.example.payment_service.model.enums.PaymentStatus;
+import com.example.payment_service.model.enums.TopicType;
+import com.example.payment_service.model.enums.TransactionStatus;
+import com.example.payment_service.model.event.AuthorizeFailedEvent;
+import com.example.payment_service.model.event.PaymentAuthorizedEvent;
 import com.example.payment_service.model.event.RideCreatedEvent;
+import com.example.payment_service.service.OutboxService;
 import com.example.payment_service.service.PaymentMethodService;
 import com.example.payment_service.service.PaymentService;
 import com.example.payment_service.service.PaymentTransactionService;
@@ -21,7 +27,7 @@ public class AuthorizePaymentHandler {
     private final PaymentTransactionService transactionService;
     private final PaymentService paymentService;
     private final StripeGatewayService paymentGateway;
-
+    private final OutboxService outboxService;
 
     @Transactional
     public void handle(RideCreatedEvent event) {
@@ -40,7 +46,7 @@ public class AuthorizePaymentHandler {
                 amountInMinorUnits,
                 event.currency(),
                 paymentMethod.getExternalToken()
-                );
+        );
 
         var payment = PaymentEntity.createPaymentEntity(
                 event.rideId(),
@@ -58,6 +64,20 @@ public class AuthorizePaymentHandler {
         payment.setStatus(result.isSuccess() ? PaymentStatus.AUTHORIZED : PaymentStatus.FAILED);
         paymentService.save(payment);
 
+        boolean flag = transaction.getStatus().equals(TransactionStatus.SUCCESS);
 
+        var newEvent = flag ?
+                PaymentAuthorizedEvent.create(event) :
+                AuthorizeFailedEvent.create(event, transaction.getErrorMessage());
+
+        var eventType = flag ?
+                EventType.PAYMENT_AUTHORIZED :
+                EventType.PAYMENT_AUTHORIZATION_FAILED;
+
+        outboxService.saveEvent(
+                newEvent,
+                eventType,
+                TopicType.PAYMENT
+        );
     }
 }

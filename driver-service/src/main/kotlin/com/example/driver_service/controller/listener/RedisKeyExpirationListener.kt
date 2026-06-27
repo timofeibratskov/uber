@@ -1,4 +1,4 @@
-package com.example.driver_service.listener
+package com.example.driver_service.controller.listener
 
 import com.example.driver_service.constant.RedisSchema
 import com.example.driver_service.model.enums.WorkStatus

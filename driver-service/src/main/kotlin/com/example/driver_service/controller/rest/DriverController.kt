@@ -1,4 +1,4 @@
-package com.example.driver_service.controller
+package com.example.driver_service.controller.rest
 
 import com.example.driver_service.model.dto.CarResponseDto
 import com.example.driver_service.model.dto.CreateCarDto

@@ -49,5 +49,15 @@ server:
   port: 8881
 
 app:
-  Kafka:
-    ride-topic: "ride_events_topic"
+  outbox:
+    rate: 5000
+  kafka:
+    topic:
+      payments.driver-searches: "payments.driver-searches"
+      rides.cancellations: "rides.cancellations"
+      rides.driver-matching: "rides.driver-matching"
+    event:
+      driver-searching: "DriverSearching"
+      driver-assigned: "DriverAssigned"
+      no-drivers: "NoDrivers"
+      ride-canceled: "RideCanceled"

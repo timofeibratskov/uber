@@ -1,8 +1,7 @@
 package com.example.driver_service.service
 
-import com.example.driver_service.model.view.DriverView
-import org.springframework.data.geo.Point
+import com.example.driver_service.model.event.DriverSearchingEvent
 
 interface DriverMatchingService {
-    fun findBestDriver(point: Point, seats: Int): DriverView?
+    fun findBestDriver(event: DriverSearchingEvent)
 }
