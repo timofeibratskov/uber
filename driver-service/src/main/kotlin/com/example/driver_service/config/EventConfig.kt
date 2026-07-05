@@ -11,10 +11,10 @@ import com.example.driver_service.model.event.RideCanceledEvent
 
 @Configuration
 class EventConfig(
-    @Value("\${app.kafka.event.driver-searching}") private val driverSearching: String,
-    @Value("\${app.kafka.event.ride-canceled}") private val rideCanceled: String,
-    @Value("\${app.kafka.event.driver-assigned}") private val driverAssigned: String,
-    @Value("\${app.kafka.event.no-drivers}") private val noDrivers: String
+    @Value("\${spring.kafka.event.driver-searching}") private val driverSearching: String,
+    @Value("\${spring.kafka.event.ride-canceled}") private val rideCanceled: String,
+    @Value("\${spring.kafka.event.driver-assigned}") private val driverAssigned: String,
+    @Value("\${spring.kafka.event.no-drivers}") private val noDrivers: String
 ) {
 
     @Bean("kafkaTypeMapping")

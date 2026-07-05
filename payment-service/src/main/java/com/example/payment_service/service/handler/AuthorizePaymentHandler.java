@@ -3,9 +3,7 @@ package com.example.payment_service.service.handler;
 import com.example.payment_service.exception.PaymentMethodNotFoundException;
 import com.example.payment_service.model.entity.PaymentEntity;
 import com.example.payment_service.model.entity.PaymentTransactionEntity;
-import com.example.payment_service.model.enums.EventType;
 import com.example.payment_service.model.enums.PaymentStatus;
-import com.example.payment_service.model.enums.TopicType;
 import com.example.payment_service.model.enums.TransactionStatus;
 import com.example.payment_service.model.event.AuthorizeFailedEvent;
 import com.example.payment_service.model.event.PaymentAuthorizedEvent;
@@ -17,6 +15,7 @@ import com.example.payment_service.service.PaymentTransactionService;
 import com.example.payment_service.service.StripeGatewayService;
 import com.example.payment_service.util.MinorUntilConverter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +27,13 @@ public class AuthorizePaymentHandler {
     private final PaymentService paymentService;
     private final StripeGatewayService paymentGateway;
     private final OutboxService outboxService;
+
+    @Value("${spring.kafka.topic.rides.payment}")
+    private String ridePaymentTopic;
+    @Value("${spring.kafka.event.payment-authorization-failed}")
+    private String authFailedEventName;
+    @Value("${spring.kafka.event.payment-authorized}")
+    private String successfulAuthEventName;
 
     @Transactional
     public void handle(RideCreatedEvent event) {
@@ -70,14 +76,10 @@ public class AuthorizePaymentHandler {
                 PaymentAuthorizedEvent.create(event) :
                 AuthorizeFailedEvent.create(event, transaction.getErrorMessage());
 
-        var eventType = flag ?
-                EventType.PAYMENT_AUTHORIZED :
-                EventType.PAYMENT_AUTHORIZATION_FAILED;
-
         outboxService.saveEvent(
                 newEvent,
-                eventType,
-                TopicType.PAYMENT
+                flag ? successfulAuthEventName : authFailedEventName,
+                ridePaymentTopic
         );
     }
 }

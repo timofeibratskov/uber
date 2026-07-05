@@ -11,7 +11,7 @@ import org.springframework.messaging.handler.annotation.Payload
 import org.springframework.stereotype.Component
 
 @Component
-class DriverSearchingListener(
+class PaymentAuthorizationListener(
     private val objectMapper: ObjectMapper,
     private val driverMatchingService: DriverMatchingService,
     @Qualifier("kafkaTypeMapping")
@@ -21,7 +21,7 @@ class DriverSearchingListener(
         private val log = KotlinLogging.logger {}
     }
 
-    @KafkaListener(topics = ["\${app.kafka.topic.payments.driver-searches}"])
+    @KafkaListener(topics = ["\${spring.kafka.topic.rides.payment}"])
     fun listen(
         @Payload payload: String,
         @Header("eventType") type: String

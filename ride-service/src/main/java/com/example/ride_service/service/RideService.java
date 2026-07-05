@@ -12,15 +12,14 @@ import com.example.ride_service.model.dto.RideCreateResponseDto;
 import com.example.ride_service.model.dto.RideEndResponseDto;
 import com.example.ride_service.model.dto.RideFullResponseDto;
 import com.example.ride_service.model.entity.RideEntity;
-import com.example.ride_service.model.enums.EventType;
 import com.example.ride_service.model.enums.PaymentStatus;
 import com.example.ride_service.model.enums.RideStatus;
-import com.example.ride_service.model.enums.TopicType;
 import com.example.ride_service.model.event.DriverAssignedEvent;
 import com.example.ride_service.repo.db.RideRepo;
 import com.example.ride_service.repo.redis.RideEstimateCacheRepo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +37,15 @@ public class RideService {
     private final RideStateMachine rideStateMachine;
     private final EventMapper eventMapper;
     private final DriverServiceClient driverServiceClient;
+    @Value("${spring.kafka.topic.rides.lifecycle}")
+    private String rideLifecycleTopic;
+    @Value("${spring.kafka.event.ride-created}")
+    private String rideCreatedEventName;
+    @Value("${spring.kafka.event.ride-canceled}")
+    private String rideCanceledEventName;
+    @Value("${spring.kafka.event.ride-completed}")
+    private String rideCompletedEventName;
+
 
     @Transactional
     public RideCreateResponseDto create(RideCreateRequestDto request) {
@@ -55,7 +63,7 @@ public class RideService {
         log.info("ride with id {} saved successfully", savedRide.getId());
 
         var event = eventMapper.toCreatedEvent(savedRide);
-        outboxService.saveEvent(event, EventType.RIDE_CREATED, TopicType.RIDE_LIFECYCLE);
+        outboxService.saveEvent(event, rideCreatedEventName, rideLifecycleTopic);
 
         return rideMapper.toRideCreateResponseDto(savedRide);
     }
@@ -83,7 +91,7 @@ public class RideService {
 
         if (ride.getDriverId() != null) {
             var event = eventMapper.toCancelledEvent(ride);
-            outboxService.saveEvent(event, EventType.RIDE_CANCELLED, TopicType.RIDE_LIFECYCLE);
+            outboxService.saveEvent(event, rideCanceledEventName, rideLifecycleTopic);
         }
 
         log.info("ride with id {} cancelled successfully", ride.getId());
@@ -110,7 +118,7 @@ public class RideService {
         var event = eventMapper.toCompletedEvent(ride);
 
 
-        outboxService.saveEvent(event, EventType.RIDE_COMPLETED, TopicType.RIDE_LIFECYCLE);
+        outboxService.saveEvent(event, rideCompletedEventName, rideLifecycleTopic);
 
         ride.setPaymentStatus(PaymentStatus.PROCESSING);
 

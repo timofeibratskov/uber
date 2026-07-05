@@ -22,7 +22,7 @@ class RideCancellationListener(
         private val log = KotlinLogging.logger {}
     }
 
-    @KafkaListener(topics = ["\${app.kafka.topic.rides.cancellations}"])
+    @KafkaListener(topics = ["\${spring.kafka.topic.rides.lifecycle}"])
     fun listen(
         @Payload payload: String,
         @Header("eventType") type: String

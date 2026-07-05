@@ -1,7 +1,5 @@
 package com.example.payment_service.service;
 
-import com.example.payment_service.model.enums.EventType;
-import com.example.payment_service.model.enums.TopicType;
 import com.example.payment_service.model.entity.OutboxEntity;
 import com.example.payment_service.repository.OutboxRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -26,7 +24,7 @@ public class OutboxService {
     private final KafkaTemplate<String, String> kafkaTemplate;
 
     @Transactional
-    public void saveEvent(Object payload, EventType type, TopicType topic) {
+    public void saveEvent(Object payload, String type, String topic) {
         try {
             String jsonPayload = objectMapper.writeValueAsString(payload);
 
@@ -51,11 +49,11 @@ public class OutboxService {
         for (var event : events) {
             try {
                 var record = new ProducerRecord<>(
-                        event.getTopic().getTopicName(),
+                        event.getTopic(),
                         event.getId().toString(),
                         event.getPayload()
                 );
-                record.headers().add("eventType", event.getEventType().getEventName().getBytes());
+                record.headers().add("eventType", event.getEventType().getBytes());
 
                 kafkaTemplate.send(record).get();
 

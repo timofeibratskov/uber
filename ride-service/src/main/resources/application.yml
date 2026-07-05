@@ -5,13 +5,27 @@ spring:
   liquibase:
     change-log: classpath:db/migration/changelog-master.yaml
 
-  Kafka:
+  kafka:
     bootstrap-servers: localhost:9092
     consumer:
       group-id: ride-service-group
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+    topic:
+      rides.lifecycle: "rides.lifecycle"
+      rides.driver-matching: "rides.driver-matching"
+      rides.payment: "rides.payment"
+    event:
+      driver-assigned: "DriverAssigned"
+      no-drivers: "NoDrivers"
+      ride-canceled: "RideCanceled"
+      ride-created: "RideCreated"
+      ride-completed: "RideCompleted"
+      payment-authorization-failed: "PaymentAuthorizationFailed"
+      payment-captured: "PaymentCaptured"
+      payment-capture-failed: "PaymentCaptureFailed"
 
   data:
     redis:

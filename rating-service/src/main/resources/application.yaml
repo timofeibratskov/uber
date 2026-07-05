@@ -3,7 +3,7 @@ spring:
     name: rating-service
 
   mongodb:
-    uri: mongodb://mongo:1111@localhost:27017/rating_db?authSource=admin
+    uri: mongodb://admin:1111@localhost:27017/rating_db?authSource=admin
     representation:
       uuid: standard
 

@@ -5,13 +5,25 @@ spring:
   application:
     name: payment-service
 
-  Kafka:
+  kafka:
     bootstrap-servers: localhost:9092
     consumer:
       group-id: ride-service-group
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+    topic:
+      rides.lifecycle: "rides.lifecycle"
+      rides.payment: "rides.payment"
+    event:
+      ride-canceled: "RideCanceled"
+      ride-created: "RideCreated"
+      ride-completed: "RideCompleted"
+      payment-authorized: "PaymentAuthorized"
+      payment-authorization-failed: "PaymentAuthorizationFailed"
+      payment-captured: "PaymentCaptured"
+      payment-capture-failed: "PaymentCaptureFailed"
 
   datasource:
     url: jdbc:postgresql://localhost:5553/postgres

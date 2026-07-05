@@ -14,9 +14,9 @@ class SimpleDriverMatchingService(
     private val driverService: DriverService,
     private val outboxEventService: OutboxEventService,
     private val locationService: LocationService,
-    @param:Value("\${app.kafka.topic.rides.driver-matching}") private val driverMatchingTopic: String,
-    @param:Value("\${app.kafka.event.driver-assigned}") private val driverFoundEventType: String,
-    @param:Value("\${app.kafka.event.no-drivers}") private val driverNotFoundEventType: String
+    @param:Value("\${spring.kafka.topic.rides.driver-matching}") private val driverMatchingTopic: String,
+    @param:Value("\${spring.kafka.event.driver-assigned}") private val driverFoundEventType: String,
+    @param:Value("\${spring.kafka.event.no-drivers}") private val driverNotFoundEventType: String
 
 ) : DriverMatchingService {
     companion object {

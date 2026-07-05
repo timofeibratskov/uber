@@ -1,8 +1,6 @@
 package com.example.ride_service.service;
 
 import com.example.ride_service.model.entity.OutboxEventEntity;
-import com.example.ride_service.model.enums.EventType;
-import com.example.ride_service.model.enums.TopicType;
 import com.example.ride_service.repo.db.OutboxEventRepo;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -32,11 +30,11 @@ public class OutboxService {
         for (OutboxEventEntity event : events) {
             try {
                 var record = new ProducerRecord<>(
-                        event.getTopic().getTopicName(),
+                        event.getTopic(),
                         event.getId().toString(),
                         event.getPayload()
                 );
-                record.headers().add("eventType", event.getEventType().getEventName().getBytes());
+                record.headers().add("eventType", event.getEventType().getBytes());
 
                 kafkaTemplate.send(record).get();
 
@@ -49,7 +47,7 @@ public class OutboxService {
     }
 
     @Transactional
-    public void saveEvent(Object payload, EventType type, TopicType topic) {
+    public void saveEvent(Object payload, String type, String topic) {
         try {
             String jsonPayload = objectMapper.writeValueAsString(payload);
 

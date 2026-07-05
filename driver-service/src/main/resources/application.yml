@@ -2,13 +2,23 @@ spring:
   liquibase:
     change-log: classpath:db/migration/changelog-master.yaml
 
-  Kafka:
+  kafka:
     bootstrap-servers: localhost:9092
     consumer:
       group-id: driver-service-group
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+    topic:
+      rides.lifecycle: "rides.lifecycle"
+      rides.payment: "rides.payment"
+      rides.driver-matching: "rides.driver-matching"
+    event:
+      driver-searching: "DriverSearching"
+      driver-assigned: "DriverAssigned"
+      no-drivers: "NoDrivers"
+      ride-canceled: "RideCanceled"
 
   data:
     redis:
@@ -51,13 +61,3 @@ server:
 app:
   outbox:
     rate: 5000
-  kafka:
-    topic:
-      payments.driver-searches: "payments.driver-searches"
-      rides.cancellations: "rides.cancellations"
-      rides.driver-matching: "rides.driver-matching"
-    event:
-      driver-searching: "DriverSearching"
-      driver-assigned: "DriverAssigned"
-      no-drivers: "NoDrivers"
-      ride-canceled: "RideCanceled"

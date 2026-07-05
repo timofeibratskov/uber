@@ -1,7 +1,5 @@
 package com.example.payment_service.model.entity;
 
-import com.example.payment_service.model.enums.EventType;
-import com.example.payment_service.model.enums.TopicType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -21,8 +19,8 @@ import java.time.Instant;
 public class OutboxEntity {
     @Id
     private Long id;
-    private TopicType topic;
-    private EventType eventType;
+    private String topic;
+    private String eventType;
     private String payload;
     private Instant createdAt = Instant.now();
 }
