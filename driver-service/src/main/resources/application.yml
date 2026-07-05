@@ -19,6 +19,7 @@ spring:
       driver-assigned: "DriverAssigned"
       no-drivers: "NoDrivers"
       ride-canceled: "RideCanceled"
+      ride-completed: "RideCompleted"
 
   data:
     redis:

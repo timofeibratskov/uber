@@ -2,6 +2,7 @@ package com.example.driver_service.controller.listener
 
 import com.example.driver_service.model.enums.WorkStatus
 import com.example.driver_service.model.event.RideCanceledEvent
+import com.example.driver_service.model.event.RideCompletedEvent
 import com.example.driver_service.service.DriverService
 import com.fasterxml.jackson.databind.ObjectMapper
 import mu.KotlinLogging
@@ -12,7 +13,7 @@ import org.springframework.messaging.handler.annotation.Payload
 import org.springframework.stereotype.Component
 
 @Component
-class RideCancellationListener(
+class RideLifecycleListener(
     private val objectMapper: ObjectMapper,
     private val driverService: DriverService,
     @Qualifier("kafkaTypeMapping")
@@ -35,6 +36,11 @@ class RideCancellationListener(
 
             when (val event = objectMapper.readValue(payload, targetClass)) {
                 is RideCanceledEvent -> driverService.setWorkStatus(
+                    event.driverId,
+                    WorkStatus.AVAILABLE
+                )
+
+                is RideCompletedEvent -> driverService.setWorkStatus(
                     event.driverId,
                     WorkStatus.AVAILABLE
                 )
