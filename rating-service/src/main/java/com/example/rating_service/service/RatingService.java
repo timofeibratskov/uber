@@ -8,29 +8,45 @@ import com.example.rating_service.model.entity.UserRatingEntity;
 import com.example.rating_service.repo.RatingRepo;
 import com.example.rating_service.repo.UserRatingRepo;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RatingService {
     private final RatingRepo ratingRepo;
     private final UserRatingRepo userRatingRepo;
 
-    //todo исправить (проверка наличия такого пользователя перед созданием )
+    @Transactional
+    public void createUser(UUID userId) {
+        if (userRatingRepo.findByTargetUserId(userId).isPresent()) {
+            log.info("User with id {} already exists. Skipping creation.", userId);
+            return;
+        }
+
+        var newUser = UserRatingEntity.builder()
+                .averageRating(BigDecimal.ZERO)
+                .ratingSum(0L)
+                .ratingCount(0L)
+                .targetUserId(userId)
+                .build();
+
+        userRatingRepo.save(newUser);
+        log.info("Successfully created rating profile for user: {}", userId);
+    }
+
+
+    @Transactional
     public String rateUser(RatingRequestDto request) {
         var userRatingEntity = userRatingRepo.findByTargetUserId(request.targetUserId())
-                .orElse(
-                        UserRatingEntity
-                                .builder()
-                                .averageRating(BigDecimal.ZERO)
-                                .ratingSum(0L)
-                                .ratingCount(0L)
-                                .targetUserId(request.targetUserId())
-                                .build()
-                );
+                .orElseThrow(() ->
+                        new EntityNotFoundException("User rating profile not found for id: " + request.targetUserId()));
 
         ratingRepo.save(RatingEntity.builder()
                 .rideId(request.rideId())
@@ -42,8 +58,10 @@ public class RatingService {
         var updatedSum = userRatingEntity.getRatingSum() + request.rating();
 
         long updatedCount = userRatingEntity.getRatingCount() + 1;
+        BigDecimal average = BigDecimal.valueOf(updatedSum)
+                .divide(BigDecimal.valueOf(updatedCount), 2, RoundingMode.HALF_UP);
 
-        userRatingEntity.setAverageRating(BigDecimal.valueOf(updatedSum / updatedCount));
+        userRatingEntity.setAverageRating(average);
         userRatingEntity.setRatingSum(updatedSum);
         userRatingEntity.setRatingCount(updatedCount);
 
@@ -52,6 +70,7 @@ public class RatingService {
         return "рейтинг добавлен!";
     }
 
+    @Transactional(readOnly = true)
     public UserRatingResponseDto getUserRating(UUID userId) {
         return UserRatingResponseDto.builder()
                 .rating(userRatingRepo.findByTargetUserId(userId)

@@ -14,12 +14,14 @@ spring:
       rides.lifecycle: "rides.lifecycle"
       rides.payment: "rides.payment"
       rides.driver-matching: "rides.driver-matching"
+      rides.users: "rides.users"
     event:
       driver-searching: "DriverSearching"
       driver-assigned: "DriverAssigned"
       no-drivers: "NoDrivers"
       ride-canceled: "RideCanceled"
       ride-completed: "RideCompleted"
+      user-created: "userCreated"
 
   data:
     redis:

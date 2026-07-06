@@ -9,15 +9,20 @@ import com.example.passenger_service.model.dto.LoginPassengerDto;
 import com.example.passenger_service.model.dto.PassengerResponseDto;
 import com.example.passenger_service.model.dto.RegisterPassengerDto;
 import com.example.passenger_service.model.dto.UpdatePassengerDto;
+import com.example.passenger_service.model.events.UserCreatedEvent;
 import com.example.passenger_service.repo.PassengerRepo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 
 @RequiredArgsConstructor
 @Service
@@ -27,6 +32,12 @@ public class PassengerService {
     private final PassengerMapper passengerMapper;
     private final PasswordEncoder passwordEncoder;
     private final RatingServiceClient ratingServiceClient;
+    private final KafkaTemplate<String, String> kafkaTemplate;
+
+    @Value("${spring.kafka.topic.rides.users}")
+    private String userTopicName;
+    @Value("${spring.kafka.event.user-created}")
+    private String userCreatedEventName;
 
     @Transactional
     public String registerPassenger(RegisterPassengerDto request) {
@@ -41,6 +52,23 @@ public class PassengerService {
 
         var savedPassenger = passengerRepo.save(passenger);
         log.info("Passenger registered successfully with email: {}", request.email());
+
+        var record = new ProducerRecord<>(
+                userTopicName,
+                UUID.randomUUID().toString(),
+                new UserCreatedEvent(
+                        savedPassenger.getId(),
+                        "passenger"
+                ).toString()
+        );
+
+        record.headers().add("eventType", userCreatedEventName.getBytes());
+
+        try {
+            kafkaTemplate.send(record).get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
+        }
 
         return "Hi," + savedPassenger.getName() + ", you are registered successfully!";
     }

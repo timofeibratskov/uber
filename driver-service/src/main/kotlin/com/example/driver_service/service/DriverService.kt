@@ -17,6 +17,7 @@ import com.example.driver_service.model.dto.LoginDriverDto
 import com.example.driver_service.model.dto.RegisterDriverDto
 import com.example.driver_service.model.dto.UpdateDriverDto
 import com.example.driver_service.model.enums.WorkStatus
+import com.example.driver_service.model.event.UserCreatedEvent
 import com.example.driver_service.model.view.DriverView
 import com.example.driver_service.repository.DriverRepository
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -24,6 +25,7 @@ import java.math.BigDecimal
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import mu.KotlinLogging
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
@@ -39,7 +41,11 @@ class DriverService(
     private val locationService: LocationService,
     private val ratingServiceClient: RatingServiceClient,
     private val driverCache: StringRedisTemplate,
-    private val objectMapper: ObjectMapper
+    private val objectMapper: ObjectMapper,
+    private val outboxService: OutboxEventService,
+
+    @param:Value("\${spring.kafka.topic.rides.users}") private val usersTopic: String,
+    @param:Value("\${spring.kafka.event.user-created}") private val userCreatedEventType: String
 ) {
     companion object {
         private val log = KotlinLogging.logger {}
@@ -63,6 +69,10 @@ class DriverService(
 
         driverRepository.save(driver)
         log.info { "Driver registered successfully with ID: ${driver.id}" }
+
+        val event = UserCreatedEvent(driver.id, "driver").toString()
+
+        outboxService.saveEvent(event, userCreatedEventType, usersTopic)
 
         return "Hi, ${driver.name}, you are registered successfully!"
     }

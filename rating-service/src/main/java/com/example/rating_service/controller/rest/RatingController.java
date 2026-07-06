@@ -1,4 +1,4 @@
-package com.example.rating_service.controller;
+package com.example.rating_service.controller.rest;
 
 import com.example.rating_service.model.dto.RatingRequestDto;
 import com.example.rating_service.model.dto.UserRatingResponseDto;

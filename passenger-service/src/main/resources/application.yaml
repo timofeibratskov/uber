@@ -16,6 +16,14 @@ spring:
       ddl-auto: validate
     show-sql: true
 
+  kafka:
+    bootstrap-servers: localhost:9092
+
+    topic:
+      rides.users: "rides.users"
+    event:
+      user-created: "userCreated"
+
 server:
   port: 8880
 
