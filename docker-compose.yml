@@ -47,6 +47,18 @@ services:
     volumes:
       - payment_data:/var/lib/postgresql/data
 
+  auth-db:
+    image: postgres:15-alpine
+    container_name: auth-db
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1111
+    ports:
+      - "5555:5432"
+    volumes:
+      - auth_data:/var/lib/postgresql/data
+
   rating-db:
     image: mongo:6.0
     container_name: rating-db
@@ -99,3 +111,4 @@ volumes:
   ride_data:
   payment_data:
   rating_data:
+  auth_data:
