@@ -25,7 +25,7 @@ func main() {
 	mux.HandleFunc("POST /api/auth/login", authHandler.Login)
 
 	server := &http.Server{
-		Addr:         ":8085",
+		Addr:         ":8885",
 		Handler:      mux,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,

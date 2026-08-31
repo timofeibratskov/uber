@@ -30,6 +30,7 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <module name="discovery" />
+        <module name="gateway" />
         <module name="payment-service" />
       </profile>
       <profile name="Annotation profile for rating-service" enabled="true">
@@ -53,6 +54,7 @@
       <module name="driver-service" options="-parameters -proc:none" />
       <module name="driver-service.main" options="-parameters -proc:none" />
       <module name="driver-service.test" options="-parameters -proc:none" />
+      <module name="gateway" options="-parameters" />
       <module name="passenger-service" options="-parameters" />
       <module name="payment-service" options="-parameters" />
       <module name="rating-service" options="-parameters" />
