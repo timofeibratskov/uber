@@ -28,6 +28,15 @@ func (h *AuthHandler) Register(
 
 	jwt, err := h.service.Register(r.Context(), req)
 	if err != nil {
+		if err.Error() == "пароли не совпадают" ||
+			err.Error() == "email не может быть пустым" ||
+			err.Error() == "недопустимая роль пользователя" ||
+			err.Error() == "password должен иметь минимум 8 символов" ||
+			err.Error() == "такая почта уже зарегистрирована" {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -54,7 +63,16 @@ func (h *AuthHandler) Login(
 
 	jwt, err := h.service.Login(r.Context(), req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+		if err.Error() == "email и пароль не могут быть пустыми" {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if err.Error() == "неверный email или пароль" {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
