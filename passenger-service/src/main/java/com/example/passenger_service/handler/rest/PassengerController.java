@@ -1,10 +1,9 @@
-package com.example.passenger_service.controller;
+package com.example.passenger_service.handler.rest;
 
+import com.example.passenger_service.model.dto.CompleteProfileRequestDto;
 import com.example.passenger_service.model.dto.FavoriteAddressRequestDto;
 import com.example.passenger_service.model.dto.FavoriteAddressResponseDto;
-import com.example.passenger_service.model.dto.LoginPassengerDto;
 import com.example.passenger_service.model.dto.PassengerResponseDto;
-import com.example.passenger_service.model.dto.RegisterPassengerDto;
 import com.example.passenger_service.model.dto.UpdatePassengerDto;
 import com.example.passenger_service.service.FavoriteAddressService;
 import com.example.passenger_service.service.PassengerService;
@@ -31,16 +30,11 @@ public class PassengerController {
     private final PassengerService passengerService;
     private final FavoriteAddressService favoriteAddressService;
 
-    @PostMapping("/register")
-    public ResponseEntity<String> registerPassenger(
-            @RequestBody @Valid RegisterPassengerDto request) {
-        return ResponseEntity.status(201).body(passengerService.registerPassenger(request));
-    }
-
-    @PostMapping("/login")
-    public ResponseEntity<String> loginPassenger(
-            @RequestBody @Valid LoginPassengerDto request) {
-        return ResponseEntity.ok().body(passengerService.loginPassenger(request));
+    @PostMapping("/{id}/profile")
+    public ResponseEntity<String> completeProfile(
+            @RequestBody @Valid CompleteProfileRequestDto request,
+            @PathVariable UUID id) {
+        return ResponseEntity.status(201).body(passengerService.completeProfile(id, request));
     }
 
     @GetMapping("/{id}")

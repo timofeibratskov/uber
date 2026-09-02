@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - changeSet:
+      id: 05-columns-can-be-null-in-passenger
+      author: user
+      changes:
+        - dropNotNullConstraint:
+            tableName: passenger_table
+            columnName: name
+            columnDataType: varchar(255)
+        - dropNotNullConstraint:
+            tableName: passenger_table
+            columnName: phone_number
+            columnDataType: varchar(20)

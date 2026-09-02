@@ -43,7 +43,7 @@ public class AuthorizePaymentHandler {
         paymentMethodService.findAllByUserId(event.passengerId())
                 .stream()
                 .filter(m -> m.id().equals(paymentMethod.getId()))
-                .findAny()
+                .findFirst()
                 .orElseThrow(() -> new IllegalStateException("Payment method does not belong to the user"));
 
         long amountInMinorUnits = MinorUntilConverter.convert(event.amount(), event.currency());

@@ -2,27 +2,20 @@ package com.example.passenger_service.service;
 
 import com.example.passenger_service.client.RatingServiceClient;
 import com.example.passenger_service.exception.AlreadyExistsException;
-import com.example.passenger_service.exception.InvalidCredentialsException;
 import com.example.passenger_service.exception.PassengerNotFoundException;
 import com.example.passenger_service.mapper.PassengerMapper;
-import com.example.passenger_service.model.dto.LoginPassengerDto;
+import com.example.passenger_service.model.dto.CompleteProfileRequestDto;
 import com.example.passenger_service.model.dto.PassengerResponseDto;
-import com.example.passenger_service.model.dto.RegisterPassengerDto;
 import com.example.passenger_service.model.dto.UpdatePassengerDto;
-import com.example.passenger_service.model.events.UserCreatedEvent;
+import com.example.passenger_service.model.events.UserRegisteredEvent;
 import com.example.passenger_service.repo.PassengerRepo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 
 @RequiredArgsConstructor
 @Service
@@ -30,64 +23,44 @@ import java.util.concurrent.ExecutionException;
 public class PassengerService {
     private final PassengerRepo passengerRepo;
     private final PassengerMapper passengerMapper;
-    private final PasswordEncoder passwordEncoder;
     private final RatingServiceClient ratingServiceClient;
-    private final KafkaTemplate<String, String> kafkaTemplate;
-
-    @Value("${spring.kafka.topic.rides.users}")
-    private String userTopicName;
-    @Value("${spring.kafka.event.user-created}")
-    private String userCreatedEventName;
 
     @Transactional
-    public String registerPassenger(RegisterPassengerDto request) {
-        if (passengerRepo.existsByEmail(request.email())) {
-            throw new AlreadyExistsException("Email already exists!");
-        }
+    public String completeProfile(
+            UUID id,
+            CompleteProfileRequestDto request) {
+
+        var passenger = passengerRepo.findById(id)
+                .orElseThrow(() ->
+                        new PassengerNotFoundException("passenger with id=" + id + "not found!"));
+
         if (passengerRepo.existsByPhoneNumber(request.phoneNumber())) {
             throw new AlreadyExistsException("Phone number already exists!");
         }
-        var passenger = passengerMapper.toEntity(request);
-        passenger.setPassword(passwordEncoder.encode(request.password()));
 
-        var savedPassenger = passengerRepo.save(passenger);
-        log.info("Passenger registered successfully with email: {}", request.email());
+        passengerMapper.updateEntity(passenger, request);
 
-        var record = new ProducerRecord<>(
-                userTopicName,
-                UUID.randomUUID().toString(),
-                new UserCreatedEvent(
-                        savedPassenger.getId(),
-                        "passenger"
-                ).toString()
-        );
+        passengerRepo.save(passenger);
+        log.info("Passenger profile successfully completed. email: {}", passenger.getEmail());
 
-        record.headers().add("eventType", userCreatedEventName.getBytes());
+        return "Hi," + passenger.getName() + ", your profile successfully saved!";
+    }
 
-        try {
-            kafkaTemplate.send(record).get();
-        } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException(e);
-        }
-
-        return "Hi," + savedPassenger.getName() + ", you are registered successfully!";
+    @Transactional
+    public void save(UserRegisteredEvent event) {
+        passengerRepo.findByEmail(event.email())
+                .ifPresentOrElse(existingPassenger -> {
+                            if (existingPassenger.getId().equals(event.userId())) {
+                                log.info("этот пассажир уже существует");
+                            } else {
+                                log.info("почта: {} уже занята", event.email());
+                            }
+                        },
+                        () -> passengerRepo.save(passengerMapper.toEntity(event))
+                );
     }
 
     @Transactional(readOnly = true)
-    public String loginPassenger(LoginPassengerDto request) {
-        var passenger = passengerRepo.findByEmail(request.email())
-                .orElseThrow(() -> {
-                    log.info("Incorrect email: {}", request.email());
-                    return new InvalidCredentialsException("Incorrect email or password!");
-                });
-        if (passwordEncoder.matches(request.password(), passenger.getPassword())) {
-            return "Hi," + passenger.getName() + ", you are with us again!";
-        } else {
-            log.info("Incorrect password, email: {}", request.email());
-            throw new InvalidCredentialsException("Incorrect email or password!");
-        }
-    }
-
     public PassengerResponseDto findPassengerById(UUID id) {
         var passenger = passengerRepo.findById(id)
                 .orElseThrow(() -> {

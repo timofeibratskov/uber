@@ -104,6 +104,28 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_ENABLE_KRAFT: "false"
 
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_PLUGINS_ENABLE_MARKETPLACE=false
+      - GF_PLUGINS_INSTALL_PLUGINS=false
+      - GF_INSTALL_PLUGINS=
+      - GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+
 volumes:
   passenger_data:
   driver_data:
