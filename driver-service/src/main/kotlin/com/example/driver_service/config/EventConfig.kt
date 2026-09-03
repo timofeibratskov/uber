@@ -5,7 +5,7 @@ import com.example.driver_service.model.event.DriverSearchingEvent
 import com.example.driver_service.model.event.NoDriversEvent
 import com.example.driver_service.model.event.RideCanceledEvent
 import com.example.driver_service.model.event.RideCompletedEvent
-import com.example.driver_service.model.event.UserCreatedEvent
+import com.example.driver_service.model.event.UserRegisteredEvent
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -29,7 +29,7 @@ class EventConfig(
         map[rideCompleted] = RideCompletedEvent::class.java
         map[driverAssigned] = DriverAssignedEvent::class.java
         map[noDrivers] = NoDriversEvent::class.java
-        map[userCreated] = UserCreatedEvent::class.java
+        map[userCreated] = UserRegisteredEvent::class.java
 
         return map
     }

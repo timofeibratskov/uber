@@ -39,7 +39,6 @@ dependencies {
 	implementation("org.springframework.cloud:spring-cloud-starter-openfeign")
 	runtimeOnly("org.postgresql:postgresql")
 	implementation("org.springframework.boot:spring-boot-starter-data-redis")
-	implementation("org.springframework.security:spring-security-crypto")
 	implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
 	implementation("org.mapstruct:mapstruct:1.5.5.Final")
 	implementation("org.springframework.kafka:spring-kafka")

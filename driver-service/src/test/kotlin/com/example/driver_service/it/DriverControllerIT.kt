@@ -5,11 +5,10 @@ import com.example.driver_service.constant.RedisSchema
 import com.example.driver_service.exception.models.ErrorResponse
 import com.example.driver_service.exception.models.ValidationErrorResponse
 import com.example.driver_service.model.dto.CarResponseDto
+import com.example.driver_service.model.dto.CompleteProfileRequestDto
 import com.example.driver_service.model.dto.CreateCarDto
 import com.example.driver_service.model.dto.DriverRatingResponse
 import com.example.driver_service.model.dto.DriverResponseDto
-import com.example.driver_service.model.dto.LoginDriverDto
-import com.example.driver_service.model.dto.RegisterDriverDto
 import com.example.driver_service.model.dto.UpdateCarDto
 import com.example.driver_service.model.dto.UpdateDriverDto
 import com.example.driver_service.model.entity.CarEntity
@@ -46,12 +45,10 @@ import org.springframework.http.HttpEntity
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
-import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 
 class DriverControllerIT @Autowired constructor(
     private val restTemplate: TestRestTemplate,
-    private val passwordEncoder: PasswordEncoder,
     private val driverRepository: DriverRepository,
     private val carRepository: CarRepository,
     private val redisTemplate: RedisTemplate<String, Any>,
@@ -71,98 +68,66 @@ class DriverControllerIT @Autowired constructor(
     }
 
     @Test
-    @DisplayName("Успешная регистрация нового водителя")
-    fun registerDriverWhenRequestIsValidReturnsCreated() {
+    @DisplayName("Успешное сохранение профиля нового водителя")
+    fun completeProfileWhenRequestIsValidReturnsCreated() {
         // Arrange
-        val registerDto = RegisterDriverDto(
+        val entity = DriverEntity(
+            id = UUID.randomUUID(),
+            email = "email@gmil.com"
+        )
+
+        driverRepository.save(entity)
+
+        val registerDto = CompleteProfileRequestDto(
             name = "John",
-            password = "password123",
-            email = "john@example.com",
             phoneNumber = "+375291234567",
             gender = Gender.MALE
         )
 
         // Act
         val response = restTemplate.postForEntity<String>(
-            "/api/v1/drivers/register",
-            registerDto
-        )
+            "/api/v1/drivers/${entity.id}/profile",
+            registerDto)
 
         // Assert
         assertThat(response.statusCode).isEqualTo(HttpStatus.CREATED)
         assertThat(response.body).isNotNull
 
-        val savedDriver = driverRepository.findByEmail(registerDto.email)
-        assertThat(savedDriver).isNotNull
-        assertThat(savedDriver?.phoneNumber).isEqualTo(registerDto.phoneNumber)
-        assertThat(savedDriver?.gender).isEqualTo(Gender.MALE)
+        val savedEntity = driverRepository.findById(entity.id)
+
+        assertEquals(savedEntity?.name,registerDto.name)
     }
 
+
+
     @Test
-    @DisplayName("Ошибка регистрации: почта уже есть")
-    fun registerDriverWhenEmailExistsReturnsOk() {
+    @DisplayName("Ошибка заполнения профиля: телефон уже есть")
+    fun registerDriverWhenPhoneExistsReturnsOk() {
         // Arrange
-        val driverId = UUID.randomUUID()
         val existingDriver = DriverEntity(
-            id = driverId,
-            name = "Old Name",
-            email = "existsmail@example.com",
-            password = "password",
+            id = UUID.randomUUID(),
+            name = "john",
+            email = "mail@example.com",
             phoneNumber = "+375290000000",
             gender = Gender.MALE,
             carId = null
         )
-        driverRepository.save(existingDriver)
-
-        val registerDto = RegisterDriverDto(
-            name = "New Name",
-            password = "password",
-            email = "existsmail@example.com",
-            phoneNumber = "+375299999999",
-            gender = Gender.MALE
-        )
-
-        // Act
-        val errorResponse = restTemplate.postForEntity<ErrorResponse>(
-            "/api/v1/drivers/register",
-            registerDto
-        )
-
-        // Assert
-        assertThat(errorResponse.statusCode).isEqualTo(HttpStatus.CONFLICT)
-        assertThat(errorResponse.body).isNotNull
-        assertEquals("Email already registered", errorResponse.body!!.message)
-        assertEquals("CONFLICT", errorResponse.body!!.code)
-    }
-
-    @Test
-    @DisplayName("Ошибка регистрации: почта уже есть")
-    fun registerDriverWhenPhoneExistsReturnsOk() {
-        // Arrange
-        val driverId = UUID.randomUUID()
-        val phoneNumber = "+375290000000"
-        val existingDriver = DriverEntity(
-            id = driverId,
-            name = "john",
-            email = "mail@example.com",
-            password = "password",
-            phoneNumber = phoneNumber,
-            gender = Gender.MALE,
-            carId = null
+        val driver = DriverEntity(
+            id = UUID.randomUUID(),
+            email = "mail2@example.com",
         )
         driverRepository.save(existingDriver)
+        driverRepository.save(driver)
 
-        val registerDto = RegisterDriverDto(
+        val registerDto = CompleteProfileRequestDto(
             name = "john1",
-            password = "password",
-            email = "johnmail@example.com",
-            phoneNumber = phoneNumber,
+            phoneNumber = existingDriver.phoneNumber,
             gender = Gender.MALE
         )
 
         // Act
         val errorResponse = restTemplate.postForEntity<ErrorResponse>(
-            "/api/v1/drivers/register",
+            "/api/v1/drivers/${driver.id}/profile",
             registerDto
         )
 
@@ -171,104 +136,6 @@ class DriverControllerIT @Autowired constructor(
         assertThat(errorResponse.body).isNotNull
         assertEquals("Phone number already registered", errorResponse.body!!.message)
         assertEquals("CONFLICT", errorResponse.body!!.code)
-    }
-
-    @Test
-    @DisplayName("Успешный логин при верных учетных данных")
-    fun loginWhenCredentialsAreCorrectReturnsOk() {
-        // Arrange
-        val password = "correct_password"
-        val email = "john@example.com"
-        val driver = DriverEntity(
-            id = UUID.randomUUID(),
-            name = "john",
-            email = email,
-            password = passwordEncoder.encode(password),
-            phoneNumber = "+375291111111",
-            gender = Gender.MALE,
-            carId = null
-        )
-        driverRepository.save(driver)
-
-        val loginDto = LoginDriverDto(
-            email = email,
-            password = password
-        )
-
-        // Act
-        val response = restTemplate.postForEntity<String>(
-            "/api/v1/drivers/login",
-            loginDto
-        )
-
-        // Assert
-        assertThat(response.statusCode).isEqualTo(HttpStatus.OK)
-        assertThat(response.body).isNotNull
-    }
-
-    @Test
-    @DisplayName("Ошибка логина при неверном пароле")
-    fun loginWhenPasswordIsInvalidReturnsUnauthorized() {
-        // Arrange
-        val email = "user@example.com"
-        val loginDto = LoginDriverDto(
-            email = email,
-            password = "wrong_password"
-        )
-        val driver = DriverEntity(
-            id = UUID.randomUUID(),
-            name = "john",
-            email = email,
-            password = passwordEncoder.encode("password"),
-            phoneNumber = "+375291111111",
-            gender = Gender.MALE,
-            carId = null
-        )
-        driverRepository.save(driver)
-
-        // Act
-        val response = restTemplate.postForEntity<ErrorResponse>(
-            "/api/v1/drivers/login",
-            loginDto
-        )
-
-        // Assert
-        assertThat(response.statusCode).isEqualTo(HttpStatus.UNAUTHORIZED)
-        assertThat(response.body).isNotNull
-        assertThat(response.body?.code).isEqualTo("UNAUTHORIZED")
-        assertEquals("Invalid email or password", response.body!!.message)
-    }
-
-    @Test
-    @DisplayName("Ошибка логина при неверной почте")
-    fun loginWhenEmailIsNotExistsReturnsUnauthorized() {
-        // Arrange
-        val loginDto = LoginDriverDto(
-            email = "uuuser@example.com",
-            password = "password"
-        )
-        val driver = DriverEntity(
-            id = UUID.randomUUID(),
-            name = "john",
-            email = "user@example.com",
-            password = "password",
-            phoneNumber = "+375291111111",
-            gender = Gender.MALE,
-            carId = null
-        )
-        driverRepository.save(driver)
-
-        // Act
-        val response = restTemplate.postForEntity<ErrorResponse>(
-            "/api/v1/drivers/login",
-            loginDto
-        )
-
-        // Assert
-        assertThat(response.statusCode).isEqualTo(HttpStatus.UNAUTHORIZED)
-        assertThat(response.body).isNotNull
-        assertThat(response.body?.code).isEqualTo("UNAUTHORIZED")
-        assertEquals("Invalid email or password", response.body!!.message)
     }
 
     @Test
@@ -337,7 +204,6 @@ class DriverControllerIT @Autowired constructor(
             id = driverId,
             name = "Postgres User",
             email = "postgres@example.com",
-            password = passwordEncoder.encode("password"),
             phoneNumber = "+375291234567",
             gender = Gender.MALE,
             carId = null
@@ -377,7 +243,6 @@ class DriverControllerIT @Autowired constructor(
             id = driverId,
             name = "John",
             email = "john@example.com",
-            password = "password123",
             phoneNumber = "+375291111111",
             gender = Gender.MALE,
             carId = null,
@@ -416,7 +281,6 @@ class DriverControllerIT @Autowired constructor(
             id = driverId,
             name = "John",
             email = "john@example.com",
-            password = "password",
             phoneNumber = "+375291111111",
             gender = Gender.MALE,
             carId = null,
@@ -425,7 +289,6 @@ class DriverControllerIT @Autowired constructor(
             id = otherId,
             name = "Other Driver",
             email = "other@example.com",
-            password = "password",
             phoneNumber = "+375299999999",
             gender = Gender.MALE,
             carId = null,
@@ -485,7 +348,6 @@ class DriverControllerIT @Autowired constructor(
             id = driverId,
             name = "John",
             email = "john.car@example.com",
-            password = "hashed_password",
             phoneNumber = "+375291111111",
             gender = Gender.MALE,
             carId = null
@@ -527,7 +389,6 @@ class DriverControllerIT @Autowired constructor(
                 id = driverId,
                 name = "John",
                 email = "john2@example.com",
-                password = "pass",
                 phoneNumber = "+375292222222",
                 gender = Gender.MALE,
                 carId = null
@@ -578,7 +439,6 @@ class DriverControllerIT @Autowired constructor(
             id = id,
             name = "John",
             email = "john.cars@example.com",
-            password = "password",
             phoneNumber = "+375291111111",
             gender = Gender.MALE,
             carId = null
@@ -637,7 +497,6 @@ class DriverControllerIT @Autowired constructor(
             id = driverId,
             name = "John",
             email = "john.main@example.com",
-            password = "pass",
             phoneNumber = "+375291111111",
             gender = Gender.MALE,
             carId = null
@@ -681,7 +540,6 @@ class DriverControllerIT @Autowired constructor(
             DriverEntity(
                 id = johnId, name = "John",
                 email = "john.fake@example.com",
-                password = "pass",
                 phoneNumber = "+375292222222",
                 gender = Gender.MALE,
                 carId = null
@@ -728,7 +586,6 @@ class DriverControllerIT @Autowired constructor(
             id = driverId,
             name = "John",
             email = "john.updatecar@example.com",
-            password = "pass",
             phoneNumber = "+375291111111",
             gender = Gender.MALE,
             carId = null
@@ -784,7 +641,6 @@ class DriverControllerIT @Autowired constructor(
             id = driver1Id,
             name = "John One",
             email = "john1@example.com",
-            password = "password",
             phoneNumber = "+375291111111",
             gender = Gender.MALE,
             carId = null
@@ -794,7 +650,6 @@ class DriverControllerIT @Autowired constructor(
             id = driver2Id,
             name = "John Two",
             email = "john2@example.com",
-            password = "password",
             phoneNumber = "+375292222222",
             gender = Gender.MALE,
             carId = null
@@ -849,7 +704,6 @@ class DriverControllerIT @Autowired constructor(
             id = driverId,
             name = "John",
             email = "john.valid@example.com",
-            password = "pass",
             phoneNumber = "+375293333333",
             gender = Gender.MALE,
             carId = null
@@ -893,7 +747,6 @@ class DriverControllerIT @Autowired constructor(
             id = driverId,
             name = "John",
             email = "john.delete@example.com",
-            password = "pass",
             phoneNumber = "+375291111111",
             gender = Gender.MALE,
             carId = null
@@ -940,7 +793,7 @@ class DriverControllerIT @Autowired constructor(
 
         val driver = DriverEntity(
             id = driverId, name = "John", email = "john.multi@example.com",
-            password = "pass", phoneNumber = "+375292222222",
+            phoneNumber = "+375292222222",
             gender = Gender.MALE,
             carId = null
         )
@@ -987,7 +840,6 @@ class DriverControllerIT @Autowired constructor(
             id = driverId,
             name = "John",
             email = "john.getcar@example.com",
-            password = "password",
             phoneNumber = "+375291111111",
             gender = Gender.MALE,
             carId = null
@@ -1031,7 +883,6 @@ class DriverControllerIT @Autowired constructor(
             id = driverId,
             name = "john",
             email = "john@test.com",
-            password = "password",
             phoneNumber = "+375290000000",
             gender = Gender.MALE,
             carId = null,
@@ -1074,7 +925,6 @@ class DriverControllerIT @Autowired constructor(
             id = driverId,
             name = "john",
             email = "john@test.com",
-            password = "password",
             phoneNumber = "+375290000000",
             gender = Gender.MALE,
             carId = null,
@@ -1116,7 +966,6 @@ class DriverControllerIT @Autowired constructor(
             id = driverId,
             name = "NoCarDriver",
             email = "nocar@test.com",
-            password = "password",
             phoneNumber = "+375291112233",
             gender = Gender.OTHER,
             carId = null,

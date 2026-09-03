@@ -4,8 +4,6 @@ import com.example.driver_service.client.RatingServiceClient
 import com.example.driver_service.constant.RedisSchema
 import com.example.driver_service.exception.DriverIncompleteProfileException
 import com.example.driver_service.exception.DriverNotFoundException
-import com.example.driver_service.exception.EmailAlreadyExistsException
-import com.example.driver_service.exception.InvalidCredentialsException
 import com.example.driver_service.exception.InvalidStatusTransitionException
 import com.example.driver_service.exception.PhoneNumberAlreadyExistsException
 import com.example.driver_service.mapper.CarMapper
@@ -13,11 +11,10 @@ import com.example.driver_service.mapper.DriverMapper
 import com.example.driver_service.model.dto.CarResponseDto
 import com.example.driver_service.model.dto.CreateCarDto
 import com.example.driver_service.model.dto.DriverResponseDto
-import com.example.driver_service.model.dto.LoginDriverDto
-import com.example.driver_service.model.dto.RegisterDriverDto
+import com.example.driver_service.model.dto.CompleteProfileRequestDto
 import com.example.driver_service.model.dto.UpdateDriverDto
 import com.example.driver_service.model.enums.WorkStatus
-import com.example.driver_service.model.event.UserCreatedEvent
+import com.example.driver_service.model.event.UserRegisteredEvent
 import com.example.driver_service.model.view.DriverView
 import com.example.driver_service.repository.DriverRepository
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -25,9 +22,7 @@ import java.math.BigDecimal
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import mu.KotlinLogging
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.redis.core.StringRedisTemplate
-import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -36,45 +31,53 @@ class DriverService(
     private val driverMapper: DriverMapper,
     private val carMapper: CarMapper,
     private val driverRepository: DriverRepository,
-    private val passwordEncoder: PasswordEncoder,
     private val carService: CarService,
     private val locationService: LocationService,
     private val ratingServiceClient: RatingServiceClient,
     private val driverCache: StringRedisTemplate,
     private val objectMapper: ObjectMapper,
-    private val outboxService: OutboxEventService,
 
-    @param:Value("\${spring.kafka.topic.rides.users}") private val usersTopic: String,
-    @param:Value("\${spring.kafka.event.user-created}") private val userCreatedEventType: String
-) {
+    ) {
     companion object {
         private val log = KotlinLogging.logger {}
     }
 
     @Transactional
-    fun register(dto: RegisterDriverDto): String {
-        log.info { "Registering new driver with email: ${dto.email}" }
-
-        if (driverRepository.existsByEmail(dto.email) == 1) {
-            log.warn { "Registration failed: email ${dto.email} already exists" }
-            throw EmailAlreadyExistsException("Email already registered")
+    fun save(event: UserRegisteredEvent) {
+        driverRepository.findByEmail(event.email)
+            ?.let { existingDriver ->
+                if (existingDriver.id == event.userId) {
+                    log.info("этот водитель уже существует")
+                    return
+                }
+                log.info("почта: ${event.email} уже существует")
+                return
+            } ?: run {
+            driverRepository.save(driverMapper.toEntity(event))
         }
+    }
+
+    @Transactional
+    fun completeProfile(
+        id: UUID,
+        dto: CompleteProfileRequestDto
+    ): String {
+        val driver = driverRepository.findById(id)
+            ?: throw DriverNotFoundException("Driver not found with ID: $id").also {
+                log.error { "filling profile failed: ${it.message}" }
+            }
+
         if (driverRepository.existsByPhoneNumber(dto.phoneNumber) == 1) {
             log.warn { "Registration failed: phone ${dto.phoneNumber} already exists" }
             throw PhoneNumberAlreadyExistsException("Phone number already registered")
         }
 
-        val driver = driverMapper.toEntity(dto)
-        driver.password = passwordEncoder.encode(dto.password)
+        driverMapper.updateEntity(driver, dto)
 
-        driverRepository.save(driver)
-        log.info { "Driver registered successfully with ID: ${driver.id}" }
+        driverRepository.update(driver)
+        log.info { "Driver profile successfully saved with ID: ${driver.id}" }
 
-        val event = UserCreatedEvent(driver.id, "driver").toString()
-
-        outboxService.saveEvent(event, userCreatedEventType, usersTopic)
-
-        return "Hi, ${driver.name}, you are registered successfully!"
+        return "Hi, ${dto.name}, your profile successfully saved!"
     }
 
     fun findById(id: UUID): DriverResponseDto {
@@ -108,23 +111,6 @@ class DriverService(
         }
 
         return result
-    }
-
-    @Transactional(readOnly = true)
-    fun login(dto: LoginDriverDto): String {
-        log.info { "Login attempt for email: ${dto.email}" }
-        val driver = driverRepository.findByEmail(dto.email)
-            ?: throw InvalidCredentialsException("Invalid email or password").also {
-                log.warn { "Login failed: driver with email ${dto.email} not found" }
-            }
-
-        if (passwordEncoder.matches(dto.password, driver.password)) {
-            log.info { "Login successful for driver: ${driver.email}" }
-            return "Hi, ${driver.name}, you are with us again!"
-        } else {
-            log.warn { "Login failed: incorrect password for email ${dto.email}" }
-            throw InvalidCredentialsException("Invalid email or password")
-        }
     }
 
     @Transactional

@@ -3,8 +3,7 @@ package com.example.driver_service.controller.rest
 import com.example.driver_service.model.dto.CarResponseDto
 import com.example.driver_service.model.dto.CreateCarDto
 import com.example.driver_service.model.dto.DriverResponseDto
-import com.example.driver_service.model.dto.LoginDriverDto
-import com.example.driver_service.model.dto.RegisterDriverDto
+import com.example.driver_service.model.dto.CompleteProfileRequestDto
 import com.example.driver_service.model.dto.UpdateCarDto
 import com.example.driver_service.model.dto.UpdateDriverDto
 import com.example.driver_service.model.enums.WorkStatus
@@ -32,17 +31,12 @@ class DriverController(
     private val carService: CarService,
     private val locationService: LocationService
 ) {
-    @PostMapping("/register")
-    fun register(@Valid @RequestBody dto: RegisterDriverDto):
+    @PostMapping("/{id}/profile")
+    fun register(@Valid @RequestBody dto: CompleteProfileRequestDto,
+                 @PathVariable id: UUID,):
             ResponseEntity<String> {
         return ResponseEntity.status(HttpStatus.CREATED)
-            .body(driverService.register(dto))
-    }
-
-    @PostMapping("/login")
-    fun login(@Valid @RequestBody dto: LoginDriverDto):
-            ResponseEntity<String> {
-        return ResponseEntity.ok(driverService.login(dto))
+            .body(driverService.completeProfile(id,dto))
     }
 
     @GetMapping("/{id}")

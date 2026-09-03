@@ -4,23 +4,21 @@ import com.example.driver_service.client.RatingServiceClient
 import com.example.driver_service.constant.RedisSchema
 import com.example.driver_service.exception.DriverIncompleteProfileException
 import com.example.driver_service.exception.DriverNotFoundException
-import com.example.driver_service.exception.EmailAlreadyExistsException
-import com.example.driver_service.exception.InvalidCredentialsException
 import com.example.driver_service.exception.InvalidStatusTransitionException
 import com.example.driver_service.exception.PhoneNumberAlreadyExistsException
 import com.example.driver_service.mapper.CarMapper
 import com.example.driver_service.mapper.DriverMapper
 import com.example.driver_service.model.dto.CarResponseDto
+import com.example.driver_service.model.dto.CompleteProfileRequestDto
 import com.example.driver_service.model.dto.CreateCarDto
 import com.example.driver_service.model.dto.DriverRatingResponse
 import com.example.driver_service.model.dto.DriverResponseDto
-import com.example.driver_service.model.dto.LoginDriverDto
-import com.example.driver_service.model.dto.RegisterDriverDto
 import com.example.driver_service.model.dto.UpdateDriverDto
 import com.example.driver_service.model.entity.CarEntity
 import com.example.driver_service.model.entity.DriverEntity
 import com.example.driver_service.model.enums.Gender
 import com.example.driver_service.model.enums.WorkStatus
+import com.example.driver_service.model.event.UserRegisteredEvent
 import com.example.driver_service.model.view.CarView
 import com.example.driver_service.model.view.DriverView
 import com.example.driver_service.repository.DriverRepository
@@ -28,6 +26,7 @@ import com.example.driver_service.service.CarService
 import com.example.driver_service.service.DriverService
 import com.example.driver_service.service.LocationService
 import com.fasterxml.jackson.databind.ObjectMapper
+import io.mockk.Runs
 import io.mockk.every
 import io.mockk.impl.annotations.InjectMockKs
 import io.mockk.impl.annotations.MockK
@@ -50,7 +49,6 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.data.redis.core.ValueOperations
 import org.springframework.http.ResponseEntity
-import org.springframework.security.crypto.password.PasswordEncoder
 
 @ExtendWith(MockKExtension::class)
 class DriverServiceTest {
@@ -60,9 +58,6 @@ class DriverServiceTest {
 
     @MockK
     lateinit var driverMapper: DriverMapper
-
-    @MockK
-    lateinit var passwordEncoder: PasswordEncoder
 
     @MockK
     lateinit var carMapper: CarMapper
@@ -89,96 +84,114 @@ class DriverServiceTest {
     lateinit var driverService: DriverService
 
     @Test
-    @DisplayName("Регистрация водителя: успешный сценарий")
-    fun register_Success() {
+    @DisplayName("сохранение Профиля водителя: успешный сценарий")
+    fun completeProfile_Success() {
         // Arrange
-        val dto = RegisterDriverDto(
+        val dto = CompleteProfileRequestDto(
             name = "Тимофей",
-            email = "tim@example.com",
-            password = "raw_password",
             phoneNumber = "+375291234567",
             gender = Gender.MALE
         )
 
-        val driverId = UUID.randomUUID()
-        val encodedPassword = "encoded_password"
-
-        val driverEntity = DriverEntity(
-            id = driverId,
-            name = "Тимофей",
-            email = "tim@example.com",
-            password = "raw_password",
-            phoneNumber = "+375291234567",
-            gender = Gender.MALE,
-            carId = null
+        val entity = DriverEntity(
+            id = UUID.randomUUID(),
+            email = "tim@example.com"
         )
 
-        every { driverRepository.existsByEmail(dto.email) } returns 0
+        every { driverRepository.findById(entity.id) } returns entity
         every { driverRepository.existsByPhoneNumber(dto.phoneNumber) } returns 0
-        every { driverMapper.toEntity(dto) } returns driverEntity
-        every { passwordEncoder.encode(dto.password) } returns encodedPassword
-        every { driverRepository.save(any()) } returns 1
+        every { driverMapper.updateEntity(entity, dto) } just Runs
+        every { driverRepository.update(entity) } just Runs
 
         // Act
-        val result = driverService.register(dto)
+        val result = driverService.completeProfile(entity.id, dto)
 
         // Assert
-        assertEquals("Hi, ${driverEntity.name}, you are registered successfully!", result)
+        assertEquals("Hi, ${dto.name}, your profile successfully saved!", result)
 
-        assertEquals(encodedPassword, driverEntity.password)
-        verify(exactly = 1) { driverRepository.save(driverEntity) }
-        verify(exactly = 1) { passwordEncoder.encode("raw_password") }
+        verify(exactly = 1) { driverRepository.update(entity) }
     }
 
     @Test
-    @DisplayName("Регистрация водителя: ошибка при существующем email")
-    fun register_ThrowsEmailAlreadyExists() {
+    @DisplayName("сохранение Профиля водителя: ошибка при существующем номере телефона")
+    fun completeProfile_ThrowsPhoneNumberAlreadyExists() {
         // Arrange
-        val dto = RegisterDriverDto(
+        val dto = CompleteProfileRequestDto(
             name = "Test",
-            email = "exists@example.com",
-            password = "password",
-            phoneNumber = "+375291111111",
-            gender = Gender.OTHER
-        )
-
-        every { driverRepository.existsByEmail(dto.email) } returns 1
-
-        // Act
-        val exception = assertThrows<EmailAlreadyExistsException> {
-            driverService.register(dto)
-        }
-
-        // Assert
-        assertEquals("Email already registered", exception.message)
-        verify(exactly = 1) { driverRepository.existsByEmail(dto.email) }
-        verify(exactly = 0) { driverRepository.save(any()) }
-    }
-
-    @Test
-    @DisplayName("Регистрация водителя: ошибка при существующем номере телефона")
-    fun register_ThrowsPhoneNumberAlreadyExists() {
-        // Arrange
-        val dto = RegisterDriverDto(
-            name = "Test",
-            email = "new@example.com",
-            password = "password",
             phoneNumber = "+375290000000",
             gender = Gender.OTHER
         )
 
-        every { driverRepository.existsByEmail(dto.email) } returns 0
+        val entity = DriverEntity(
+            id = UUID.randomUUID(),
+            email = "tim@example.com"
+        )
+
+        every { driverRepository.findById(entity.id) } returns entity
         every { driverRepository.existsByPhoneNumber(dto.phoneNumber) } returns 1
 
         // Act
         val exception = assertThrows<PhoneNumberAlreadyExistsException> {
-            driverService.register(dto)
+            driverService.completeProfile(entity.id, dto)
         }
 
         // Assert
         assertEquals("Phone number already registered", exception.message)
         verify(exactly = 1) { driverRepository.existsByPhoneNumber(dto.phoneNumber) }
-        verify(exactly = 0) { driverRepository.save(any()) }
+        verify(exactly = 0) { driverRepository.update(any()) }
+    }
+
+    @Test
+    @DisplayName("сохранение нового водителя: успешный сценарий")
+    fun save_Success() {
+        // Arrange
+        val event = UserRegisteredEvent(
+            userId = UUID.randomUUID(),
+            email = "user@example.com",
+            type = "DRIVER"
+        )
+
+        val entity = DriverEntity(
+            id = event.userId,
+            email = event.email
+        )
+
+        every { driverRepository.findByEmail(entity.email) } returns null
+        every { driverMapper.toEntity(event) } returns entity
+        every { driverRepository.save(entity) } returns 1
+
+        // Act
+        driverService.save(event)
+
+        // Assert
+        verify(exactly = 1) { driverRepository.findByEmail(event.email) }
+        verify(exactly = 1) { driverMapper.toEntity(event) }
+        verify(exactly = 1) { driverRepository.save(entity) }
+    }
+    @Test
+    @DisplayName("Ошибка сохранения нового водителя: уже есть такая почта")
+    fun save_IgnoreSaving() {
+        // Arrange
+        val event = UserRegisteredEvent(
+            userId = UUID.randomUUID(),
+            email = "user@example.com",
+            type = "DRIVER"
+        )
+
+        val entity = DriverEntity(
+            id = UUID.randomUUID(),
+            email = event.email
+        )
+
+        every { driverRepository.findByEmail(entity.email) } returns entity
+
+        // Act
+        driverService.save(event)
+
+        // Assert
+        verify(exactly = 1) { driverRepository.findByEmail(event.email) }
+        verify(exactly = 0) { driverMapper.toEntity(event) }
+        verify(exactly = 0) { driverRepository.save(entity) }
     }
 
     @Test
@@ -257,7 +270,6 @@ class DriverServiceTest {
             id = driverId,
             name = "Timofei",
             email = "tim@example.com",
-            password = "encoded_password",
             phoneNumber = "+375291112233",
             gender = Gender.MALE,
             carId = carId,
@@ -339,99 +351,6 @@ class DriverServiceTest {
         verify(exactly = 0) { objectMapper.writeValueAsString(any()) }
     }
 
-    @Test
-    @DisplayName("Вход в систему: успешный сценарий")
-    fun login_Success() {
-        // Arrange
-        val loginDto = LoginDriverDto(
-            email = "tim@example.com",
-            password = "raw_password"
-        )
-
-        val driverId = UUID.randomUUID()
-        val carId = UUID.randomUUID()
-        val encodedPassword = "encoded_password"
-
-        val driverEntity = DriverEntity(
-            id = driverId,
-            name = "Timofei",
-            email = "tim@example.com",
-            password = encodedPassword,
-            phoneNumber = "+375291112233",
-            gender = Gender.MALE,
-            carId = carId
-        )
-
-
-        every { driverRepository.findByEmail(loginDto.email) } returns driverEntity
-        every { passwordEncoder.matches(loginDto.password, encodedPassword) } returns true
-
-        // Act
-        val result = driverService.login(loginDto)
-
-        // Assert
-        assertEquals("Hi, ${driverEntity.name}, you are with us again!", result)
-        verify(exactly = 1) { driverRepository.findByEmail(loginDto.email) }
-        verify(exactly = 1) { passwordEncoder.matches("raw_password", encodedPassword) }
-    }
-
-    @Test
-    @DisplayName("Вход в систему: ошибка при неверном пароле")
-    fun login_ThrowsInvalidCredentials_WhenPasswordIncorrect() {
-        // Arrange
-        val loginDto = LoginDriverDto(
-            email = "tim@example.com",
-            password = "wrong_password"
-        )
-
-        val driverId = UUID.randomUUID()
-        val encodedPassword = "encoded_password"
-
-        val driverEntity = DriverEntity(
-            id = driverId,
-            name = "Timofei",
-            email = "tim@example.com",
-            password = encodedPassword,
-            phoneNumber = "+375291112233",
-            gender = Gender.MALE,
-            carId = null
-        )
-
-        every { driverRepository.findByEmail(loginDto.email) } returns driverEntity
-        every { passwordEncoder.matches(loginDto.password, encodedPassword) } returns false
-
-        // Act
-        val exception = assertThrows<InvalidCredentialsException> {
-            driverService.login(loginDto)
-        }
-
-        // Assert
-        assertEquals("Invalid email or password", exception.message)
-        verify(exactly = 1) { driverRepository.findByEmail(loginDto.email) }
-        verify(exactly = 1) { passwordEncoder.matches("wrong_password", encodedPassword) }
-    }
-
-    @Test
-    @DisplayName("Вход в систему: ошибка если пользователь не найден")
-    fun login_ThrowsInvalidCredentials_WhenEmailNotFound() {
-        // Arrange
-        val loginDto = LoginDriverDto(
-            email = "notfound@example.com",
-            password = "any_password"
-        )
-
-        every { driverRepository.findByEmail(loginDto.email) } returns null
-
-        // Act
-        val exception = assertThrows<InvalidCredentialsException> {
-            driverService.login(loginDto)
-        }
-
-        // Assert
-        assertEquals("Invalid email or password", exception.message)
-        verify(exactly = 1) { driverRepository.findByEmail(loginDto.email) }
-        verify(exactly = 0) { passwordEncoder.matches(any(), any()) }
-    }
 
     @Test
     @DisplayName("Обновление профиля: успешный сценарий")
@@ -450,7 +369,6 @@ class DriverServiceTest {
             id = id,
             name = "Timofei Old",
             email = "tim@example.com",
-            password = "encoded_password",
             phoneNumber = "+375291112233",
             gender = Gender.OTHER,
             carId = carId
@@ -493,7 +411,6 @@ class DriverServiceTest {
             id = id,
             name = "Old Name",
             email = "tim@example.com",
-            password = "encoded_password",
             phoneNumber = "+375291112233",
             gender = Gender.MALE,
             carId = null
@@ -556,7 +473,6 @@ class DriverServiceTest {
             id = driverId,
             name = "Timofei",
             email = "tim@example.com",
-            password = "encoded_password",
             phoneNumber = "+375291112233",
             gender = Gender.MALE,
             carId = null
@@ -637,7 +553,6 @@ class DriverServiceTest {
             id = driverId,
             name = "Timofei",
             email = "tim@example.com",
-            password = "encoded_password",
             phoneNumber = "+375291112233",
             gender = Gender.MALE,
             carId = carId
@@ -669,7 +584,6 @@ class DriverServiceTest {
             id = driverId,
             name = "Timofei",
             email = "tim@example.com",
-            password = "encoded_password",
             phoneNumber = "+375291112233",
             gender = Gender.MALE,
             carId = activeCarId
@@ -720,7 +634,6 @@ class DriverServiceTest {
             id = driverId,
             name = "Timofei",
             email = "tim@example.com",
-            password = "encoded_password",
             phoneNumber = "+375291112233",
             gender = Gender.MALE,
             carId = oldCarId
@@ -762,7 +675,6 @@ class DriverServiceTest {
             id = driverId,
             name = "Timofei",
             email = "tim@example.com",
-            password = "encoded_password",
             phoneNumber = "+375291112233",
             gender = Gender.MALE,
             carId = carId
@@ -820,7 +732,6 @@ class DriverServiceTest {
             id = id,
             name = "john",
             email = "johhn@grsu.by",
-            password = "secure_password_hash",
             phoneNumber = "+375291112233",
             gender = Gender.OTHER,
             carId = carId,
@@ -850,7 +761,6 @@ class DriverServiceTest {
             id = id,
             name = "Ivan",
             email = "ivan@example.com",
-            password = "password123",
             phoneNumber = "+375336667788",
             gender = Gender.OTHER,
             carId = null,
@@ -877,7 +787,6 @@ class DriverServiceTest {
             id = id,
             name = "Dmitry",
             email = "dima@test.com",
-            password = "hidden_pass",
             phoneNumber = "+375259990011",
             gender = Gender.OTHER,
             carId = UUID.randomUUID(),
@@ -905,7 +814,6 @@ class DriverServiceTest {
             id = id,
             name = "Alex",
             email = "alex@mail.com",
-            password = "hash",
             phoneNumber = "+375441234567",
             gender = Gender.OTHER,
             carId = UUID.randomUUID(),

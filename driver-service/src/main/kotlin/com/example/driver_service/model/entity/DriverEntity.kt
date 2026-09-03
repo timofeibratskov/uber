@@ -10,7 +10,6 @@ data class DriverEntity(
     var id: UUID = UUID.randomUUID(),
     var name: String = "",
     var email: String = "",
-    var password: String = "",
     var phoneNumber: String = "",
     var gender: Gender = Gender.OTHER,
     var carId: UUID? = null,

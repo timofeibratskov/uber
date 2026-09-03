@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - changeSet:
+      id: 07-columns-can-be-null-in-driver
+      author: user
+      changes:
+        - dropNotNullConstraint:
+            tableName: driver_table
+            columnName: name
+            columnDataType: varchar(255)
+        - dropNotNullConstraint:
+            tableName: driver_table
+            columnName: phone_number
+            columnDataType: varchar(20)

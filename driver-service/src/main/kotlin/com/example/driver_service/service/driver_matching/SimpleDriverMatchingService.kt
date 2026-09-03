@@ -1,9 +1,12 @@
-package com.example.driver_service.service
+package com.example.driver_service.service.driver_matching
 
 import com.example.driver_service.model.enums.WorkStatus
 import com.example.driver_service.model.event.DriverSearchingEvent
 import com.example.driver_service.model.event.NoDriversEvent
 import com.example.driver_service.model.view.toAssignedDriverEvent
+import com.example.driver_service.service.DriverService
+import com.example.driver_service.service.LocationService
+import com.example.driver_service.service.OutboxEventService
 import mu.KotlinLogging
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service

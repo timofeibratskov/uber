@@ -25,15 +25,6 @@ class GlobalExceptionHandler {
         )
     }
 
-    @ExceptionHandler(InvalidCredentialsException::class)
-    fun handleInvalidCredentialsException(ex: InvalidCredentialsException):
-            ResponseEntity<ErrorResponse> {
-        return ResponseEntity(
-            ErrorResponse("UNAUTHORIZED", ex.message!!),
-            HttpStatus.UNAUTHORIZED
-        )
-    }
-
     @ExceptionHandler(CarLimitExceededException::class)
     fun handleCarLimitExceededException(ex: CarLimitExceededException):
             ResponseEntity<ErrorResponse> {
