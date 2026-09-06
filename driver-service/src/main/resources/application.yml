@@ -16,7 +16,7 @@ spring:
       rides.driver-matching: "rides.driver-matching"
       rides.users: "rides.users"
     event:
-      driver-searching: "DriverSearching"
+      payment-authorized: "PaymentAuthorized"
       driver-assigned: "DriverAssigned"
       no-drivers: "NoDrivers"
       ride-canceled: "RideCanceled"

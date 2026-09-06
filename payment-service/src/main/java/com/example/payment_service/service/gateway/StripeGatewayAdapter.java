@@ -1,7 +1,7 @@
-package com.example.payment_service.service;
+package com.example.payment_service.service.gateway;
 
 import com.example.payment_service.exception.StripeServiceException;
-import com.example.payment_service.model.dto.GatewayAuthorizationResult;
+import com.example.payment_service.model.dto.GatewayOperationResult;
 import com.stripe.StripeClient;
 import com.stripe.exception.StripeException;
 import com.stripe.model.PaymentIntent;
@@ -14,10 +14,12 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class StripeGatewayService {
+public class StripeGatewayAdapter
+        implements GatewayAdapter {
 
     private final StripeClient stripeClient;
 
+    @Override
     public String createAccount(String email) {
         try {
             var params = AccountCreateParams.builder()
@@ -32,7 +34,8 @@ public class StripeGatewayService {
         }
     }
 
-    public GatewayAuthorizationResult authorize(
+    @Override
+    public GatewayOperationResult authorize(
             Long amountInCents,
             String currency,
             String paymentMethodStripeToken
@@ -59,7 +62,8 @@ public class StripeGatewayService {
         }
     }
 
-    public GatewayAuthorizationResult capture(String intentId) {
+    @Override
+    public GatewayOperationResult capture(String intentId) {
         try {
             PaymentIntent intent = stripeClient.v1().paymentIntents().capture(intentId);
             return buildSuccessResult(intent);
@@ -68,7 +72,8 @@ public class StripeGatewayService {
         }
     }
 
-    public GatewayAuthorizationResult release(String intentId) {
+    @Override
+    public GatewayOperationResult release(String intentId) {
         try {
             PaymentIntent intent = stripeClient.v1().paymentIntents().cancel(intentId);
             return buildSuccessResult(intent);
@@ -77,21 +82,21 @@ public class StripeGatewayService {
         }
     }
 
-    private GatewayAuthorizationResult buildSuccessResult(PaymentIntent intent) {
+    private GatewayOperationResult buildSuccessResult(PaymentIntent intent) {
         var charge = intent.getLatestChargeObject();
 
-        return GatewayAuthorizationResult.builder()
+        return GatewayOperationResult.builder()
                 .isSuccess(true)
                 .intentId(intent.getId())
                 .chargeId(charge != null ? charge.getId() : null)
                 .build();
     }
 
-    private GatewayAuthorizationResult handleStripeException(StripeException e) {
+    private GatewayOperationResult handleStripeException(StripeException e) {
         log.error("Stripe error [{}]: code={}, message={}",
                 e.getClass().getSimpleName(), e.getCode(), e.getMessage());
 
-        return GatewayAuthorizationResult.builder()
+        return GatewayOperationResult.builder()
                 .isSuccess(false)
                 .errorMessage(e.getMessage())
                 .build();

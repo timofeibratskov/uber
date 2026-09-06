@@ -9,9 +9,9 @@ public record AuthorizeFailedEvent(
         UUID rideId,
         String errorMessage
 ) {
-    public static AuthorizeFailedEvent create(RideCreatedEvent event, String message) {
+    public static AuthorizeFailedEvent create(UUID rideId, String message) {
         return AuthorizeFailedEvent.builder()
-                .rideId(event.rideId())
+                .rideId(rideId)
                 .errorMessage(message)
                 .build();
     }

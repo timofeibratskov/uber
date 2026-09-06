@@ -1,7 +1,7 @@
 package com.example.driver_service.service.driver_matching
 
 import com.example.driver_service.model.enums.WorkStatus
-import com.example.driver_service.model.event.DriverSearchingEvent
+import com.example.driver_service.model.event.PaymentAuthorizedEvent
 import com.example.driver_service.model.event.NoDriversEvent
 import com.example.driver_service.model.view.toAssignedDriverEvent
 import com.example.driver_service.service.DriverService
@@ -27,7 +27,7 @@ class SimpleDriverMatchingService(
     }
 
     @Transactional
-    override fun findBestDriver(event: DriverSearchingEvent) {
+    override fun findBestDriver(event: PaymentAuthorizedEvent) {
         val ids = locationService.getAvailableIds(event.startPoint)
         if (ids.isEmpty()) {
             val noDriversEvent = NoDriversEvent(

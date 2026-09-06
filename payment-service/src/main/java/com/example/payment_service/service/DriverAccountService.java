@@ -4,6 +4,7 @@ import com.example.payment_service.exception.DriverAccountAlreadyExistsException
 import com.example.payment_service.model.dto.CreateDriverAccountRequest;
 import com.example.payment_service.model.entity.DriverAccountEntity;
 import com.example.payment_service.repository.DriverAccountRepository;
+import com.example.payment_service.service.gateway.GatewayAdapter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -17,7 +18,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class DriverAccountService {
     private final DriverAccountRepository driverAccountRepository;
-    private final StripeGatewayService stripeGatewayService;
+    private final GatewayAdapter gatewayAdapter;
 
     @Transactional
     public void create(CreateDriverAccountRequest request) {
@@ -25,7 +26,7 @@ public class DriverAccountService {
             throw new DriverAccountAlreadyExistsException("Driver Account already exists");
         }
 
-        var accountId = stripeGatewayService.createAccount(request.email());
+        var accountId = gatewayAdapter.createAccount(request.email());
 
         var stripeAccount = DriverAccountEntity.builder()
                 .driverId(request.driverId())

@@ -1,6 +1,6 @@
 package com.example.driver_service.controller.listener
 
-import com.example.driver_service.model.event.DriverSearchingEvent
+import com.example.driver_service.model.event.PaymentAuthorizedEvent
 import com.example.driver_service.service.driver_matching.DriverMatchingService
 import com.fasterxml.jackson.databind.ObjectMapper
 import mu.KotlinLogging
@@ -11,10 +11,10 @@ import org.springframework.messaging.handler.annotation.Payload
 import org.springframework.stereotype.Component
 
 @Component
-class PaymentAuthorizationListener(
+class PaymentListener(
     private val objectMapper: ObjectMapper,
     private val driverMatchingService: DriverMatchingService,
-    @Qualifier("kafkaTypeMapping")
+    @param:Qualifier("kafkaTypeMapping")
     private val typeMapping: Map<String, Class<out Any>>
 ) {
     companion object {
@@ -32,7 +32,7 @@ class PaymentAuthorizationListener(
                 ?: throw IllegalArgumentException("Unknown event type: $type")
 
             when (val event = objectMapper.readValue(payload, targetClass)) {
-                is DriverSearchingEvent -> driverMatchingService.findBestDriver(event)
+                is PaymentAuthorizedEvent -> driverMatchingService.findBestDriver(event)
                 else -> log.warn { "No handler found for class: ${targetClass.simpleName}" }
             }
         } catch (e: Exception) {

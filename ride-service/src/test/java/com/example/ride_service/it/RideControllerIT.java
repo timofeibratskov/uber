@@ -2,7 +2,6 @@
 //
 //import com.example.ride_service.client.DriverServiceClient;
 //import com.example.ride_service.client.OpenRouteServiceClient;
-//import com.example.ride_service.it.support.KafkaTestSupport;
 //import com.example.ride_service.model.cache.RideEstimateCache;
 //import com.example.ride_service.model.dto.DriverResponseDto;
 //import com.example.ride_service.model.dto.OpenRouteResponseDto;
@@ -72,15 +71,12 @@
 //    @MockitoBean
 //    private DriverServiceClient driveServiceClient;
 //
-//    private KafkaTestSupport kafkaTestSupport;
 //
 //    @BeforeEach
 //    void setUp() {
 //        estimateCacheRepo.deleteAll();
 //        rideRepo.deleteAll();
 //        outboxRepo.deleteAll();
-//
-//        this.kafkaTestSupport = new KafkaTestSupport(kafka.getBootstrapServers());
 //    }
 //
 //    @Test
@@ -163,7 +159,7 @@
 //
 //        assertThat(outboxEntities).hasSize(1);
 //
-//        var outboxEntity = outboxEntities.getFirst();
+//        var outboxEntity = outboxEntities.getFirst();a
 //        assertNotNull(outboxEntity.getId());
 //        assertNotNull(outboxEntity.getCreatedAt());
 //        assertEquals(TopicType.RIDE_LIFECYCLE, outboxEntity.getTopic());

@@ -9,6 +9,7 @@ import com.example.ride_service.model.dto.RideEstimateRequestDto;
 import com.example.ride_service.model.dto.RideEstimateResponseDto;
 import com.example.ride_service.model.dto.RideFullResponseDto;
 import com.example.ride_service.model.entity.RideEntity;
+import com.example.ride_service.model.enums.PaymentStatus;
 import com.example.ride_service.model.event.DriverAssignedEvent;
 import com.example.ride_service.model.event.NoDriversEvent;
 import org.mapstruct.Mapper;
@@ -23,9 +24,14 @@ public interface RideMapper {
     RideEstimateCache toCache(RideEstimateResponseDto estimate, RideEstimateRequestDto request);
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "finalAmount", source = "price")
+    @Mapping(target = "finalAmount", source = "cache.price")
     @Mapping(target = "status", ignore = true)
-    RideEntity toEntity(RideEstimateCache cache);
+    @Mapping(target = "paymentStatus", source = "status")
+    @Mapping(target = "seats", source = "seats")
+    RideEntity toEntity(
+            RideEstimateCache cache,
+            PaymentStatus status,
+            Integer seats);
 
     @Mapping(target = "price", source = "finalAmount")
     @Mapping(target = "statusDescription", source = "status.description")

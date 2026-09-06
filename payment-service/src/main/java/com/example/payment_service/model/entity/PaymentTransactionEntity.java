@@ -1,7 +1,7 @@
 package com.example.payment_service.model.entity;
 
+import com.example.payment_service.model.dto.GatewayOperationResult;
 import com.example.payment_service.model.enums.TransactionStatus;
-import com.example.payment_service.model.dto.GatewayAuthorizationResult;
 import com.example.payment_service.model.enums.TransactionType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -46,7 +46,7 @@ public class PaymentTransactionEntity implements Persistable<UUID> {
 
     public static PaymentTransactionEntity createForAuthorize(
             PaymentEntity payment,
-            GatewayAuthorizationResult result) {
+            GatewayOperationResult result) {
 
         return PaymentTransactionEntity.builder()
                 .id(UUID.randomUUID())
@@ -61,10 +61,25 @@ public class PaymentTransactionEntity implements Persistable<UUID> {
                 .isNew(true)
                 .build();
     }
+    public static PaymentTransactionEntity createForAuthorize(
+            PaymentEntity payment) {
+
+        return PaymentTransactionEntity.builder()
+                .id(UUID.randomUUID())
+                .paymentId(payment.getId())
+                .amount(payment.getAmount())
+                .currency(payment.getCurrency())
+                .status(TransactionStatus.SUCCESS)
+                .type(TransactionType.AUTHORIZE)
+                .chargeId("charge-"+UUID.randomUUID())
+                .createdAt(LocalDateTime.now())
+                .isNew(true)
+                .build();
+    }
 
     public static PaymentTransactionEntity createForCapture(
             PaymentEntity payment,
-            GatewayAuthorizationResult result) {
+            GatewayOperationResult result) {
 
         return PaymentTransactionEntity.builder()
                 .id(UUID.randomUUID())
@@ -79,10 +94,26 @@ public class PaymentTransactionEntity implements Persistable<UUID> {
                 .isNew(true)
                 .build();
     }
+    public static PaymentTransactionEntity createForCapture(
+            PaymentEntity payment
+            ) {
+
+        return PaymentTransactionEntity.builder()
+                .id(UUID.randomUUID())
+                .paymentId(payment.getId())
+                .amount(payment.getAmount())
+                .currency(payment.getCurrency())
+                .status(TransactionStatus.SUCCESS)
+                .type(TransactionType.CAPTURE)
+                .chargeId("charge-"+UUID.randomUUID())
+                .createdAt(LocalDateTime.now())
+                .isNew(true)
+                .build();
+    }
 
     public static PaymentTransactionEntity createForRelease(
             PaymentEntity payment,
-            GatewayAuthorizationResult result) {
+            GatewayOperationResult result) {
 
         return PaymentTransactionEntity.builder()
                 .id(UUID.randomUUID())

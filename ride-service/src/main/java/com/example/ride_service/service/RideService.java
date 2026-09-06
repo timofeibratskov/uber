@@ -53,9 +53,8 @@ public class RideService {
                 .orElseThrow(() -> new EstimateExpiredException("The preliminary estimate has expired. Please recalculate your ride"));
         log.info("ride with id {} found in cache", cache.getPassengerId());
 
-        var ride = rideMapper.toEntity(cache);
-        ride.setPaymentStatus(PaymentStatus.NOT_PAID);
-        ride.setSeats(request.seats());
+        var ride = rideMapper.toEntity(cache, PaymentStatus.NOT_PAID, request.seats());
+
         rideStateMachine.changeRideStatus(ride, RideStatus.CREATED);
 
         var savedRide = rideRepo.save(ride);
