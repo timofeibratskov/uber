@@ -15,10 +15,25 @@ func NewAuthHandler(service service.Auth) *AuthHandler {
 	return &AuthHandler{service: service}
 }
 
+type TokenResponse struct {
+	Token string `json:"token"`
+}
+
+// Register godoc
+// @Summary      Регистрация нового пользователя
+// @Description  Создает пользователя, генерирует JWT токен и отправляет событие в Kafka
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        input  body      model.RegisterRequest  true  "Данные для регистрации"
+// @Success      201    {object}  TokenResponse          "Пользователь создан, возвращается JWT"
+// @Failure      400    {string}  string                 "Ошибка валидации входных данных"
+// @Failure      500    {string}  string                 "Внутренняя ошибка сервера"
+// @Router       /api/auth/register [post]
 func (h *AuthHandler) Register(
 	w http.ResponseWriter,
-	r *http.Request) {
-
+	r *http.Request,
+) {
 	var req model.RegisterRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -47,14 +62,22 @@ func (h *AuthHandler) Register(
 	json.NewEncoder(w).Encode(TokenResponse{Token: jwt})
 }
 
-type TokenResponse struct {
-	Token string `json:"token"`
-}
-
+// Login godoc
+// @Summary      Авторизация пользователя
+// @Description  Проверяет учётные данные и возвращает JWT токен
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        input  body      model.LoginRequest  true  "Данные для входа"
+// @Success      200    {object}  TokenResponse       "Успешная авторизация"
+// @Failure      400    {string}  string              "Пустые поля ввода"
+// @Failure      401    {string}  string              "Неверный email или пароль"
+// @Failure      500    {string}  string              "Внутренняя ошибка сервера"
+// @Router       /api/auth/login [post]
 func (h *AuthHandler) Login(
 	w http.ResponseWriter,
-	r *http.Request) {
-
+	r *http.Request,
+) {
 	var req model.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Неверный формат JSON", http.StatusBadRequest)

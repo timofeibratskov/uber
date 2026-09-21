@@ -31,3 +31,8 @@ type LoginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
+type UserRegisteredEvent struct {
+	UserID uuid.UUID `json:"userId"`
+	Email  string    `json:"email"`
+	Type   string    `json:"type"`
+}

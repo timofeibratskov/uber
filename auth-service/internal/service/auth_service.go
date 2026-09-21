@@ -1,10 +1,12 @@
 package service
 
 import (
+	"auth-service/internal/kafka"
 	"auth-service/internal/model"
 	"auth-service/internal/repository"
 	"context"
 	"errors"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -19,13 +21,19 @@ type Auth interface {
 }
 
 type authService struct {
-	repo      repository.UserRepository
 	secretKey string
+	repo      repository.UserRepository
+	producer  kafka.EventProducer
 }
 
-func NewAuth(repo repository.UserRepository,
-	secretKey string) Auth {
-	return &authService{repo: repo}
+func NewAuth(
+	secretKey string,
+	repo repository.UserRepository,
+	producer kafka.EventProducer) Auth {
+	return &authService{
+		secretKey: secretKey,
+		repo:      repo,
+		producer:  producer}
 }
 
 func (s *authService) Register(ctx context.Context,
@@ -65,6 +73,19 @@ func (s *authService) Register(ctx context.Context,
 	if err != nil {
 		return "", err
 	}
+
+	event := model.UserRegisteredEvent{
+		UserID: user.ID,
+		Email:  user.Email,
+		Type:   string(user.UserType),
+	}
+
+	err = s.producer.Send(ctx, event)
+
+	if err != nil {
+		log.Printf("kafka producer error: %v", err)
+	}
+
 	return GenerateToken(user, s.secretKey)
 }
 

@@ -56,7 +56,11 @@ public class PassengerService {
                                 log.info("почта: {} уже занята", event.email());
                             }
                         },
-                        () -> passengerRepo.save(passengerMapper.toEntity(event))
+                        () -> {
+                            var passenger = passengerMapper.toEntity(event);
+                            passenger.setNew(true);
+                            passengerRepo.save(passenger);
+                        }
                 );
     }
 

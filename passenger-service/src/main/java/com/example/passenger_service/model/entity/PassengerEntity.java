@@ -5,9 +5,9 @@ import com.example.passenger_service.model.enums.converter.GenderConverter;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.hibernate.annotations.UuidGenerator;
+import org.springframework.data.domain.Persistable;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -27,11 +27,11 @@ import java.util.UUID;
 @Builder
 @Entity
 @Table(name = "passenger_table")
-public class PassengerEntity {
+public class PassengerEntity implements Persistable<UUID> {
     @Id
     @Column(unique = true, nullable = false)
-    @UuidGenerator
-    @GeneratedValue
+//    @UuidGenerator
+//    @GeneratedValue
     private UUID id;
 
     @Column(nullable = false)
@@ -52,4 +52,13 @@ public class PassengerEntity {
 
     @Convert(converter = GenderConverter.class)
     private Gender gender;
+
+    @Override
+    public boolean isNew() {
+        return this.isNew;
+    }
+
+    @Transient
+    private boolean isNew = false;
+
 }

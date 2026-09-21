@@ -1,0 +1,106 @@
+basePath: /
+definitions:
+  handler.TokenResponse:
+    properties:
+      token:
+        type: string
+    type: object
+  model.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  model.RegisterRequest:
+    properties:
+      confirm_password:
+        type: string
+      email:
+        type: string
+      password:
+        type: string
+      user_type:
+        $ref: '#/definitions/model.UserType'
+    type: object
+  model.UserType:
+    enum:
+    - DRIVER
+    - PASSENGER
+    type: string
+    x-enum-varnames:
+    - Driver
+    - Passenger
+host: localhost:8885
+info:
+  contact: {}
+  description: Микросервис авторизации и регистрации пользователей.
+  title: Auth Service API
+  version: "1.0"
+paths:
+  /api/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Проверяет учётные данные и возвращает JWT токен
+      parameters:
+      - description: Данные для входа
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/model.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешная авторизация
+          schema:
+            $ref: '#/definitions/handler.TokenResponse'
+        "400":
+          description: Пустые поля ввода
+          schema:
+            type: string
+        "401":
+          description: Неверный email или пароль
+          schema:
+            type: string
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            type: string
+      summary: Авторизация пользователя
+      tags:
+      - Auth
+  /api/auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Создает пользователя, генерирует JWT токен и отправляет событие
+        в Kafka
+      parameters:
+      - description: Данные для регистрации
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/model.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Пользователь создан, возвращается JWT
+          schema:
+            $ref: '#/definitions/handler.TokenResponse'
+        "400":
+          description: Ошибка валидации входных данных
+          schema:
+            type: string
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            type: string
+      summary: Регистрация нового пользователя
+      tags:
+      - Auth
+swagger: "2.0"
