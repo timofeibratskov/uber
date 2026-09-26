@@ -273,7 +273,7 @@ class DriverServiceTest {
             phoneNumber = "+375291112233",
             gender = Gender.MALE,
             carId = carId,
-            workStatus = WorkStatus.OFF_DUTY
+            workStatus = WorkStatus.OFF_SHIFT
         )
 
         val responseDto = DriverResponseDto(
@@ -354,7 +354,7 @@ class DriverServiceTest {
 
     @Test
     @DisplayName("Обновление профиля: успешный сценарий")
-    fun update_Success() {
+    fun editProfile_Success() {
         // Arrange
         val id = UUID.randomUUID()
         val carId = UUID.randomUUID()
@@ -379,7 +379,7 @@ class DriverServiceTest {
         every { driverRepository.update(any()) } returns Unit
 
         // Act
-        driverService.update(id, updateDto)
+        driverService.editProfile(id, updateDto)
 
         // Assert
         assertThat(existingDriver.name).isEqualTo("Timofei New")
@@ -398,7 +398,7 @@ class DriverServiceTest {
 
     @Test
     @DisplayName("Обновление профиля: ошибка если телефон уже занят")
-    fun update_ThrowsPhoneNumberAlreadyExists() {
+    fun editProfile_ThrowsPhoneNumberAlreadyExists() {
         // Arrange
         val id = UUID.randomUUID()
         val updateDto = UpdateDriverDto(
@@ -421,7 +421,7 @@ class DriverServiceTest {
 
         // Act
         val exception = assertThrows<PhoneNumberAlreadyExistsException> {
-            driverService.update(id, updateDto)
+            driverService.editProfile(id, updateDto)
         }
 
         // Assert
@@ -432,7 +432,7 @@ class DriverServiceTest {
 
     @Test
     @DisplayName("Обновление профиля: ошибка если водитель не найден")
-    fun update_ThrowsNotFound() {
+    fun editProfile_ThrowsNotFound() {
         // Arrange
         val id = UUID.randomUUID()
         val updateDto = UpdateDriverDto(
@@ -445,7 +445,7 @@ class DriverServiceTest {
 
         // Act
         val exception = assertThrows<DriverNotFoundException> {
-            driverService.update(id, updateDto)
+            driverService.editProfile(id, updateDto)
         }
 
         // Assert
@@ -735,7 +735,7 @@ class DriverServiceTest {
             phoneNumber = "+375291112233",
             gender = Gender.OTHER,
             carId = carId,
-            workStatus = WorkStatus.OFF_DUTY,
+            workStatus = WorkStatus.OFF_SHIFT,
         )
 
         every { locationService.updateSession(any(), any()) } returns Unit
@@ -764,7 +764,7 @@ class DriverServiceTest {
             phoneNumber = "+375336667788",
             gender = Gender.OTHER,
             carId = null,
-            workStatus = WorkStatus.OFF_DUTY,
+            workStatus = WorkStatus.OFF_SHIFT,
         )
 
         every { driverRepository.findById(id) } returns driverWithoutCar
@@ -790,7 +790,7 @@ class DriverServiceTest {
             phoneNumber = "+375259990011",
             gender = Gender.OTHER,
             carId = UUID.randomUUID(),
-            workStatus = WorkStatus.OFF_DUTY
+            workStatus = WorkStatus.OFF_SHIFT
         )
 
         every { driverRepository.findById(id) } returns driverOffDuty
@@ -806,7 +806,7 @@ class DriverServiceTest {
 
     @Test
     @DisplayName("Идемпотентность: пропуск обновления, если статус уже совпадает")
-    fun setWorkStatus_SameStatus_NoUpdate() {
+    fun setWorkStatus_SameStatus_NoEditProfile() {
         // Arrange
         val id = UUID.randomUUID()
         val currentStatus = WorkStatus.AVAILABLE

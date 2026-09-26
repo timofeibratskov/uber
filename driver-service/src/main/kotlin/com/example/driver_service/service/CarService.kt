@@ -59,9 +59,15 @@ class CarService(
             newCar
         } else {
             if (car.isDeleted) {
-                car.driverId = driverId
-                car.isDeleted = false
-                carRepository.update(car)
+                val restoredCar = car.apply {
+                    this.driverId = driverId
+                    this.color = createCarDto.color
+                    this.brand = createCarDto.brand
+                    this.model = createCarDto.model
+                    this.seats = createCarDto.seats
+                    this.isDeleted = false
+                }
+                carRepository.update(restoredCar)
                 log.info { "Restored previously deleted car with ID ${car.id} for driver $driverId" }
                 car
             } else {

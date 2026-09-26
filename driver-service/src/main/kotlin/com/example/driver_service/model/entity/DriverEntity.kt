@@ -13,7 +13,7 @@ data class DriverEntity(
     var phoneNumber: String = "",
     var gender: Gender = Gender.OTHER,
     var carId: UUID? = null,
-    var workStatus: WorkStatus = WorkStatus.OFF_DUTY,
+    var workStatus: WorkStatus = WorkStatus.OFF_SHIFT,
     var createdAt: LocalDateTime = LocalDateTime.now(),
     var updatedAt: LocalDateTime = LocalDateTime.now()
 )

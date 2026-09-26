@@ -9,9 +9,9 @@ import com.example.driver_service.exception.PhoneNumberAlreadyExistsException
 import com.example.driver_service.mapper.CarMapper
 import com.example.driver_service.mapper.DriverMapper
 import com.example.driver_service.model.dto.CarResponseDto
+import com.example.driver_service.model.dto.CompleteProfileRequestDto
 import com.example.driver_service.model.dto.CreateCarDto
 import com.example.driver_service.model.dto.DriverResponseDto
-import com.example.driver_service.model.dto.CompleteProfileRequestDto
 import com.example.driver_service.model.dto.UpdateDriverDto
 import com.example.driver_service.model.enums.WorkStatus
 import com.example.driver_service.model.event.UserRegisteredEvent
@@ -80,6 +80,7 @@ class DriverService(
         return "Hi, ${dto.name}, your profile successfully saved!"
     }
 
+    @Transactional(readOnly = true)
     fun findById(id: UUID): DriverResponseDto {
         log.info { "Fetching driver profile for ID: $id" }
 
@@ -114,7 +115,7 @@ class DriverService(
     }
 
     @Transactional
-    fun update(id: UUID, dto: UpdateDriverDto) {
+    fun editProfile(id: UUID, dto: UpdateDriverDto) {
         log.info { "Updating driver profile for ID: $id" }
         val driver = driverRepository.findById(id)
             ?: throw DriverNotFoundException("Driver not found with ID: $id").also {
@@ -201,19 +202,19 @@ class DriverService(
                     throw DriverIncompleteProfileException("Driver must have an assigned car to start duty").also {
                         log.error { "driver with id: $id must have an assigned car to start duty" }
                     }
-                if (driver.workStatus == WorkStatus.OFF_DUTY)
+                if (driver.workStatus == WorkStatus.OFF_SHIFT)
                     locationService.updateSession(id, status)
             }
 
             WorkStatus.BUSY -> {
-                if (driver.workStatus == WorkStatus.OFF_DUTY)
+                if (driver.workStatus == WorkStatus.OFF_SHIFT)
                     throw InvalidStatusTransitionException("driver cannot go BUSY from OFF_DUTY. Start duty first").also {
                         log.error { "driver with id: $id cannot go BUSY from OFF_DUTY. Start duty first" }
                     }
                 locationService.updateSession(id, status)
             }
 
-            WorkStatus.OFF_DUTY -> {
+            WorkStatus.OFF_SHIFT -> {
                 if (driver.workStatus == WorkStatus.BUSY)
                     log.warn { "driver with $id is trying to go OFF_DUTY while having an active ride" }
                 locationService.deleteSession(id)

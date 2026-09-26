@@ -14,6 +14,6 @@ class RedisKeyExpirationListener(
 ) : MessageListener {
     override fun onMessage(message: Message, pattern: ByteArray?) {
         val id = UUID.fromString(message.toString().removePrefix(RedisSchema.DRIVER_STATUS_PREFIX))
-        driverService.setWorkStatus(id, WorkStatus.OFF_DUTY)
+        driverService.setWorkStatus(id, WorkStatus.OFF_SHIFT)
     }
 }

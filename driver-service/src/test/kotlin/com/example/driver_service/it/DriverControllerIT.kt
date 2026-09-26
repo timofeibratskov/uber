@@ -886,7 +886,7 @@ class DriverControllerIT @Autowired constructor(
             phoneNumber = "+375290000000",
             gender = Gender.MALE,
             carId = null,
-            workStatus = WorkStatus.OFF_DUTY,
+            workStatus = WorkStatus.OFF_SHIFT,
         )
         val car = CarEntity(
             id = carId,
@@ -954,7 +954,7 @@ class DriverControllerIT @Autowired constructor(
         // Assert
         assertThat(response.statusCode).isEqualTo(HttpStatus.NO_CONTENT)
         val updatedDriver = driverRepository.findById(driverId)
-        assertThat(updatedDriver?.workStatus).isEqualTo(WorkStatus.OFF_DUTY)
+        assertThat(updatedDriver?.workStatus).isEqualTo(WorkStatus.OFF_SHIFT)
     }
 
     @Test
@@ -969,7 +969,7 @@ class DriverControllerIT @Autowired constructor(
             phoneNumber = "+375291112233",
             gender = Gender.OTHER,
             carId = null,
-            workStatus = WorkStatus.OFF_DUTY,
+            workStatus = WorkStatus.OFF_SHIFT,
         )
         driverRepository.save(driverWithoutCar)
 
@@ -981,7 +981,7 @@ class DriverControllerIT @Autowired constructor(
         // Assert
         assertNotNull(response)
         assertEquals(response.code, "INCOMPLETE_PROFILE")
-        assertEquals(driverRepository.findById(driverId)!!.workStatus, WorkStatus.OFF_DUTY)
+        assertEquals(driverRepository.findById(driverId)!!.workStatus, WorkStatus.OFF_SHIFT)
     }
 
     @Test
