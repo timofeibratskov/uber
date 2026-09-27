@@ -13,6 +13,7 @@ import com.example.driver_service.model.dto.CompleteProfileRequestDto
 import com.example.driver_service.model.dto.CreateCarDto
 import com.example.driver_service.model.dto.DriverResponseDto
 import com.example.driver_service.model.dto.UpdateDriverDto
+import com.example.driver_service.model.entity.DriverEntity
 import com.example.driver_service.model.enums.WorkStatus
 import com.example.driver_service.model.event.UserRegisteredEvent
 import com.example.driver_service.model.view.DriverView
@@ -113,6 +114,9 @@ class DriverService(
 
         return result
     }
+
+    @Transactional(readOnly = true)
+    fun findEntityById(id: UUID): DriverEntity? = driverRepository.findById(id)
 
     @Transactional
     fun editProfile(id: UUID, dto: UpdateDriverDto) {

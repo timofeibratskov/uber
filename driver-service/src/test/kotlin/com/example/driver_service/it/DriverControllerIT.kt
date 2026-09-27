@@ -9,11 +9,14 @@ import com.example.driver_service.model.dto.CompleteProfileRequestDto
 import com.example.driver_service.model.dto.CreateCarDto
 import com.example.driver_service.model.dto.DriverRatingResponse
 import com.example.driver_service.model.dto.DriverResponseDto
+import com.example.driver_service.model.dto.ShiftDto
 import com.example.driver_service.model.dto.UpdateCarDto
 import com.example.driver_service.model.dto.UpdateDriverDto
 import com.example.driver_service.model.entity.CarEntity
 import com.example.driver_service.model.entity.DriverEntity
+import com.example.driver_service.model.entity.ShiftEntity
 import com.example.driver_service.model.enums.Gender
+import com.example.driver_service.model.enums.ShiftStatus
 import com.example.driver_service.model.enums.WorkStatus
 import com.example.driver_service.repository.CarRepository
 import com.example.driver_service.repository.DriverRepository
@@ -38,6 +41,7 @@ import org.springframework.boot.test.web.client.exchange
 import org.springframework.boot.test.web.client.getForEntity
 import org.springframework.boot.test.web.client.patchForObject
 import org.springframework.boot.test.web.client.postForEntity
+import org.springframework.boot.test.web.client.postForObject
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.data.geo.Point
 import org.springframework.data.redis.core.RedisTemplate
@@ -90,7 +94,8 @@ class DriverControllerIT @Autowired constructor(
         // Act
         val response = restTemplate.postForEntity<String>(
             "/api/v1/drivers/${entity.id}/profile",
-            registerDto)
+            registerDto
+        )
 
         // Assert
         assertThat(response.statusCode).isEqualTo(HttpStatus.CREATED)
@@ -98,9 +103,8 @@ class DriverControllerIT @Autowired constructor(
 
         val savedEntity = driverRepository.findById(entity.id)
 
-        assertEquals(savedEntity?.name,registerDto.name)
+        assertEquals(savedEntity?.name, registerDto.name)
     }
-
 
 
     @Test
@@ -911,7 +915,7 @@ class DriverControllerIT @Autowired constructor(
         // Act
         val response = restTemplate.exchange<Void>(
             "/api/v1/drivers/$driverId/shift/start",
-            HttpMethod.PATCH
+            HttpMethod.POST
         )
 
         // Assert
@@ -950,17 +954,76 @@ class DriverControllerIT @Autowired constructor(
         carRepository.save(car)
         driver.carId = carId
         driverRepository.update(driver)
+        val actualShift = ShiftEntity(
+            id = UUID.randomUUID(),
+            driverId = driverId,
+            carId = carId
+        )
+        shiftRepository.save(actualShift)
 
         // Act
-        val response = restTemplate.exchange<Void>(
+        val response = restTemplate.exchange<ShiftDto>(
             "/api/v1/drivers/$driverId/shift/stop",
             HttpMethod.PATCH
         )
 
         // Assert
-        assertThat(response.statusCode).isEqualTo(HttpStatus.NO_CONTENT)
+        assertThat(response.statusCode).isEqualTo(HttpStatus.OK)
         val updatedDriver = driverRepository.findById(driverId)
         assertThat(updatedDriver?.workStatus).isEqualTo(WorkStatus.OFF_SHIFT)
+        val closedShift = shiftRepository.findById(actualShift.id)
+        assertNotNull(closedShift)
+        assertEquals(closedShift.status,ShiftStatus.CLOSED)
+        assertNotNull(closedShift.endAt)
+    }
+
+    @Test
+    @DisplayName("Успешное получение существующей открытой смены")
+    fun getActualShift_Success_whenDriverIsAvailable() {
+        // Arrange
+        val driverId = UUID.randomUUID()
+        val carId = UUID.randomUUID()
+        val driver = DriverEntity(
+            id = driverId,
+            name = "john",
+            email = "john@test.com",
+            phoneNumber = "+375290000000",
+            gender = Gender.MALE,
+            carId = null,
+            workStatus = WorkStatus.AVAILABLE,
+        )
+        val car = CarEntity(
+            id = carId,
+            color = "Blue",
+            licensePlate = "1111AA-1",
+            brand = "Tesla",
+            model = "Model 3",
+            seats = 5,
+            driverId = driverId,
+            isDeleted = false
+        )
+        val shift = ShiftEntity(
+            id = UUID.randomUUID(),
+            driverId = driverId,
+            carId = carId
+        )
+        driverRepository.save(driver)
+        carRepository.save(car)
+        driver.carId = carId
+        driverRepository.update(driver)
+        shiftRepository.save(shift)
+
+        // Act
+        val response = restTemplate.exchange<ShiftDto>(
+            "/api/v1/drivers/$driverId/shift/actual",
+            HttpMethod.GET
+        )
+
+        // Assert
+        assertThat(response.statusCode).isEqualTo(HttpStatus.OK)
+        assertNotNull(response.body)
+        assertEquals(response.body!!.status, ShiftStatus.OPEN)
+        assertEquals(response.body!!.carDto.id, carId)
     }
 
     @Test
@@ -980,7 +1043,7 @@ class DriverControllerIT @Autowired constructor(
         driverRepository.save(driverWithoutCar)
 
         // Act
-        val response = restTemplate.patchForObject<ErrorResponse>(
+        val response = restTemplate.postForObject<ErrorResponse>(
             "/api/v1/drivers/$driverId/shift/start",
         )
 
@@ -997,7 +1060,7 @@ class DriverControllerIT @Autowired constructor(
         val driverId = UUID.randomUUID()
 
         // Act
-        val response = restTemplate.patchForObject<ErrorResponse>(
+        val response = restTemplate.postForObject<ErrorResponse>(
             "/api/v1/drivers/$driverId/shift/start",
         )
 

@@ -3,7 +3,6 @@ package com.example.driver_service.controller.rest
 import com.example.driver_service.model.dto.CompleteProfileRequestDto
 import com.example.driver_service.model.dto.DriverResponseDto
 import com.example.driver_service.model.dto.UpdateDriverDto
-import com.example.driver_service.model.enums.WorkStatus
 import com.example.driver_service.service.DriverService
 import com.example.driver_service.service.ShiftService
 import io.swagger.v3.oas.annotations.Operation
@@ -83,30 +82,6 @@ class DriverController(
         @Valid @RequestBody dto: UpdateDriverDto
     ): ResponseEntity<Void> {
         driverService.editProfile(id, dto)
-        return ResponseEntity.noContent().build()
-    }
-
-    @Operation(
-        summary = "Выйти на смену (Доступен)",
-        description = "Переводит статус водителя в режим поиска заказов (AVAILABLE)"
-    )
-    @PatchMapping("/{id}/shift/start")
-    fun startDuty(
-        @Parameter(description = "ID водителя", example = "123e4567-e89b-12d3-a456-426614174000") @PathVariable id: UUID
-    ): ResponseEntity<Void> {
-        shiftService.start(id)
-        return ResponseEntity.noContent().build()
-    }
-
-    @Operation(
-        summary = "Уйти со смены (Занят/Оффлайн)",
-        description = "Переводит статус водителя в нерабочий режим (OFF_DUTY)"
-    )
-    @PatchMapping("/{id}/shift/stop")
-    fun stopDuty(
-        @Parameter(description = "ID водителя", example = "123e4567-e89b-12d3-a456-426614174000") @PathVariable id: UUID
-    ): ResponseEntity<Void> {
-        shiftService.stop(id)
         return ResponseEntity.noContent().build()
     }
 }

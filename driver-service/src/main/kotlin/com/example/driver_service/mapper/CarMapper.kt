@@ -1,6 +1,7 @@
 package com.example.driver_service.mapper
 
 import com.example.driver_service.model.dto.CarResponseDto
+import com.example.driver_service.model.dto.CarShortResponseDto
 import com.example.driver_service.model.dto.CreateCarDto
 import com.example.driver_service.model.dto.UpdateCarDto
 import com.example.driver_service.model.entity.CarEntity
@@ -14,6 +15,8 @@ import org.mapstruct.NullValuePropertyMappingStrategy
 @Mapper(componentModel = "spring")
 interface CarMapper {
     fun toDto(entity: CarEntity): CarResponseDto
+
+    fun toShirtDto(entity: CarEntity): CarShortResponseDto
 
 
     @Mapping(target = "id", ignore = true)

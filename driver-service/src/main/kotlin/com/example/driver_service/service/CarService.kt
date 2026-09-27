@@ -5,6 +5,7 @@ import com.example.driver_service.exception.CarNotFoundException
 import com.example.driver_service.exception.LicensePlateAlreadyExistsException
 import com.example.driver_service.mapper.CarMapper
 import com.example.driver_service.model.dto.CarResponseDto
+import com.example.driver_service.model.dto.CarShortResponseDto
 import com.example.driver_service.model.dto.CreateCarDto
 import com.example.driver_service.model.dto.UpdateCarDto
 import com.example.driver_service.model.entity.CarEntity
@@ -39,6 +40,16 @@ class CarService(
                 log.error { "Car not found: ${it.message}" }
             }
         return carMapper.toDto(car)
+    }
+
+    @Transactional(readOnly = true)
+    fun findEntityByCarId(carId: UUID): CarShortResponseDto {
+        log.info { "Fetching car $carId" }
+        val car = carRepository.findById(carId)
+            ?: throw CarNotFoundException("Car with ID $carId not found").also {
+                log.error { "Car not found: ${it.message}" }
+            }
+        return carMapper.toShirtDto(car)
     }
 
     @Transactional
