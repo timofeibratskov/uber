@@ -5,6 +5,7 @@ import com.example.driver_service.model.dto.DriverResponseDto
 import com.example.driver_service.model.dto.UpdateDriverDto
 import com.example.driver_service.model.enums.WorkStatus
 import com.example.driver_service.service.DriverService
+import com.example.driver_service.service.ShiftService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.media.Content
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/api/v1/drivers")
 class DriverController(
     private val driverService: DriverService,
+    private val shiftService: ShiftService
 ) {
     @Operation(
         summary = "Регистрация / заполнение профиля",
@@ -88,11 +90,11 @@ class DriverController(
         summary = "Выйти на смену (Доступен)",
         description = "Переводит статус водителя в режим поиска заказов (AVAILABLE)"
     )
-    @PatchMapping("/{id}/duty/start")
+    @PatchMapping("/{id}/shift/start")
     fun startDuty(
         @Parameter(description = "ID водителя", example = "123e4567-e89b-12d3-a456-426614174000") @PathVariable id: UUID
     ): ResponseEntity<Void> {
-        driverService.setWorkStatus(id, WorkStatus.AVAILABLE)
+        shiftService.start(id)
         return ResponseEntity.noContent().build()
     }
 
@@ -100,11 +102,11 @@ class DriverController(
         summary = "Уйти со смены (Занят/Оффлайн)",
         description = "Переводит статус водителя в нерабочий режим (OFF_DUTY)"
     )
-    @PatchMapping("/{id}/duty/stop")
+    @PatchMapping("/{id}/shift/stop")
     fun stopDuty(
         @Parameter(description = "ID водителя", example = "123e4567-e89b-12d3-a456-426614174000") @PathVariable id: UUID
     ): ResponseEntity<Void> {
-        driverService.setWorkStatus(id, WorkStatus.OFF_SHIFT)
+        shiftService.stop(id)
         return ResponseEntity.noContent().build()
     }
 }

@@ -1,0 +1,81 @@
+databaseChangeLog:
+  - changeSet:
+      id: 08-create-shift-table
+      author: user
+      changes:
+        - createTable:
+            tableName: shift_table
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: driver_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: car_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: VARCHAR(30)
+                  defaultValue: 'OPEN'
+                  constraints:
+                    nullable: false
+              - column:
+                  name: start_at
+                  type: timestamp
+                  constraints:
+                    nullable: false
+              - column:
+                  name: end_at
+                  type: timestamp
+              - column:
+                  name: total_rides
+                  type: INT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: total_earnings
+                  type: DECIMAL(10, 2)
+                  defaultValueNumeric: 0.00
+                  constraints:
+                    nullable: false
+              - column:
+                  name: total_distance_meters
+                  type: BIGINT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            constraintName: fk_shift_driver
+            baseTableName: shift_table
+            baseColumnNames: driver_id
+            referencedTableName: driver_table
+            referencedColumnNames: id
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            constraintName: fk_shift_car
+            baseTableName: shift_table
+            baseColumnNames: car_id
+            referencedTableName: car_table
+            referencedColumnNames: id
+            onDelete: RESTRICT
+
+        - createIndex:
+            indexName: idx_shift_driver_status
+            tableName: shift_table
+            columns:
+              - column:
+                  name: driver_id
+              - column:
+                  name: status

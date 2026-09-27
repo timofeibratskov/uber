@@ -17,6 +17,7 @@ import com.example.driver_service.model.enums.Gender
 import com.example.driver_service.model.enums.WorkStatus
 import com.example.driver_service.repository.CarRepository
 import com.example.driver_service.repository.DriverRepository
+import com.example.driver_service.repository.ShiftRepository
 import com.example.driver_service.service.LocationService
 import com.fasterxml.jackson.databind.ObjectMapper
 import java.math.BigDecimal
@@ -50,6 +51,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean
 class DriverControllerIT @Autowired constructor(
     private val restTemplate: TestRestTemplate,
     private val driverRepository: DriverRepository,
+    private val shiftRepository: ShiftRepository,
     private val carRepository: CarRepository,
     private val redisTemplate: RedisTemplate<String, Any>,
     private val locationService: LocationService,
@@ -62,6 +64,7 @@ class DriverControllerIT @Autowired constructor(
 
     @BeforeEach
     fun cleanTable() {
+        shiftRepository.deleteAll()
         driverRepository.deleteAll()
         carRepository.deleteAll()
         redisTemplate.delete(redisTemplate.keys("*"))
@@ -874,7 +877,7 @@ class DriverControllerIT @Autowired constructor(
     }
 
     @Test
-    @DisplayName("Успешное изменение статуса: off_duty->available")
+    @DisplayName("Успешное изменение статуса: off_shift->available")
     fun setWorkStatus_Success() {
         // Arrange
         val driverId = UUID.randomUUID()
@@ -903,21 +906,24 @@ class DriverControllerIT @Autowired constructor(
         driver.carId = carId
         driverRepository.update(driver)
 
+        given(ratingServiceClient.getUserRating(driverId))
+            .willReturn(ResponseEntity.ok(DriverRatingResponse(rating = BigDecimal("4.85"))))
         // Act
         val response = restTemplate.exchange<Void>(
-            "/api/v1/drivers/$driverId/duty/start",
+            "/api/v1/drivers/$driverId/shift/start",
             HttpMethod.PATCH
         )
 
         // Assert
-        assertThat(response.statusCode).isEqualTo(HttpStatus.NO_CONTENT)
+        assertNotNull(shiftRepository.findOpened(driverId))
         val updatedDriver = driverRepository.findById(driverId)
         assertThat(updatedDriver?.workStatus).isEqualTo(WorkStatus.AVAILABLE)
+        assertThat(response.statusCode).isEqualTo(HttpStatus.NO_CONTENT)
     }
 
     @Test
-    @DisplayName("Успешное изменение статуса: available->off_duty")
-    fun setWorkStatus_Success_whenDriverIsBusy() {
+    @DisplayName("Успешное изменение статуса: available->off_shift")
+    fun setWorkStatus_Success_whenDriverIsAvailable() {
         // Arrange
         val driverId = UUID.randomUUID()
         val carId = UUID.randomUUID()
@@ -947,7 +953,7 @@ class DriverControllerIT @Autowired constructor(
 
         // Act
         val response = restTemplate.exchange<Void>(
-            "/api/v1/drivers/$driverId/duty/stop",
+            "/api/v1/drivers/$driverId/shift/stop",
             HttpMethod.PATCH
         )
 
@@ -975,7 +981,7 @@ class DriverControllerIT @Autowired constructor(
 
         // Act
         val response = restTemplate.patchForObject<ErrorResponse>(
-            "/api/v1/drivers/$driverId/duty/start",
+            "/api/v1/drivers/$driverId/shift/start",
         )
 
         // Assert
@@ -992,7 +998,7 @@ class DriverControllerIT @Autowired constructor(
 
         // Act
         val response = restTemplate.patchForObject<ErrorResponse>(
-            "/api/v1/drivers/$driverId/duty/start",
+            "/api/v1/drivers/$driverId/shift/start",
         )
 
         // Assert
