@@ -9,5 +9,6 @@ data class RideCompletedEvent(
     val passengerId: UUID,
     val amount: BigDecimal,
     val paymentMethodId: UUID,
-    val currency: String
+    val currency: String,
+    val distanceKm: Double
 )

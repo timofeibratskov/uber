@@ -64,6 +64,9 @@ public class RideEntity {
     private String polyline;
 
     @Column(nullable = false)
+    private Double distanceKm;
+
+    @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private RideStatus status;
 

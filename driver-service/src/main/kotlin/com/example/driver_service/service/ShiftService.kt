@@ -10,6 +10,7 @@ import com.example.driver_service.model.entity.CarEntity
 import com.example.driver_service.model.entity.ShiftEntity
 import com.example.driver_service.model.enums.ShiftStatus
 import com.example.driver_service.model.enums.WorkStatus
+import com.example.driver_service.model.event.RideCompletedEvent
 import com.example.driver_service.repository.ShiftRepository
 import java.time.LocalDateTime
 import java.util.UUID
@@ -81,5 +82,18 @@ class ShiftService(
             val carDto = carMapper.toShortDto(carsMap[shift.carId] ?: CarEntity.emptyCar())
             shiftMapper.toDto(shift, carDto)
         }
+    }
+
+    @Transactional
+    fun update(event: RideCompletedEvent) {
+        val openedShift = shiftRepository.findOpened(event.driverId)
+            ?: throw ShiftNotFoundException("No open shift found for driver ${event.driverId}")
+
+        openedShift.totalRides += 1
+        openedShift.totalEarnings += event.amount
+        openedShift.totalDistanceMeters += (event.distanceKm * 1000).toLong()
+        shiftRepository.update(openedShift)
+
+        driverService.setWorkStatus(event.driverId, WorkStatus.AVAILABLE)
     }
 }

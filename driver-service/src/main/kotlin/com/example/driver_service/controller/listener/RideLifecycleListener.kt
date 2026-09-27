@@ -4,6 +4,7 @@ import com.example.driver_service.model.enums.WorkStatus
 import com.example.driver_service.model.event.RideCanceledEvent
 import com.example.driver_service.model.event.RideCompletedEvent
 import com.example.driver_service.service.DriverService
+import com.example.driver_service.service.ShiftService
 import com.fasterxml.jackson.databind.ObjectMapper
 import mu.KotlinLogging
 import org.springframework.beans.factory.annotation.Qualifier
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Component
 class RideLifecycleListener(
     private val objectMapper: ObjectMapper,
     private val driverService: DriverService,
+    private val shiftService: ShiftService,
     @Qualifier("kafkaTypeMapping")
     private val typeMapping: Map<String, Class<out Any>>
 ) {
@@ -40,10 +42,8 @@ class RideLifecycleListener(
                     WorkStatus.AVAILABLE
                 )
 
-                is RideCompletedEvent -> driverService.setWorkStatus(
-                    event.driverId,
-                    WorkStatus.AVAILABLE
-                )
+                is RideCompletedEvent -> shiftService.update(event)
+
 
                 else -> log.warn { "No handler found for class: ${targetClass.simpleName}" }
             }

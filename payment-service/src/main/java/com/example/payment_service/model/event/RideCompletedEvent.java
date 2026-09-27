@@ -12,6 +12,7 @@ public record RideCompletedEvent(
         UUID passengerId,
         BigDecimal amount,
         UUID paymentMethodId,
-        String currency
+        String currency,
+        Long distanceKm
 ) {
 }
