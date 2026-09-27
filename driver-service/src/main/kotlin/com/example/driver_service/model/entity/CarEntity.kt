@@ -15,4 +15,18 @@ data class CarEntity(
     var createdAt: LocalDateTime = LocalDateTime.now(),
     var updatedAt: LocalDateTime = LocalDateTime.now(),
     var isDeleted: Boolean = false
-)
+) {
+    companion object {
+        fun emptyCar(): CarEntity {
+            return CarEntity(
+                id = UUID.randomUUID(),
+                color = "empty",
+                licensePlate = "empty",
+                brand = "empty",
+                model = "empty",
+                seats = 0,
+                isDeleted = false
+            )
+        }
+    }
+}

@@ -4,6 +4,7 @@ import com.example.driver_service.model.entity.CarEntity
 import java.util.UUID
 import org.apache.ibatis.annotations.Insert
 import org.apache.ibatis.annotations.Mapper
+import org.apache.ibatis.annotations.Param
 import org.apache.ibatis.annotations.Select
 import org.apache.ibatis.annotations.Update
 
@@ -20,6 +21,9 @@ interface CarRepository {
 
     @Select("SELECT * FROM car_table WHERE license_plate = #{plate}")
     fun findByLicensePlate(plate: String): CarEntity?
+
+    @Select("SELECT * FROM car_table WHERE id = ANY(#{carIds})")
+    fun findCarsByIds(@Param("carIds") carIds: Array<UUID>): List<CarEntity>
 
     @Insert(
         """

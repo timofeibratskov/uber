@@ -3,8 +3,10 @@ package com.example.driver_service.service
 import com.example.driver_service.exception.DriverNotFoundException
 import com.example.driver_service.exception.OpenedShiftAlreadyExistsException
 import com.example.driver_service.exception.ShiftNotFoundException
+import com.example.driver_service.mapper.CarMapper
 import com.example.driver_service.mapper.ShiftMapper
 import com.example.driver_service.model.dto.ShiftDto
+import com.example.driver_service.model.entity.CarEntity
 import com.example.driver_service.model.entity.ShiftEntity
 import com.example.driver_service.model.enums.ShiftStatus
 import com.example.driver_service.model.enums.WorkStatus
@@ -20,6 +22,7 @@ class ShiftService(
     private val driverService: DriverService,
     private val shiftRepository: ShiftRepository,
     private val shiftMapper: ShiftMapper,
+    private val carMapper: CarMapper,
     private val carService: CarService
 
 ) {
@@ -57,14 +60,26 @@ class ShiftService(
         openedShift.status = ShiftStatus.CLOSED
 
         shiftRepository.update(openedShift)
-
-        return shiftMapper.toDto(openedShift, carService.findEntityByCarId(openedShift.carId))
+        val carDto = carMapper.toShortDto(carService.findEntityByCarId(openedShift.carId))
+        return shiftMapper.toDto(openedShift, carDto)
     }
 
     @Transactional(readOnly = true)
     fun getActual(driverId: UUID): ShiftDto? {
         val openedShift = shiftRepository.findOpened(driverId)
             ?: return null
-        return shiftMapper.toDto(openedShift, carService.findEntityByCarId(openedShift.carId))
+        val carDto = carMapper.toShortDto(carService.findEntityByCarId(openedShift.carId))
+        return shiftMapper.toDto(openedShift, carDto)
+    }
+
+    @Transactional(readOnly = true)
+    fun findHistoryByDriverId(driverId: UUID): List<ShiftDto> {
+        val shifts = shiftRepository.findAllByDriverId(driverId)
+        val carsMap = carService.getCarsMap(shifts.map { shift -> shift.carId }.toSet())
+
+        return shifts.map { shift ->
+            val carDto = carMapper.toShortDto(carsMap[shift.carId] ?: CarEntity.emptyCar())
+            shiftMapper.toDto(shift, carDto)
+        }
     }
 }

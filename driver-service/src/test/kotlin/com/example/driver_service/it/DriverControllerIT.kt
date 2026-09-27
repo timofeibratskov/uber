@@ -24,6 +24,8 @@ import com.example.driver_service.repository.ShiftRepository
 import com.example.driver_service.service.LocationService
 import com.fasterxml.jackson.databind.ObjectMapper
 import java.math.BigDecimal
+import java.time.Instant
+import java.time.LocalDateTime
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -973,7 +975,7 @@ class DriverControllerIT @Autowired constructor(
         assertThat(updatedDriver?.workStatus).isEqualTo(WorkStatus.OFF_SHIFT)
         val closedShift = shiftRepository.findById(actualShift.id)
         assertNotNull(closedShift)
-        assertEquals(closedShift.status,ShiftStatus.CLOSED)
+        assertEquals(closedShift.status, ShiftStatus.CLOSED)
         assertNotNull(closedShift.endAt)
     }
 
@@ -1024,6 +1026,73 @@ class DriverControllerIT @Autowired constructor(
         assertNotNull(response.body)
         assertEquals(response.body!!.status, ShiftStatus.OPEN)
         assertEquals(response.body!!.carDto.id, carId)
+    }
+
+    @Test
+    @DisplayName("Успешное получение всех смен водителя")
+    fun getShiftHistory_Success_whenDriverHaveSomeShifts() {
+        // Arrange
+        val driverId = UUID.randomUUID()
+        val carId = UUID.randomUUID()
+        val driver = DriverEntity(
+            id = driverId,
+            name = "john",
+            email = "john@test.com",
+            phoneNumber = "+375290000000",
+            gender = Gender.MALE,
+            carId = null,
+            workStatus = WorkStatus.AVAILABLE,
+        )
+        val car = CarEntity(
+            id = carId,
+            color = "Blue",
+            licensePlate = "1111AA-1",
+            brand = "Tesla",
+            model = "Model 3",
+            seats = 5,
+            driverId = driverId,
+            isDeleted = false
+        )
+        val shift = ShiftEntity(
+            id = UUID.randomUUID(),
+            driverId = driverId,
+            carId = carId,
+            startAt = LocalDateTime.of(2025, 11, 11, 11, 11),
+            endAt = LocalDateTime.of(2025, 11, 11, 12, 11),
+            status = ShiftStatus.CLOSED,
+            totalRides = 5,
+            totalEarnings = BigDecimal.valueOf(100.00),
+            totalDistanceMeters = 10_000
+        )
+        val shift2 = ShiftEntity(
+            id = UUID.randomUUID(),
+            driverId = driverId,
+            carId = carId,
+            startAt = LocalDateTime.of(2025, 11, 12, 11, 11),
+            endAt = LocalDateTime.of(2025, 11, 12, 12, 11),
+            status = ShiftStatus.CLOSED,
+            totalRides = 7,
+            totalEarnings = BigDecimal.valueOf(100.00),
+            totalDistanceMeters = 9_000
+        )
+
+        driverRepository.save(driver)
+        carRepository.save(car)
+        driver.carId = carId
+        driverRepository.update(driver)
+        shiftRepository.save(shift)
+        shiftRepository.save(shift2)
+
+        // Act
+        val response = restTemplate.exchange<List<ShiftDto>>(
+            "/api/v1/drivers/$driverId/shift",
+            HttpMethod.GET
+        )
+
+        // Assert
+        assertThat(response.statusCode).isEqualTo(HttpStatus.OK)
+        assertNotNull(response.body)
+        assertEquals(response.body!!.size, 2)
     }
 
     @Test

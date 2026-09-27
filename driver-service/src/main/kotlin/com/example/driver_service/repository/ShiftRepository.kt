@@ -27,6 +27,9 @@ interface ShiftRepository {
     )
     fun update(shift: ShiftEntity)
 
+    @Select("SELECT * FROM shift_table where driver_id = #{driverId} order by start_at desc")
+    fun findAllByDriverId(driverId: UUID): List<ShiftEntity>
+
     @Select("""SELECT * FROM shift_table WHERE driver_id=#{driverId} AND status='OPEN'""")
     fun findOpened(driverId: UUID): ShiftEntity?
 

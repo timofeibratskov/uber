@@ -57,4 +57,15 @@ class ShiftController(
     ): ResponseEntity<ShiftDto> {
         return ResponseEntity.ok(shiftService.stop(id))
     }
+
+    @Operation(
+        summary = "Получить все смены",
+        description = "Возвращает все смены водителя"
+    )
+    @GetMapping("/{id}/shift")
+    fun getShiftHistory(
+        @Parameter(description = "ID водителя", example = "123e4567-e89b-12d3-a456-426614174000") @PathVariable id: UUID
+    ): ResponseEntity<List<ShiftDto>> {
+        return ResponseEntity.ok(shiftService.findHistoryByDriverId(id))
+    }
 }

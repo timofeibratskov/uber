@@ -16,7 +16,7 @@ import org.mapstruct.NullValuePropertyMappingStrategy
 interface CarMapper {
     fun toDto(entity: CarEntity): CarResponseDto
 
-    fun toShirtDto(entity: CarEntity): CarShortResponseDto
+    fun toShortDto(entity: CarEntity): CarShortResponseDto
 
 
     @Mapping(target = "id", ignore = true)
